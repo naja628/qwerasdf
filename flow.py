@@ -2,38 +2,34 @@ from pygame import *
 from shape import *
 from context import g
 from util import dist, Rec
-
-def post_error(msg, context = g):
-    # TODO actual thing
-    print(msg)
+from params import params
+from text import post_error, MENULINE1, TERMLINE
 
 def snappy_get_point(pos, context = g):
     c = context # shorter to write
-    rrad = c.view.ptord(conf.snap_radius)
-    shortest = rrad + conf.eps
+    rrad = c.view.ptord(params.snap_radius)
+    shortest = rrad + params.eps
     point = c.view.ptor(pos)
     candidates = []
     for s in c.shapes:
-        for i in range(len(s.divs)):
-            div = div[i]
+        for i, div in enumerate(s.divs):
             if (d := dist(div, c.view.ptor(pos))) < min(rrad, shortest):
                 shortest = d
                 point = div
-            if dist(point, div) < conf.eps:
+            if dist(point, div) < params.eps:
                 candidates.append(Rec(s = s, i = i))
     # filter candidates
-    candidates = [cd for cd in candidates if dist(cd.s, point) < conf.eps]
+    candidates = [ cd for cd in candidates 
+            if dist(cd.s.divs[cd.i], point) < params.eps ]
     return point, candidates
 
 # Event and dispatch
-_DETACHED = 0; _DONE = 1; _ATTACHED = 2; _JOINING = 3; _BAD = 4
 class EvHook:
     def __init__(self, make_hook, *args, **kwargs):
-        self.status = HS.DETACHED
         self.cleanup = lambda : None
         self.iter = make_hook(self, *args, **kwargs)
-        assert 'watched' in self.__dict__ # should be set-up by `make_hook`
-        # self.ret = None
+        assert hasattr(self, 'watched') # should be set-up by `make_hook`
+        self.done = False
     #
     def pass_ev(self, event):
         assert event.type in self.watched
@@ -42,22 +38,11 @@ class EvHook:
             next(self.iter)
         except StopIteration:
             self.finish()
-            #
-            match self.status:
-                case _DETACHED: self.status = _DONE
-                case _ATTACHED: self.status = _JOINING
-                case _: self.status = _BAD
     #
     def finish(self):
         self.cleanup()
         self.watched = set()
         self.done = True
-    #
-    def detached(): return self.status == _DETACHED
-    def done(): return self.status == _DONE
-    def attached(): return self.status == _ATTACHED
-    def joining(): return self.status == _JOINING
-    def bad(): return self.status == _BAD
     ###
 
 class EvDispatch: # event dispatcher
@@ -73,35 +58,25 @@ class EvDispatch: # event dispatcher
                 self.type_to_hook[type_] = [new_hook]
         return new_hook
     #
-    def dispatch1(self, ev):
-        if not ev.type in self.type_to_hook:
-            return
-        #
-        hooks = self.type_to_hook[ev.type]
-        while hooks and hooks[-1].done:
-            hooks.pop()
-        if not hooks:
-            del self.type_to_hook[ev.type]
-            return
-        #
-        hooks[-1].pass_ev(ev)
-        if hooks[-1].joining():
-            self.dispatch1(ev)
-    #
     def dispatch(self, events):
         for ev in events:
-            dispatch1(ev)
+            if not ev.type in self.type_to_hook:
+                continue
+            #
+            hooks = self.type_to_hook[ev.type]
+            while hooks and hooks[-1].done:
+                hooks.pop()
+            if not hooks:
+                del self.type_to_hook[ev.type]
+                continue
+            #
+            hooks[-1].pass_ev(ev)
     ###
 
 # Constant/Utils for pygame event linux mapping
 MS_LEFT = 1
 MS_MID = 2
 MS_RIGHT = 3
-
-def alpha_scan(event):
-    if not 4 <= event.scancode <= 29:
-        return ''
-    return chr(97 + event.scancode - 4)
 
 def click_type_is(event, evtype, button):
     return event.type == evtype and event.button == button
@@ -120,41 +95,247 @@ def mid_unclick(event):
 def right_unclick(event):
     return click_type_is(event, MOUSEBUTTONUP, MS_RIGHT)
 
-# Hooks
-def menu_dispatch_hook(hook, context = g):
-    # F -> draw: F line, D circle
-    # G -> reset
-    # X -> Cancel
-    hook.watched = { KEYUP }
+term_history = []
+def div_cmd(*args, **kwargs):
+    # TODO actual thing
+    print(args, kwargs)
+
+### MINITER
+def term_exec(cmd, context = g):
+    cmd_map = { 'div' : div_cmd } # ...
+    def parse_cmd(cmd):
+        def autocast(s):
+            assert len(s) > 0 # ok bc comes from `split`
+            if s[0] == '-' or '0' <= s[0] <= '9':
+                if '.' in s:
+                    return float(s)
+                else:
+                    return int(s)
+            else:
+                return s
+        #
+        def parse_kwarg(kwarg):
+            split = kwarg.find('=')
+            return kwarg[:split], autocast(kwarg[split + 1:])
+        #
+        [cmd, *tokens] = cmd.split()
+        args = [autocast(tok) for tok in tokens if '=' not in tok]
+        kwarg_list = [parse_kwarg(tok) for tok in tokens if '=' in tok]
+        kwargs = { k : v for (k, v) in kwarg_list }
+        kwargs['context'] = context
+        return cmd, args, kwargs
+    #
+    try:
+        cmd, args, kwargs = parse_cmd(cmd)
+        if not cmd in cmd_map:
+            post_error("Command not found", context = context)
+            return 1
+        cmd_map[cmd](*args, **kwargs)
+        return 0
+    except BaseException as e:
+        try:
+            post_error(str(e), context = context)
+        except:
+            post_error("unexpected error", context = context)
+        return 1
+
+def miniter_hook(hook, context = g):
+    hook.watched = {KEYDOWN}
+    c = context
+    def cleanup():
+        c.text_area.set_line(TERMLINE, '') 
+    hook.cleanup = cleanup
+    def set_line(cmd):
+        c.text_area.set_line(TERMLINE, 'miniter: ' + cmd + '_', params.term_color)
+    set_line('')
     #
     def iter():
-        menu_path = ""
-        top_hook = None
-        def reset_hook():
-            if top_hook is None: return
-            else: top_hook.finish()
-        while e := hook.ev:
-            print("got menu:", alpha_scan(e))
-            match menu_path, alpha_scan(e): 
-                case "", 'f':
-                    menu_path = "f"
-                case "f", 'f':
-                    reset_hook()
-                    top_hook = g.dispatch.add_hook(draw_lines_hook)
-                case "f", 'd':
-                    reset_hook()
-                    top_hook = g.dispatch.add_hook(draw_circles_hook)
-                case _, 'g':
-                    reset_hook()
-                    menu_path = ""
-                case _, 'x': # TODO rethink this
-                    reset_hook()
-                    menu_path = menu_path[:-1] if menu_path else ""
-                case _:
-                    pass
+        command = ''
+        while True:
+            while (ev := hook.ev):
+                # handle C-c, C-u, UP, DOWN, RETURN specially
+                if ev.mod & KMOD_CTRL:
+                    if ev.key == K_c or ev.key == K_d: 
+                        return
+                    if ev.key == K_u:
+                        command = ''
+                elif ev.key == K_BACKSPACE or ev.key == K_DELETE:
+                    command = command[:-1]
+                elif ev.key == K_RETURN:
+                    if (command == ''): # double Enter exits terminal
+                        return
+                    status = term_exec(command)
+                    if status == 0: # 0 = good
+                        term_history.append(command)
+                    break
+                elif (ev.mod & ~KMOD_SHIFT) == 0: # ignore all mods except SHIFT
+                    # Note: weird pygame "bug" (?) where pressing control+key 
+                    # very fast results in unmodified ascii control code
+                    # (ie CTRL-c -> key = 'c', unicode = '\0x03' (ie ^C), mod = 0)
+                    # TODO ? maybe refactor with `get_pressed`
+                    if ev.unicode and 127 != ord(ev.unicode) >= 32: 
+                        command += ev.unicode
+                set_line(command)
+                yield
+            command = ''
+            set_line(command)
             yield
     return iter()
 
+### Menu
+class Menu:
+    def __init__(self):
+        self._path = ""
+        self.root = {
+            'A': ("New Shape", {'A': "New Point", 'D': "New Segment", 'F' : "New Circle"}),
+            'S': ("Select", {'D': "Delete", 'F': "Unweave"} ),
+            'D': ("Draw Weave", {'A' : "Invert", 'S': "Swap", 'D': "Draw Weave", 'F': "Choose Color"})
+            #'D': ("Draw Weave", {'A' : "Invert", 'S': "Swap", 'F': "Choose Color"})
+        }
+        self.pos = self.root # pos is always a dict
+        #
+        self.pinned = {'Z': "Menu Root", 'X': "Cancel", 'C': "Command"}
+    #
+    def _is_leaf(self, thing):
+        return type(thing) is str
+    #
+    def go(self, key, navigate = True):
+        if key in self.pinned:
+            return self.pinned[key]
+        elif key in self.pos:
+            down = self.pos[key]
+            if self._is_leaf(down):
+                return down
+            else:
+                if navigate:
+                    self.pos = down[1] # navigate down
+                    self._path += key
+                return down[0]
+        else:
+            return None
+    #
+    def __getitem__(self, key):
+        return self.go(key, navigate = False)
+    def peek(self, key): # just an alias
+        return self[key]
+    #
+    def go_path(self, path):
+        self.pos = self.root
+        self._path = ""
+        for (i, key) in enumerate(path):
+            if self.go(key) == None:
+                self._path = path[:i]
+                break
+    #
+    def path(self):
+        return self._path
+    #
+    def up(self, n = 1): # 0 go to root
+        self.go_path(self._path[:-n])
+    #
+    def show(self, context = g):
+        menu_layout = ['QWER', 'ASDF', 'ZXCV']
+        text_area = context.text_area
+        #
+        for (i, row) in enumerate(menu_layout):
+            line = "|"
+            for key in row:
+                label = self[key]
+                #
+                label_size = 10
+                if label:
+                    line += f" {key}: "
+                    line += label[:label_size].ljust(label_size, ' ')
+                else:
+                    line += ' ' * (len(" X: ") + label_size)
+                line += ' |'
+            text_area.set_line(MENULINE1 + i, line)
+    ###
+
+def alpha_scan(event):
+    if event.scancode == 44:
+        return ' '
+    if not 4 <= event.scancode <= 29:
+        return ''
+    return chr(ord('A') + event.scancode - 4)
+
+# *** Menu Structure ***
+### Pinned:
+# Menu Root
+# Cancel
+# Command
+#
+### Nested:
+# New Shape
+#     New Point
+#     New Segment
+#     New Circle
+# Select
+#     Unweave
+#     Delete
+# Draw Weave
+#     Invert
+#     Swap
+#     Choose Color
+#
+
+def menu_hook(hook, menu, context = g):
+    hook.watched = { KEYDOWN }
+    #
+    c = context
+    menu.show(c)
+    def iter():
+        top_hook = None
+        def set_top_hook(hook_fun, *a, **ka):
+            nonlocal top_hook
+            if top_hook != None: top_hook.finish()
+            if hook_fun != None: top_hook = c.dispatch.add_hook(hook_fun, *a, **ka)
+            else: top_hook = None
+        #
+        while (ev := hook.ev):
+            key = alpha_scan(ev)
+            if not key:
+                yield; continue
+            #
+            print("got menu:", key) # debug
+            match menu.go(key):
+                # Pinned
+                case "Cancel":
+                    if top_hook != None: set_top_hook(None) 
+                    menu.up(1)
+                case "Menu Root": 
+                    menu.go_path("")
+                    set_top_hook(None)
+                case "Command":
+                    # don't use set_top_hook bc we cede control
+                    c.dispatch.add_hook(miniter_hook, c)
+                # Create Shapes
+                case "New Point": pass # TODO
+                case "New Segment": set_top_hook(draw_lines_hook, c)
+                case "New Circle": set_top_hook(draw_circles_hook, c)
+                # Alter Selection
+                case "Select": set_top_hook(select_hook, c)
+                case "Unweave": unweave_selection(context = c)
+                case "Delete": delete_selection(context = c)
+                # Alter Weave Behavior
+                case "Draw Weave": set_top_hook(create_weave_hook, c)
+                case "Invert":
+                    inc0, inc1 = context.weave_incrs
+                    context.weave_incrs = (-inc0, inc1)
+                case "Swap":
+                    pass # TODO (probably post event?)
+                case "Choose Color":
+                    pass # TODO
+                #
+                case _:
+                    pass
+            menu.show(c)
+            yield
+    #
+    return iter()
+
+
+#### Actions
 def draw_circles_hook(hook, context = g):
     hook.watched = { MOUSEBUTTONDOWN, MOUSEMOTION }
     #
@@ -204,7 +385,7 @@ def draw_lines_hook(hook, context = g):
             if left_click(e):
                 if a is None:
                     # a = get_point(e.pos)
-                    a, _ = snappy_get_point(pos, context)
+                    a, _ = snappy_get_point(e.pos, context)
                 else:
                     context.shapes.append(get_line(a, e.pos))
                     context.hints = []
@@ -214,7 +395,7 @@ def draw_lines_hook(hook, context = g):
             yield
     return iter()
 
-def zoom_hook(hook, factor = 1.1, context = g):
+def zoom_hook(hook, factor = params.zoom_factor, context = g):
     hook.watched = { MOUSEWHEEL }
     def iter():
         while e := hook.ev:
@@ -223,22 +404,21 @@ def zoom_hook(hook, factor = 1.1, context = g):
     return iter()
 
 def create_weave_hook(hook, context = g):
-    hook.watched = { MOUSEBUTTONDOWN }
+    hook.watched = { MOUSEBUTTONDOWN, MOUSEMOTION }
     def iter():
-        c, hangs, nloop = context, [None] * 3, 0
-        def scroll_loop_hook(hook):
-            hook.watched = {MOUSEWHEEL}
-            def iter():
-                nloop += hook.ev.y
-                if nloop < 0: nloop = 0
-            return iter()
+        c, hangs = context, [None] * 3
         #
         def update_hints_hook(hook):
             hook.watched = { MOUSEMOTION }
             def iter():
-                c.hints = [ Point(h.s[h.i]) for h in hangs if (h != None) ]
-                under_cursor, m = snappy_get_point(hook.ev.pos, c)
-                if m: c.hints.append(Point(under_cursor))
+                while (e := hook.ev):
+                    c.hints = [ Point(h.s.divs[h.i]) for h in hangs if (h != None) ]
+                    under_cursor, m = snappy_get_point(hook.ev.pos, c)
+                    if m: c.hints.append(Point(under_cursor))
+                    if hangs[1] != None and m and m[0].s == hangs[1].s:
+                        hint_hangs = hangs[:2] + [m[0]]
+                        c.hints.append(Weave(hint_hangs, c.weave_incrs))
+                    yield
             return iter()
         #
         def get_hang():
@@ -246,30 +426,235 @@ def create_weave_hook(hook, context = g):
             #
             _, matches = snappy_get_point(hook.ev.pos, c)
             if not matches: 
-                post_error("no shape under cursor", c)
+                post_error("no shape under cursor", context = c)
                 return
             # for now just assume first match (TODO)
-            return Rec(s = matches[0].s, start = matches[0].i)
+            # return Rec(s = matches[0].s, i = matches[0].i)
+            return matches[0]
         #####
-        wheel_hook, mo_hook = None, c.dispatch.add_hook(update_hints_hook)
-        def cleanup(): 
-            mo_hook.finish(); c.hints = []
-            if wheel_hook is not None: wheel_hook.finsh()
+        mo_hook = c.dispatch.add_hook(update_hints_hook)
+        def cleanup(): mo_hook.finish(); c.hints = []
         hook.cleanup = cleanup
         # loop
         while True:
+            def assign_item(seq, i, assignment): # `seq[i] := assignment` is illegal
+                seq[i] = assignment
+                return seq[i]
+            #
             for i in range(2):
-                while (hangs[i] := get_hang()) is None: yield
+                while assign_item(hangs, i, get_hang()) is None: yield
                 yield
             #
-            wheel_hook = c.dispatch.add_hook(scroll_loop_hook)
-            while (hangs[2] := get_hang()) is None and hangs[2].s != hangs[1].s:
+            while assign_item(hangs, 2, get_hang()) is None or hangs[2].s != hangs[1].s:
                 if hangs[2] is not None:
-                    post_error("must belong to same shape", c)
+                    post_error("must belong to same shape", context = c)
                 yield
             #
-            wheel_hook.finish()
-            c.weaves.append(Weave(hangs, c.weave_incrs, nloop))
-            nloop, hangs = [None] * 3, 0
+            c.weaves.append(Weave(hangs, c.weave_incrs))
+            hangs, c.hints = [None] * 3, [] # reset
+            yield
             continue
     return iter()
+
+def select_hook(hook, context = g):
+    # left-click -> select ONE, right-click -> toggle selected
+    hook.watched = { MOUSEBUTTONDOWN, MOUSEMOTION }
+    def cleanup(): context.selected = []; context.hints = []
+    hook.cleanup = cleanup
+    def iter():
+        def get_shape():
+            _, matches = snappy_get_point(hook.ev.pos, context)
+            print(_, matches) # debug
+            print(context.selected)
+            context.hints = []
+            if not matches:
+                return None
+            else:
+                if hook.ev.type == MOUSEMOTION:
+                    context.hints = [matches[0].s]
+                else:
+                    context.hints = []
+                    return matches[0].s # assume first is good
+        #
+        while (ev := hook.ev):
+            if left_click(ev) or ev.type == MOUSEMOTION:
+                while not (sh := get_shape()):
+                    yield
+                context.selected = [sh]
+                print('select single:', context.selected)
+            elif right_click(ev) or ev.type == MOUSEMOTION:
+                while not (sh := get_shape()):
+                    yield
+                if sh in context.selected:
+                    context.selected.remove(sh)
+                else:
+                    context.selected.append(sh)
+                print('toggle_single:', context.selected)
+            yield
+    return iter()
+
+#### Select Actions
+def unweave1(shape, context = g):
+    c = context
+    def connected(weave, shape):
+        print("ends: ", *[w.s for w in weave.endpoints], "shape: ", shape)
+        return (weave.endpoints[0].s == shape) or (weave.endpoints[1].s == shape)
+    print([w for w in c.weaves if connected(w, shape)])
+    c.weaves = [w for w in c.weaves if not connected(w, shape)]
+#
+def unweave_selection(context = g):
+    for sh in context.selected:
+        unweave1(sh, context)
+#
+def delete_selection(context = g):
+    print("deldel") # debug
+    c = context
+    unweave1(c)
+    c.shapes = [sh for sh in c.shapes if not sh in c.selected]
+    c.selected = []
+
+# # Event and dispatch
+# _DETACHED = 0; _DONE = 1; _ATTACHED = 2; _JOINING = 3; _BAD = 4
+# class EvHook:
+#     def __init__(self, make_hook, *args, **kwargs):
+#         self.status = HS.DETACHED
+#         self.cleanup = lambda : None
+#         self.iter = make_hook(self, *args, **kwargs)
+#         assert 'watched' in self.__dict__ # should be set-up by `make_hook`
+#         # self.ret = None
+#     #
+#     def pass_ev(self, event):
+#         assert event.type in self.watched
+#         self.ev = event
+#         try:
+#             next(self.iter)
+#         except StopIteration:
+#             self.finish()
+#             #
+#             match self.status:
+#                 case _DETACHED: self.status = _DONE
+#                 case _ATTACHED: self.status = _JOINING
+#                 case _: self.status = _BAD
+#     #
+#     def finish(self):
+#         self.cleanup()
+#         self.watched = set()
+#         self.done = True
+#     #
+#     def detached(): return self.status == _DETACHED
+#     def done(): return self.status == _DONE
+#     def attached(): return self.status == _ATTACHED
+#     def joining(): return self.status == _JOINING
+#     def bad(): return self.status == _BAD
+#     ###
+# 
+# class EvDispatch: # event dispatcher
+#     def __init__(self):
+#         self.type_to_hook = {}
+#     #
+#     def add_hook(self, make_hook, *args, **kwargs):
+#         new_hook = EvHook(make_hook, *args, **kwargs)
+#         for type_ in new_hook.watched:
+#             try:
+#                 self.type_to_hook[type_].append(new_hook)
+#             except KeyError:
+#                 self.type_to_hook[type_] = [new_hook]
+#         return new_hook
+#     #
+#     def dispatch1(self, ev):
+#         if not ev.type in self.type_to_hook:
+#             return
+#         #
+#         hooks = self.type_to_hook[ev.type]
+#         while hooks and hooks[-1].done:
+#             hooks.pop()
+#         if not hooks:
+#             del self.type_to_hook[ev.type]
+#             return
+#         #
+#         hooks[-1].pass_ev(ev)
+#         if hooks[-1].joining():
+#             self.dispatch1(ev)
+#     #
+#     def dispatch(self, events):
+#         for ev in events:
+#             dispatch1(ev)
+#     ###
+
+# def show_menu(keypath, highlighted = '', context = g):
+#     text_area = context.text_area
+#     label_size = 10
+#     def get_nested_label(last_key):
+#         sub = nested_menu
+#         for key in keypath:
+#             if not key in sub:
+#                 return None
+#             else:
+#                 sub = sub[key][1]
+#         try:
+#             return sub[last_key][0]
+#         except KeyError:
+#             return None
+#     #
+#     for (i, row) in enumerate(menu_layout):
+#         line = "|"
+#         for key in row:
+#             if key in pinned_menu:
+#                 label = pinned_menu[key]
+#             elif label := get_nested_label(key):
+#                 pass
+#             else:
+#                 label = None
+#             if label:
+#                 line += f" {key}: "
+#                 line += label[:label_size].ljust(label_size, ' ')
+#             else:
+#                 line += ' ' * (len(" X: ") + label_size)
+#             line += ' |'
+#         text_area.set_line(i + MENULINE1, line)
+#     ###
+# 
+# def menu_dispatch_hook(hook, context = g):
+#     # F -> draw: F line, D circle
+#     # G -> reset
+#     # X -> Cancel
+#     hook.watched = { KEYDOWN }
+#     show_menu('')
+#     #
+#     def iter():
+#         menu_path = ""
+#         top_hook = None
+#         def reset_hook():
+#             if top_hook is None: return
+#             else: top_hook.finish()
+#         while e := hook.ev:
+#             print("got menu:", alpha_scan(e))
+#             match menu_path, alpha_scan(e): 
+#                 case "", 'D':
+#                     reset_hook()
+#                     menu_path = "D"
+#                     top_hook = g.dispatch.add_hook(create_weave_hook)
+#                 case "D", ' ':
+#                     inc0, inc1 = context.weave_incrs
+#                     context.weave_incrs = (-inc0, inc1)
+#                 case "", 'F':
+#                     menu_path = "F"
+#                 case "F", 'F':
+#                     reset_hook()
+#                 case "F", 'D':
+#                     reset_hook()
+#                     top_hook = g.dispatch.add_hook(draw_circles_hook)
+#                 case _, 'G':
+#                     reset_hook()
+#                     menu_path = ""
+#                 case _, 'X': # TODO rethink this
+#                     reset_hook()
+#                     menu_path = menu_path[:-1] if menu_path else ""
+#                 case _, 'C':
+#                     top_hook = g.dispatch.add_hook(miniter_hook)
+#                 case _:
+#                     pass
+#             show_menu(menu_path)
+#             yield
+#     return iter()
+# 

@@ -15,4 +15,13 @@ class Rec:
     #
     def set(self, **kwargs):
         for k, v in kwargs.items():
-            self.__dict__[k] = v
+            setattr(self, k, v)
+            # self.__dict__[k] = v
+        return self
+
+# def non_rebinding_set(obj, other):
+#     for k, v in other.__dict__.items():
+#         obj.__dict__[k] = v
+#     for k in obj.__dict__.keys():
+#         if not k in other.__dict__:
+#             del obj.__dict__[key]

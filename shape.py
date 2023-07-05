@@ -1,6 +1,6 @@
 import numpy as np
 from numpy import sin, cos, pi
-from pygame import draw
+from pygame import draw, Color
 from params import params
 from util import farr, Rec
 
@@ -20,6 +20,7 @@ class Shape:
         if self.loopy:
             return self.divs[i % len(self.divs)]
         else:
+            if i < 0: return None
             try: return self.divs[i]
             except IndexError: return None
     ###
@@ -49,7 +50,7 @@ class Point(Shape):
         self.divs = np.array([p])
     #
     def draw(self, screen, view, color = params.shape_color):
-        draw_point(screen, view.rtop(p), color)
+        draw_point(screen, view.rtop(self.p), color)
     ###
 
 class Line(Shape):
@@ -64,22 +65,43 @@ class Line(Shape):
         Shape.draw_divs(self, screen, view)
     ###
 
-# class Weave:
-#     def __init__(self, rec1, rec2, nwires):
-#         # rec* = Rec(s = <shape>, start = <div_index>, incr = <num skip between>)
-#         self.endpoints = (startrec, endrec)
-#         self.nwires = nwires
-#     #
-#     def draw(self, screen, view, color = Color(128, 0, 64)):
-#         def get_point(which, i):
-#             rec = self.endpoints[which]
-#             return rec.s.get_div(rec.start + i * rec.incr)
-#         #
-#         for i in range(self.nwires):
-#             a = get_point(0, i)
-#             b = get_point(1, i)
-#             if (a is None or b is None):
-#                 return
-#             draw.line(screen, color, view.rtop(a), view.rtop(b))
-#     ###
-# 
+def _compare(a, b):
+    if (a < b): return -1
+    if (a == b): return 0
+    if (a > b): return 1
+#
+def _sign(x):
+    return _compare(x, 0)
+
+class Weave:
+    def __init__(self, hangs, incrs = (1, 1)):
+        # hang = Rec(s = <shape>, i = <div_index>, incr = <num skip between>)
+        assert len(hangs) == 3
+        assert hangs[1].s == hangs[2].s
+        #
+        self.incrs = incrs
+        if (self.incrs[1] < 0):
+            self.change_dir()
+        #
+        self.endpoints = [hg.set(incr = inc) for hg, inc in zip(hangs[:2], incrs)]
+        self.nwires = (abs(hangs[2].i - hangs[1].i) + 1) // incrs[1]
+        if (hangs[1].i > hangs[2].i):
+            self.change_dir()
+    #
+    def change_dir(self):
+        inc0, inc1 = self.incrs
+        self.incrs = (-inc0, -inc1)
+    #
+    def draw(self, screen, view, color = Color(128, 0, 64)):
+        def get_point(which, i):
+            hg = self.endpoints[which]
+            return hg.s.get_div(hg.i + i * self.incrs[which])
+        #
+        for i in range(self.nwires):
+            a = get_point(0, i)
+            b = get_point(1, i)
+            if (a is None or b is None):
+                return
+            draw.line(screen, color, view.rtop(a), view.rtop(b))
+    ###
+
