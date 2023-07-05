@@ -19,8 +19,22 @@ def g_init():
     g.text_area = TextArea(width = display.get_window_size()[1])
     g.selected = []
     g.menu = Menu()
+    g.colors = Rec(palette = params.start_palette, key = 'Q', show = False)
     #g.weave_colors = []
 
+def draw_palette(palette, label_color = Color(0, 0, 0)):
+    font_ = font.SysFont(('MonoSpace', None), params.font_size * 15 // 10 )
+    widths = []
+    for key in palette.keys(): # can't multiply because kerning
+        widths.append(font_.size(f" {key} ")[0])
+    surf = Surface(( sum(widths), font_.size('')[1] ))
+    offset = 0
+    for (width, (key, bg)) in zip(widths, palette.items()):
+        box = font_.render(f" {key} ", True, label_color, bg)
+        surf.blit(box, (offset, 0))
+        offset += width
+    return surf
+    
 def main():
     g_init()
     running = True
@@ -36,7 +50,7 @@ def main():
             thing.draw(g.screen, g.view)
         #
         for sel in g.selected:
-            hint.draw(g.screen, g.view, color = params.select_color)
+            sel.draw(g.screen, g.view, color = params.select_color)
         #
         for hint in g.hints:
             hint.draw(g.screen, g.view, color = params.hint_color)
@@ -44,6 +58,9 @@ def main():
         text_img = g.text_area.render()
         text_y = display.get_window_size()[1] - text_img.get_height() - 1
         g.screen.blit(text_img, (0, text_y))
+        if g.colors.show:
+            palette_img = draw_palette(g.colors.palette)
+            g.screen.blit(palette_img, (0, text_y - palette_img.get_height()))
         #
         display.flip()
         g.clock.tick(60);

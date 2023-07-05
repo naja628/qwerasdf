@@ -74,8 +74,10 @@ def _sign(x):
     return _compare(x, 0)
 
 class Weave:
-    def __init__(self, hangs, incrs = (1, 1)):
+    def __init__(self, hangs, incrs = (1, 1), color_key = None, palette = {}):
         # hang = Rec(s = <shape>, i = <div_index>, incr = <num skip between>)
+        self.color_key = color_key
+        self.palette = palette
         assert len(hangs) == 3
         assert hangs[1].s == hangs[2].s
         #
@@ -92,7 +94,18 @@ class Weave:
         inc0, inc1 = self.incrs
         self.incrs = (-inc0, -inc1)
     #
-    def draw(self, screen, view, color = Color(128, 0, 64)):
+    def set_color(self, color_key, palette = None):
+        self.palette = palette or self.palette
+        self.color_key = color_key
+    #
+    def color(self):
+        try:
+            return self.palette[self.color_key]
+        except:
+            return Color(128, 0, 64) # default if fail
+    #
+    def draw(self, screen, view, color = None):
+        color = color or self.color()
         def get_point(which, i):
             hg = self.endpoints[which]
             return hg.s.get_div(hg.i + i * self.incrs[which])

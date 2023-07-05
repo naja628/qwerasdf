@@ -94,16 +94,55 @@ def mid_unclick(event):
     return click_type_is(event, MOUSEBUTTONUP, MS_MID)
 def right_unclick(event):
     return click_type_is(event, MOUSEBUTTONUP, MS_RIGHT)
+#
+def is_motion(event):
+    return event.type == MOUSEMOTION
 
-term_history = []
 def div_cmd(*args, **kwargs):
     # TODO actual thing
     print(args, kwargs)
 
+def color_cmd(*args, _env):
+    palette = _env.context.colors.palette
+    try:
+        key = args[0].upper()
+        if key not in palette: raise RuntimeError
+    except:
+        raise Exception("first argument must be a valid color key")
+    #
+    def set_rgb(r, g, b):
+        palette[key] = Color(r, g, b)
+    #
+    def set_hex(hexstr):
+        hexstr = str(hexstr)
+        if hexstr[:2].lower() == "0x":
+            hexstr = hexstr[2:]
+        hexstr = hexstr.rjust(6, '0')
+        [r, g, b] = [int(hexstr[i:i+2], 16) for i in range(0, 6, 2)]
+        set_rgb(r, g, b)
+    #
+    try:
+        match args[1:]:
+            case []: _env.context.colors.key = key
+            case [hexcolor]: set_hex(hexcolor)
+            case [r, g, b]: set_rgb(r, g, b)
+    except BaseException as e:
+        cmd = _env.cmd
+        raise Exception(f"usage: {cmd} key OR {cmd} key r g b OR {cmd} hex")
+    #
+
+def show_palette_cmd(*, _env):
+    _env.context.colors.show = not _env.context.colors.show
+
 ### MINITER
 def term_exec(cmd, context = g):
-    cmd_map = { 'div' : div_cmd } # ...
+    cmd_map = { 
+            'c': color_cmd, 'set_color': color_cmd, 
+            'palette': show_palette_cmd 
+            } # ...
     def parse_cmd(cmd):
+        # maybe parse opts?
+        # maybe allow some quoting
         def autocast(s):
             assert len(s) > 0 # ok bc comes from `split`
             if s[0] == '-' or '0' <= s[0] <= '9':
@@ -122,7 +161,7 @@ def term_exec(cmd, context = g):
         args = [autocast(tok) for tok in tokens if '=' not in tok]
         kwarg_list = [parse_kwarg(tok) for tok in tokens if '=' in tok]
         kwargs = { k : v for (k, v) in kwarg_list }
-        kwargs['context'] = context
+        kwargs['_env'] = Rec(context = context, cmd = cmd)
         return cmd, args, kwargs
     #
     try:
@@ -155,7 +194,7 @@ def miniter_hook(hook, context = g):
             while (ev := hook.ev):
                 # handle C-c, C-u, UP, DOWN, RETURN specially
                 if ev.mod & KMOD_CTRL:
-                    if ev.key == K_c or ev.key == K_d: 
+                    if ev.key == K_c:
                         return
                     if ev.key == K_u:
                         command = ''
@@ -165,15 +204,12 @@ def miniter_hook(hook, context = g):
                     if (command == ''): # double Enter exits terminal
                         return
                     status = term_exec(command)
-                    if status == 0: # 0 = good
-                        term_history.append(command)
+                    #if status == 0: # 0 = good
+                    #    term_history.append(command)
                     break
-                elif (ev.mod & ~KMOD_SHIFT) == 0: # ignore all mods except SHIFT
-                    # Note: weird pygame "bug" (?) where pressing control+key 
-                    # very fast results in unmodified ascii control code
-                    # (ie CTRL-c -> key = 'c', unicode = '\0x03' (ie ^C), mod = 0)
-                    # TODO ? maybe refactor with `get_pressed`
-                    if ev.unicode and 127 != ord(ev.unicode) >= 32: 
+                # ignore ctrl/alt modded keys + ascii control codes
+                elif ev.mod & KMOD_CTRL == 0: 
+                    if ev.unicode and 127 != ord(ev.unicode) >= 32:
                         command += ev.unicode
                 set_line(command)
                 yield
@@ -189,12 +225,12 @@ class Menu:
         self.root = {
             'A': ("New Shape", {'A': "New Point", 'D': "New Segment", 'F' : "New Circle"}),
             'S': ("Select", {'D': "Delete", 'F': "Unweave"} ),
-            'D': ("Draw Weave", {'A' : "Invert", 'S': "Swap", 'D': "Draw Weave", 'F': "Choose Color"})
+            'D': ("Draw Weave", {'A' : "Invert", 'D': "Draw Weave", 'F': "Choose Color"})
             #'D': ("Draw Weave", {'A' : "Invert", 'S': "Swap", 'F': "Choose Color"})
         }
         self.pos = self.root # pos is always a dict
         #
-        self.pinned = {'Z': "Menu Root", 'X': "Cancel", 'C': "Command"}
+        self.pinned = {'Z': "Menu Top", 'X': "Back", 'C': "Command"}
     #
     def _is_leaf(self, thing):
         return type(thing) is str
@@ -237,12 +273,12 @@ class Menu:
         menu_layout = ['QWER', 'ASDF', 'ZXCV']
         text_area = context.text_area
         #
+        label_size = 12
         for (i, row) in enumerate(menu_layout):
             line = "|"
             for key in row:
                 label = self[key]
                 #
-                label_size = 10
                 if label:
                     line += f" {key}: "
                     line += label[:label_size].ljust(label_size, ' ')
@@ -261,8 +297,8 @@ def alpha_scan(event):
 
 # *** Menu Structure ***
 ### Pinned:
-# Menu Root
-# Cancel
+# Menu Top
+# Back
 # Command
 #
 ### Nested:
@@ -300,10 +336,10 @@ def menu_hook(hook, menu, context = g):
             print("got menu:", key) # debug
             match menu.go(key):
                 # Pinned
-                case "Cancel":
+                case "Back":
                     if top_hook != None: set_top_hook(None) 
                     menu.up(1)
-                case "Menu Root": 
+                case "Menu Top": 
                     menu.go_path("")
                     set_top_hook(None)
                 case "Command":
@@ -322,10 +358,8 @@ def menu_hook(hook, menu, context = g):
                 case "Invert":
                     inc0, inc1 = context.weave_incrs
                     context.weave_incrs = (-inc0, inc1)
-                case "Swap":
-                    pass # TODO (probably post event?)
                 case "Choose Color":
-                    pass # TODO
+                    c.dispatch.add_hook(choose_color, c.colors)
                 #
                 case _:
                     pass
@@ -333,7 +367,6 @@ def menu_hook(hook, menu, context = g):
             yield
     #
     return iter()
-
 
 #### Actions
 def draw_circles_hook(hook, context = g):
@@ -435,7 +468,7 @@ def create_weave_hook(hook, context = g):
         mo_hook = c.dispatch.add_hook(update_hints_hook)
         def cleanup(): mo_hook.finish(); c.hints = []
         hook.cleanup = cleanup
-        # loop
+        # loopy shapes problems? 
         while True:
             def assign_item(seq, i, assignment): # `seq[i] := assignment` is illegal
                 seq[i] = assignment
@@ -450,10 +483,27 @@ def create_weave_hook(hook, context = g):
                     post_error("must belong to same shape", context = c)
                 yield
             #
-            c.weaves.append(Weave(hangs, c.weave_incrs))
+            new_weave = Weave(hangs, c.weave_incrs)
+            if hasattr(c, 'colors'):
+                new_weave.set_color(c.colors.key, c.colors.palette)
+            c.weaves.append(new_weave)
             hangs, c.hints = [None] * 3, [] # reset
             yield
             continue
+    return iter()
+
+def choose_color(hook, color_context):
+    hook.watched = {KEYDOWN}
+    def cleanup(): c.show = False
+    hook.cleanup = cleanup
+    #
+    c = color_context
+    c.show = True
+    def iter():
+        if (ch := alpha_scan(hook.ev)) in c.palette:
+            c.key = ch
+        return
+        yield # never but makes python understand this is a generator
     return iter()
 
 def select_hook(hook, context = g):
@@ -463,33 +513,31 @@ def select_hook(hook, context = g):
     hook.cleanup = cleanup
     def iter():
         def get_shape():
-            _, matches = snappy_get_point(hook.ev.pos, context)
-            print(_, matches) # debug
-            print(context.selected)
-            context.hints = []
-            if not matches:
+            if not hasattr(hook.ev, 'pos'): 
                 return None
-            else:
-                if hook.ev.type == MOUSEMOTION:
-                    context.hints = [matches[0].s]
-                else:
-                    context.hints = []
-                    return matches[0].s # assume first is good
+            #
+            _, matches = snappy_get_point(hook.ev.pos, context)
+            if not matches: 
+                return None
+            else: 
+                return matches[0].s # assume first is good
         #
         while (ev := hook.ev):
-            if left_click(ev) or ev.type == MOUSEMOTION:
-                while not (sh := get_shape()):
-                    yield
-                context.selected = [sh]
-                print('select single:', context.selected)
-            elif right_click(ev) or ev.type == MOUSEMOTION:
-                while not (sh := get_shape()):
-                    yield
-                if sh in context.selected:
-                    context.selected.remove(sh)
+            if (sh := get_shape()):
+                if is_motion(ev):
+                    context.hints = [sh]
                 else:
-                    context.selected.append(sh)
-                print('toggle_single:', context.selected)
+                    context.hints = []
+                #
+                if left_click(ev):
+                    context.selected = [sh]
+                elif right_click(ev):
+                    if sh in context.selected:
+                        context.selected.remove(sh)
+                    else:
+                        context.selected.append(sh)
+            else:
+                context.hints = []
             yield
     return iter()
 
@@ -497,9 +545,7 @@ def select_hook(hook, context = g):
 def unweave1(shape, context = g):
     c = context
     def connected(weave, shape):
-        print("ends: ", *[w.s for w in weave.endpoints], "shape: ", shape)
         return (weave.endpoints[0].s == shape) or (weave.endpoints[1].s == shape)
-    print([w for w in c.weaves if connected(w, shape)])
     c.weaves = [w for w in c.weaves if not connected(w, shape)]
 #
 def unweave_selection(context = g):
@@ -507,9 +553,8 @@ def unweave_selection(context = g):
         unweave1(sh, context)
 #
 def delete_selection(context = g):
-    print("deldel") # debug
     c = context
-    unweave1(c)
+    unweave_selection(c)
     c.shapes = [sh for sh in c.shapes if not sh in c.selected]
     c.selected = []
 
@@ -658,3 +703,6 @@ def delete_selection(context = g):
 #             yield
 #     return iter()
 # 
+# Note: weird pygame "bug" (?) where pressing control+key (at KEYUP)
+# very fast results in unmodified ascii control code
+# (ie CTRL-c -> key = 'c', unicode = '\0x03' (ie ^C), mod = 0)
