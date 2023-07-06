@@ -2,6 +2,9 @@ from pygame import Color
 from util import Rec
 
 params = Rec()
+
+#############################
+params.start_ndivs = 60
 params.point_radius = 2
 params.snap_radius = 7
 
@@ -30,3 +33,4 @@ params.start_palette = {
         'D': Color(192, 96, 32),
         'F': Color(192, 32, 160),
         }
+

@@ -4,11 +4,13 @@ from itertools import chain
 from flow import *
 from view import View
 from text import TextArea
+from save import save, load
 
 def g_init():
     "init pygame and set-up globals"
     init() # from pygame
     g.screen = display.set_mode((800, 800))
+    display.set_caption("QWERASDF")
     g.clock = time.Clock()
     g.shapes = []
     g.hints = [] 
@@ -20,7 +22,6 @@ def g_init():
     g.selected = []
     g.menu = Menu()
     g.colors = Rec(palette = params.start_palette, key = 'Q', show = False)
-    #g.weave_colors = []
 
 def draw_palette(palette, label_color = Color(0, 0, 0)):
     font_ = font.SysFont(('MonoSpace', None), params.font_size * 15 // 10 )
@@ -42,6 +43,7 @@ def main():
     g.dispatch.add_hook(menu_hook, g.menu)
     while running:
         if event.get(QUIT):
+            save('foo.qw')
             quit()
             return
         g.dispatch.dispatch(event.get())

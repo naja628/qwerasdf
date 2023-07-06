@@ -19,6 +19,11 @@ class Rec:
             # self.__dict__[k] = v
         return self
 
+def naive_scan(s, *conversions):
+    def conv(i, tok): return conversions[i](tok) if conversions[i] else tok
+    #
+    return tuple([conv(i, tok) for (i, tok) in s.split()])
+
 # def non_rebinding_set(obj, other):
 #     for k, v in other.__dict__.items():
 #         obj.__dict__[k] = v

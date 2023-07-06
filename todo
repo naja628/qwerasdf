@@ -2,31 +2,33 @@
 	circle around problems??
 	Menu ctor (change where menu is hardcoded)
 	disambiguate clicks/shapes (maybe only in weave)
-	maybe add centers for circles
 	maybe refactor hooks
+	error message timeout
 
 do now:
 	#
-	refactor shapes
-	Circles need a start angle
-	set_div (with termcommand)
-	weave_incr (at least with termcommand)
-	# 
 	save
-
-want :
+	modify/redraw shapes: rot (dfl or freehand), symetry, scaling?
+	#
+	menu translate (layout)
 	interactive color picker
 	help text
-	error message timeout
+	broken lines
+	add start dimensions to params
+
+want :
+	autosaves
+	recover
 	move the view / click and drag
 	more shapes : broken lines, curves
-	modify/redraw shapes: rot (dfl or freehand), symetry, scaling?
-		make it work with several at once?
-	zen view, fullscreen
-	resizable window
-	menu translate (layout)
+	zen view
 	pdf guide pages (with marks for nails)
+	.rc?
+	visual linear transforms?, register transforms to shapes etc
+	#
 	improved term-parsing
+	terminal options: (exec commands, non-iteractive, open etc)
 	more termcommands : dump, help etc
-	autosaves
+						create shape
+						any transform
 

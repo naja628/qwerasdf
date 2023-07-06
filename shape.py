@@ -2,15 +2,64 @@ import numpy as np
 from numpy import sin, cos, pi
 from pygame import draw, Color
 from params import params
-from util import farr, Rec
+from util import farr, dist, Rec
 
-# Shape and Draw
 def draw_point(screen, point, color = params.div_color):
     draw.circle(screen, color, point, params.point_radius)
 
+# Forward declare 
+class Circle: pass
+class Line: pass
+class Point: pass
+
 class Shape:
-    def __init__(self, *args, **kwargs):
-        assert False # Abstract class
+    _CHILDREN_MAP = {'cr' : Circle, 'ln': Line, 'p': Point}
+    _KEYPOINT_NAMES = []
+    #
+    def Create( repre ): # STATIC
+        [type_id, ndiv, *xys] = repre.split()
+        keypoints = [[x, y] for x, y in zip(xys[::2], xys[1::2])]
+        return Shape._CHILDREN_MAP[type_id](*keypoints, ndiv = int(ndiv))
+    #
+    def __init__(self, *keypoints, ndivs = params.start_ndivs):
+        self.keypoints = np.array([farr(p) for p in keypoints])
+        self.set_divs(ndivs)
+    #
+    def draw(self, screen, view, color):
+        raise NotImplementedError()
+    #
+    def set_divs(self, ndivs):
+        raise NotImplementedError()
+    #
+    def __setattr__(self, key, val):
+        try:
+            i = type(self)._KEYPOINT_NAMES.index(key)
+            self.keypoints[i] = farr(val)
+        except ValueError:
+            self.__dict__[key] = val
+    #
+    def __getattr__(self, key):
+        try:
+            i = type(self)._KEYPOINT_NAMES.index(key)
+            return self.keypoints[i]
+        except ValueError:
+            return self.__dict__[key]
+    #
+    def __repr__(self):
+        print(type(self))
+        print(Line == Line)
+        print(Line == type(Line((0,0), (0, 0))))
+        for tid, subtype in Shape._CHILDREN_MAP.items():
+            print(tid, subtype)
+            print(subtype is type(self))
+            if subtype is type(self):
+                found = tid
+                break
+        else: assert False
+        repre = f"{found} {len(self.divs)}"
+        for p in keypoints:
+            repre += f" {p[0]} {p[1]}"
+        return repre
     #
     def draw_divs(self, screen, view, color = params.div_color):
         for div in self.divs:
@@ -23,72 +72,126 @@ class Shape:
             if i < 0: return None
             try: return self.divs[i]
             except IndexError: return None
-    ###
-
+    #
+    def transform(self, matrix, center):
+        def aux(points):
+            rels = points - center
+            transformed = matrix @ rels.transpose()
+            final = transformed + center
+            return final
+        self.keypoints = aux(self.keypoints)
+        self.divs = aux(self.divs)
+    #
+    def rotate(self, angle, center):
+        rot = np.array([
+            [np.cos(angle), -np.sin(angle)],
+            [np.sin(angle),  np.cos(angle)]
+            ])
+        self.transform(angle, center)
+    #
+    def mirror(self, center):
+        S = np.array([ [-1, 0], [0, 1] ])
+        self.transform(S, center)
+    #
+    def scale(self, ratio, center):
+        self.transform(ratio * np.identity(2), center)
+    ####
 
 class Circle(Shape):
-    def __init__(self, center, radius, ndivs = 120):
+    _KEYPOINT_NAMES = ['center', 'other']
+    def __init__(self, center, other, ndivs = 120):
         self.loopy = True
-        self.center = farr(center)
-        self.radius = float(radius)
-        def at_angle(theta):
-            return center + radius * np.array([cos(theta), sin(theta)])
-        # good way to do it with numpy (ie avoid list comprehension) ??
-        ts = np.linspace(0.0, 2 * pi, ndivs, False)
-        self.divs = np.array([at_angle(t) for t in ts])
+        Shape.__init__(self, center, other, ndivs = ndivs)
+    #
+    def set_divs(self, ndivs):
+        try:
+            r = dist(self.center, self.other)
+            [cos0, sin0] = (self.other - self.center) / r
+            ### Mmmmmmmhhh trig identities :P
+            def at_angle(Dtheta):
+                cos_theta = cos0 * cos(Dtheta) - sin0 * sin(Dtheta)
+                sin_theta = sin0 * cos(Dtheta) + cos0 * sin(Dtheta)
+                return self.center + r * np.array([cos_theta, sin_theta])
+            ts = np.linspace(0.0, 2 * pi, ndivs, False)
+            self.divs = np.array([at_angle(t) for t in ts])
+        except ZeroDivisionError:
+            self.divs = np.array([center] * ndivs)
     #
     def draw(self, screen, view, color = params.shape_color):
-        pcenter, prad = view.rtop(self.center), view.rtopd(self.radius)
-        draw.circle(screen, color, pcenter, prad, width = 1)
+        pcenter = view.rtop(self.center)
+        pradius = view.rtopd(dist(self.center, self.other))
+        draw.circle(screen, color, pcenter, pradius, width = 1)
         Shape.draw_divs(self, screen, view)
     ###
 
 class Point(Shape):
+    _KEYPOINT_NAMES = ['p']
     def __init__(self, p):
         self.loopy = True
-        self.p = farr(p)
-        self.divs = np.array([p])
+        Shape.__init__(self, p, ndivs = 1)
+    #
+    def set_divs(self, ndivs):
+        self.divs = np.array([self.p])
     #
     def draw(self, screen, view, color = params.shape_color):
         draw_point(screen, view.rtop(self.p), color)
     ###
 
+Point((0, 0))
+
 class Line(Shape):
-    def __init__(self, a, b, ndivs = 30):
+    _KEYPOINT_NAMES = ['start', 'end']
+    def __init__(self, start, end, ndivs = 30):
         self.loopy = False
-        self.a = farr(a)
-        self.b = farr(b)
-        self.divs = np.linspace(a, b, ndivs)
+        Shape.__init__(self, start, end, ndivs = ndivs)
+    #
+    def set_divs(self, ndivs):
+        self.divs = np.linspace(self.start, self.end, ndivs)
     #
     def draw(self, screen, view, color = params.shape_color):
-        draw.line(screen, color, view.rtop(self.a), view.rtop(self.b))
+        pstart, pend = view.rtop(self.start), view.rtop(self.end)
+        draw.line(screen, color, pstart, pend)
         Shape.draw_divs(self, screen, view)
     ###
 
-def _compare(a, b):
-    if (a < b): return -1
-    if (a == b): return 0
-    if (a > b): return 1
-#
-def _sign(x):
-    return _compare(x, 0)
+# now : easy save, + command + transformations
 
+### Weave
+# needs its own module? 
 class Weave:
-    def __init__(self, hangs, incrs = (1, 1), color_key = None, palette = {}):
-        # hang = Rec(s = <shape>, i = <div_index>, incr = <num skip between>)
-        self.color_key = color_key
-        self.palette = palette
+    def CreateFrom3(hangs, incrs = (1, 1), color_key = None, palette = {}): # STATIC
         assert len(hangs) == 3
         assert hangs[1].s == hangs[2].s
+        assert incrs[1] != 0
         #
+        n = (abs(hangs[2].i - hangs[1].i) + 1) // abs(incrs[1])
+        if (hangs[2].i < hangs[1].i):
+            inc0, inc1 = incrs
+            incrs = -inc0, -inc1
+        #
+        return Weave(hangs[:2], n, incrs, color_key, palette)
+    #
+    def __init__(self, hangpoints, n, incrs = (1, 1), color_key = None, palette = {}):
+        assert incrs != (0, 0)
+        self.hangpoints = hangpoints
+        self.nwires = n
         self.incrs = incrs
-        if (self.incrs[1] < 0):
-            self.change_dir()
+        self.color_key = color_key
+        self.palette = palette
+        if color_key: assert color_key in palette
+    #
+    def draw(self, screen, view, color = None):
+        color = color or self.color()
+        def get_point(which, i):
+            hg = self.hangpoints[which]
+            return hg.s.get_div(hg.i + i * self.incrs[which])
         #
-        self.endpoints = [hg.set(incr = inc) for hg, inc in zip(hangs[:2], incrs)]
-        self.nwires = (abs(hangs[2].i - hangs[1].i) + 1) // incrs[1]
-        if (hangs[1].i > hangs[2].i):
-            self.change_dir()
+        for i in range(self.nwires):
+            a = get_point(0, i)
+            b = get_point(1, i)
+            if (a is None or b is None):
+                return
+            draw.line(screen, color, view.rtop(a), view.rtop(b))
     #
     def change_dir(self):
         inc0, inc1 = self.incrs
@@ -103,18 +206,5 @@ class Weave:
             return self.palette[self.color_key]
         except:
             return Color(128, 0, 64) # default if fail
-    #
-    def draw(self, screen, view, color = None):
-        color = color or self.color()
-        def get_point(which, i):
-            hg = self.endpoints[which]
-            return hg.s.get_div(hg.i + i * self.incrs[which])
-        #
-        for i in range(self.nwires):
-            a = get_point(0, i)
-            b = get_point(1, i)
-            if (a is None or b is None):
-                return
-            draw.line(screen, color, view.rtop(a), view.rtop(b))
     ###
 
