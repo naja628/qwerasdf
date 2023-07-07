@@ -1,5 +1,5 @@
 from pygame import *
-from params import params
+import params
 from context import g
 from util import Rec
 

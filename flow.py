@@ -1,9 +1,14 @@
+import os
 from pygame import *
+
 from shape import *
 from context import g
-from util import dist, Rec
-from params import params
+from util import dist, Rec, unique_closure
+# from params import params
+import params
+import text
 from text import post_error, MENULINE1, TERMLINE
+from save import *
 
 def snappy_get_point(pos, context = g):
     c = context # shorter to write
@@ -230,26 +235,26 @@ def create_weave_hook(hook, context = g):
             #
             # new_weave = Weave(hangs, c.weave_incrs)
             new_weave = Weave.CreateFrom3(hangs, c.weave_incrs)
-            if hasattr(c, 'colors'):
-                new_weave.set_color(c.colors.key, c.colors.palette)
+            if hasattr(c, 'color_key') and hasattr(c, 'palette'):
+                new_weave.set_color(c.color_key, c.palette)
             c.weaves.append(new_weave)
             hangs, c.hints = [None] * 3, [] # reset
             yield
             continue
     return iter()
 
-def choose_color(hook, color_context):
+def choose_color_hook(hook, context = g):
     hook.watched = {KEYDOWN}
-    def cleanup(): c.show = False
+    c = context
+    def cleanup(): c.show_palette = False
     hook.cleanup = cleanup
     #
-    c = color_context
-    c.show = True
+    c.show_palette = True
     def iter():
         if (ch := alpha_scan(hook.ev)) in c.palette:
-            c.key = ch
+            c.color_key = ch
         return
-        yield # never but makes python understand this is a generator
+        assert False; yield
     return iter()
 
 def select_hook(hook, context = g):
@@ -315,18 +320,7 @@ def transform(): pass
 
 ############ MINITER #######################à
 def term_exec(cmd, context = g):
-    cmd_map_tmp = { 
-            ('set_color', 'c'): color_cmd,
-            ('palette', 'pal'): show_palette_cmd,
-            ('exit', 'quit'): exit_cmd,
-            ('set_div', 'div'): set_div_cmd,
-            ('fullscreen', 'fu' ) : fullscreen_cmd,
-            ('resize', 'res'): resize_cmd,
-            ('weavity', 'wy'): set_weavity_cmd,
-            }
-    cmd_map = {}
-    for ks, v in cmd_map_tmp.items():
-        cmd_map.update({k : v for k in ks})
+    cmd_map = terminal_command_map
     #
     def parse_cmd(cmd):
         # maybe parse opts?
@@ -407,13 +401,15 @@ def miniter_hook(hook, context = g):
     return iter()
 
 ############## CMDS (COMMANDS) ######################
+class Exn(Exception): pass
+
 def color_cmd(*args, _env):
-    palette = _env.context.colors.palette
+    palette = _env.context.palette
     try:
         key = args[0].upper()
         if key not in palette: raise RuntimeError
     except:
-        raise Exception("first argument must be a valid color key")
+        raise Exn("first argument must be a valid color key")
     #
     def set_rgb(r, g, b):
         palette[key] = Color(r, g, b)
@@ -428,30 +424,30 @@ def color_cmd(*args, _env):
     #
     try:
         match args[1:]:
-            case []: _env.context.colors.key = key
+            case []: _env.context.color_key = key
             case [hexcolor]: set_hex(hexcolor)
             case [r, g, b]: set_rgb(r, g, b)
     except BaseException as e:
         cmd = _env.cmd
-        raise Exception(f"usage: {cmd} key OR {cmd} key r g b OR {cmd} hex")
+        raise Exn(f"usage: {cmd} key OR {cmd} key r g b OR {cmd} hex")
     #
 
 def show_palette_cmd(*, _env):
-    _env.context.colors.show = not _env.context.colors.show
+    _env.context.show_palette = not _env.context.show_palette
 
 def set_div_cmd(n, *, _env):
     if not type(n) is int:
-        raise Exception(f"usage: {_env.cmd} <new number of nails (int)>")
+        raise Exn(f"usage: {_env.cmd} <new number of nails (int)>")
     if n <= 0:
-        raise Exception("number must be at least 1")
+        raise Exn("number must be at least 1")
     for sh in _env.context.selected:
         sh.set_divs(n)
 
 def set_weavity_cmd(inc0, inc1, *, _env):
     if inc1 == 0:
-        raise Exception("cant't be _, 0")
+        raise Exn("cant't be _, 0")
     if (type(inc0), type(inc1)) != (int, int):
-        raise Exception("usage: {_env.cmd} bound_increment, free_increment")
+        raise Exn("usage: {_env.cmd} bound_increment, free_increment")
     _env.context.weave_incrs = (inc0, inc1)
 
 def fullscreen_cmd(*, _env):
@@ -460,27 +456,92 @@ def fullscreen_cmd(*, _env):
 def resize_cmd(w, h, *, _env):
     try:
         if w < 300 or h < 300 or w > 9000 or h > 9000:
-            raise Exception("bad dimensions")
+            raise Exn("bad dimensions")
         g.screen = display.set_mode((w, h))
     except BaseException:
-        raise Exception("usage: {_env.cmd} width height")
+        raise Exn("usage: {_env.cmd} width height")
+
+def exit_cmd(save_or_bang, *, _env):
+    try:
+        if save_or_bang != '!':
+            save(save_path(save_or_bang), overwrite_ok = True)
+        g.QUIT = True
+    except: raise Exn("usage: {_env.cmd} save_to OR {_env.cmd} !}")
+
+_last_save_filename = None
+def save_cmd(*a, _env):
+    global _last_save_filename
+    usage_msg = f"usage:  {_env.cmd} file OR {_env.cmd} ! OR {_env.cmd} ! file"
+    print(a, len(a), 1 <= len(a) <= 2)
+    if not (1 <= len(a) <= 2):
+        raise Exn(usage_msg)
+    print('here')
+    try:
+        if a[0] == '!':
+            file = _last_save_filename if len(a) == 1 else a[1]
+        else:
+            file = a[0]
+        if file == None: raise Exn("No previous savename")
+        overwrite_ok = (a[0] == '!')
+        print(overwrite_ok, file)
+        save(save_path(file), overwrite_ok, _env.context)
+        _last_save_filename = file
+    except FileExistsError:
+        raise Exn(f"'{file}' exists. to allow overwrites, use: {_env.cmd} ! {file}")
+    except: 
+        raise
+
+def load_cmd(save, load, *, _env):
+    usage_msg = f"Usage: {_env.cmd} save_to load_from OR {_env.cmd} ! load_from"
+    if save != '!':
+        try:
+            save(save_path(save), overwrite_ok = False, context = _env.context)
+        except FileExistsError:
+            raise Exn(f"{save} exists." + usage_msg)
+    #
+    try:
+        load_to_context(save_path(load), _env.context)
+    except LoadError: raise Exn(f"Error loading {load}")
+
+def clear_cmd(*, _env):
+    for line in text.ERRLINE, text.INFOLINE:
+        _env.context.text_area.set_line(line, '')
+    #
+
+def list_cmd(): pass
+
+_tmp_cmd_map = {
+        ('set_color', 'co'): color_cmd,
+        ('palette', 'pal'): show_palette_cmd,
+        ('exit', 'quit', 'q'): exit_cmd,
+        ('set_div', 'div'): set_div_cmd,
+        ('fullscreen', 'fu' ) : fullscreen_cmd,
+        ('resize', 'res'): resize_cmd,
+        ('weavity', 'wy'): set_weavity_cmd,
+        ('save', 's'): save_cmd,
+        ('load', 'lo'): load_cmd,
+        ('list', 'help', 'h', 'ls'): list_cmd,
+        ('clear', ): clear_cmd
+        }
+
+terminal_command_map = {}
+for ks, v in _tmp_cmd_map.items():
+    terminal_command_map.update({k : v for k in ks})
+
+# h, default_rot 
 
 # autosave_prefix, rewind
-
-def exit_cmd(*, _env):
-    # TODO cleaner, save option?
-    quit()
-
-# save, load, h, default_rot 
 ######################## MENU ########################
 class Menu:
     def __init__(self):
         self._path = ""
         self.root = {
-            'A': ("New Shape", {'A': "New Point", 'D': "New Segment", 'F' : "New Circle"}),
-            'S': ("Select", {'D': "Delete", 'F': "Unweave"} ),
-            'D': ("Draw Weave", {'A' : "Invert", 'D': "Draw Weave", 'F': "Choose Color"})
-            #'D': ("Draw Weave", {'A' : "Invert", 'S': "Swap", 'F': "Choose Color"})
+            'S': ("Select", 
+                {'E': "Unweave", 'R': "Remove"} ),
+            'D': ("Draw Weave", 
+                {'A' : "Invert", 'S': "Select Color", 'D': "Draw Weave", 'F': "New Shape"}),
+            'F': ("New Shape", 
+                {'A': "New Point", 'S': "New Segment", 'D': "Draw Weave", 'F' : "New Circle"}),
         }
         self.pos = self.root # pos is always a dict
         #
@@ -528,6 +589,7 @@ class Menu:
         text_area = context.text_area
         #
         label_size = 12
+        #
         for (i, row) in enumerate(menu_layout):
             line = "|"
             for key in row:
@@ -555,7 +617,7 @@ class Menu:
 #     New Circle
 # Select
 #     Unweave
-#     Delete
+#     Remove
 # Draw Weave
 #     Invert
 #     Swap
@@ -599,14 +661,14 @@ def menu_hook(hook, menu, context = g):
                 # Alter Selection
                 case "Select": set_top_hook(select_hook, c)
                 case "Unweave": unweave_selection(context = c)
-                case "Delete": delete_selection(context = c)
+                case "Remove": delete_selection(context = c)
                 # Alter Weave Behavior
                 case "Draw Weave": set_top_hook(create_weave_hook, c)
                 case "Invert":
                     inc0, inc1 = context.weave_incrs
                     context.weave_incrs = (-inc0, inc1)
                 case "Choose Color":
-                    c.dispatch.add_hook(choose_color, c.colors)
+                    c.dispatch.add_hook(choose_color_hook, c)
                 #
                 case _:
                     pass

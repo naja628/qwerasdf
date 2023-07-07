@@ -1,25 +1,14 @@
 import numpy as np
 from numpy import sin, cos, pi
 from pygame import draw, Color
-from params import params
-from util import farr, dist, Rec
+import params
+from util import farr, dist, Rec, unique_closure
 
 def draw_point(screen, point, color = params.div_color):
     draw.circle(screen, color, point, params.point_radius)
 
-# Forward declare 
-class Circle: pass
-class Line: pass
-class Point: pass
-
 class Shape:
-    _CHILDREN_MAP = {'cr' : Circle, 'ln': Line, 'p': Point}
-    _KEYPOINT_NAMES = []
-    #
-    def Create( repre ): # STATIC
-        [type_id, ndiv, *xys] = repre.split()
-        keypoints = [[x, y] for x, y in zip(xys[::2], xys[1::2])]
-        return Shape._CHILDREN_MAP[type_id](*keypoints, ndiv = int(ndiv))
+    _KEYPOINT_NAMES = ()
     #
     def __init__(self, *keypoints, ndivs = params.start_ndivs):
         self.keypoints = np.array([farr(p) for p in keypoints])
@@ -46,18 +35,9 @@ class Shape:
             return self.__dict__[key]
     #
     def __repr__(self):
-        print(type(self))
-        print(Line == Line)
-        print(Line == type(Line((0,0), (0, 0))))
-        for tid, subtype in Shape._CHILDREN_MAP.items():
-            print(tid, subtype)
-            print(subtype is type(self))
-            if subtype is type(self):
-                found = tid
-                break
-        else: assert False
-        repre = f"{found} {len(self.divs)}"
-        for p in keypoints:
+        typre = subshape_type_to_prefix(type(self))
+        repre = f"{typre} {len(self.divs)}"
+        for p in self.keypoints:
             repre += f" {p[0]} {p[1]}"
         return repre
     #
@@ -98,7 +78,7 @@ class Shape:
     ####
 
 class Circle(Shape):
-    _KEYPOINT_NAMES = ['center', 'other']
+    _KEYPOINT_NAMES = ('center', 'other')
     def __init__(self, center, other, ndivs = 120):
         self.loopy = True
         Shape.__init__(self, center, other, ndivs = ndivs)
@@ -125,8 +105,8 @@ class Circle(Shape):
     ###
 
 class Point(Shape):
-    _KEYPOINT_NAMES = ['p']
-    def __init__(self, p):
+    _KEYPOINT_NAMES = ('p')
+    def __init__(self, p, ndivs = 1): # `ndivs` is a dummy
         self.loopy = True
         Shape.__init__(self, p, ndivs = 1)
     #
@@ -137,10 +117,8 @@ class Point(Shape):
         draw_point(screen, view.rtop(self.p), color)
     ###
 
-Point((0, 0))
-
 class Line(Shape):
-    _KEYPOINT_NAMES = ['start', 'end']
+    _KEYPOINT_NAMES = ('start', 'end')
     def __init__(self, start, end, ndivs = 30):
         self.loopy = False
         Shape.__init__(self, start, end, ndivs = ndivs)
@@ -154,9 +132,26 @@ class Line(Shape):
         Shape.draw_divs(self, screen, view)
     ###
 
-# now : easy save, + command + transformations
+###### SHAPE SERIALIZATION ###########
 
-### Weave
+_subshape_dict = {'cr' : Circle, 'ln': Line, 'p': Point}
+
+def subshape_prefix_to_type(prefix):
+    return _subshape_dict[prefix]
+
+@unique_closure
+def subshape_type_to_prefix():
+    ty_pre = { ty : pre for pre, ty in _subshape_dict.items() }
+    def actual(subtype):
+        return ty_pre[subtype]
+    return actual
+
+def create_shape_from_repr( repre ): # STATIC
+    [typre, ndivs, *xys] = repre.split()
+    keypoints = [[x, y] for x, y in zip(xys[::2], xys[1::2])]
+    return subshape_prefix_to_type(typre) (*keypoints, ndivs = int(ndivs))
+
+################ WEAVE #################
 # needs its own module? 
 class Weave:
     def CreateFrom3(hangs, incrs = (1, 1), color_key = None, palette = {}): # STATIC

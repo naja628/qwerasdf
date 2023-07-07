@@ -3,27 +3,26 @@
 	Menu ctor (change where menu is hardcoded)
 	disambiguate clicks/shapes (maybe only in weave)
 	maybe refactor hooks
-	error message timeout
+	maybe refactor terminal
+
+easy:
+	duplicate menu items
 
 do now:
 	#
-	save
 	modify/redraw shapes: rot (dfl or freehand), symetry, scaling?
 	#
-	menu translate (layout)
 	interactive color picker
 	help text
 	broken lines
-	add start dimensions to params
 
 want :
+	interactive set div
 	autosaves
-	recover
 	move the view / click and drag
 	more shapes : broken lines, curves
 	zen view
 	pdf guide pages (with marks for nails)
-	.rc?
 	visual linear transforms?, register transforms to shapes etc
 	#
 	improved term-parsing

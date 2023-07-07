@@ -13,20 +13,30 @@ class Rec:
     def __init__(self, **kwargs):
         self.__dict__ = kwargs
     #
-    def set(self, **kwargs):
+    def set(self, other = None, /, **kwargs):
+        if other:
+            kwargs = other.__dict__
+        #
         for k, v in kwargs.items():
             setattr(self, k, v)
-            # self.__dict__[k] = v
         return self
 
 def naive_scan(s, *conversions):
     def conv(i, tok): return conversions[i](tok) if conversions[i] else tok
     #
-    return tuple([conv(i, tok) for (i, tok) in s.split()])
+    return tuple([conv(i, tok) for (i, tok) in enumerate(s.split())])
 
-# def non_rebinding_set(obj, other):
-#     for k, v in other.__dict__.items():
-#         obj.__dict__[k] = v
-#     for k in obj.__dict__.keys():
-#         if not k in other.__dict__:
-#             del obj.__dict__[key]
+# Seems pretty bad?
+def unique_closure(decorated):
+    return decorated()
+# 
+# Dumb Example:
+#
+# @unique_closure
+# def count_up():
+#     n, p = 0, 0
+#     def closure():
+#         nonlocal n, p
+#         n += 1
+#         return n - 1
+#     return closure
