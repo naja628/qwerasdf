@@ -43,6 +43,7 @@ def save(filename, overwrite_ok = True, context = g):
     except (FileExistsError, OSError): raise
     except:
         os.remove(filename)
+        raise
         raise SaveError()
     ###
 

@@ -1,4 +1,5 @@
 from pygame import display, FULLSCREEN
+from numpy import pi
 
 import params
 from context import g
@@ -15,6 +16,8 @@ def miniter_exec(cmd, context = g):
     return term_exec(cmd, miniter_command_map, miniter_usage_map, context = g)
 #
 def term_exec(cmd, cmd_map, usage_map, context = g):
+    if cmd.strip() == '':
+        return 0
     #
     def parse_cmd(cmd):
         # maybe parse opts?
@@ -217,11 +220,45 @@ def load_cmd(save, load, *, _env):
     except ParseError as e: raise CmdExn(str(e))
     except LoadError: raise CmdExn(f"Error loading {load}")
 
-@miniter_command(('clear', ))
+@miniter_command(('clear', 'cl'))
 def clear_cmd(*, _env):
     "clears info/error area"
     #
     for line in ERRLINE, INFOLINE:
         _env.context.text_area.set_line(line, '')
     #
+
+@miniter_command(('set_rotation', 'rot'), "$CMD new_angle OR $CMD p / q  (p qth of a turn)")
+def set_default_rotation_cmd(*a, _env):
+    "set the size of the rotation when transforming shapes"
+    if len(a) != 1 and len(a) != 3: raise Exception()
+    if len(a) == 3 and a[1] != '/': raise Exception()
+    #
+    if len(a) == 3: new_rot = 2 * pi * (a[0] / a [2])
+    elif type(a[0]) == int: new_rot = 2 * pi * a[0] / 360
+    elif type(a[0]) == float: new_rot = a[0]
+    else: raise Exception
+    _env.context.default_rotation = new_rot
+#
+
+@miniter_command(('select_all', 'sel*'))
+def select_all_cmd(*, _env):
+    "select all shapes"
+    _env.context.selected = _env.context.shapes
+
+@miniter_command(('translate_colors', 'trans'), "$CMD from to  (eg $CMD qw az)")
+def translate_colors_cmd(src, dest, *, _env):
+    "change the colors of the weaves inside the selection"
+    cx = _env.context
+    src, dest = src.upper(), dest.upper()
+    for we in cx.weaves:
+        [s1, s2] = [hg.s for hg in we.hangpoints]
+        if not (s1 in cx.selected and s2 in cx.selected):
+            continue
+        #
+        try:
+            key_index = src.index(we.color_key)
+            we.set_color(dest[key_index])
+        except: pass
+    ###
 

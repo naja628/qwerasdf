@@ -1,45 +1,24 @@
-impl:
-	create pygame user event FORWARD_ACCEPTED
-		use it for interactive color-picker
-		+ transforms
-	Menu:
-		shortcuts
-		go back to selection after move/transform (use 2 hooks?)
-		handle request_forward, (2 match blocks 1 for pinned and one for rest (2nd skipped when request matches))
-	create transform hooks
-	Shape: 
-		add {shape specific data} section to repr (needed for circle clockwise-ness)
-		(names: `serialize_specific`, `restore_specific`)
-		add _allow_transform methods, and use it in transform
-		test transform code
-	#
-	use V for pinning any argless terminal command (set with params)
-	command to open a new file
-	fu TOGGLES fullscreen
-	#
-	wanted: 
-		redraw (add `assign` method to shape)
-		freehand rotation
-		-c option to read script, sh + T terminal commands
-	
 "details":
-	circle mirroring spin problems
 	circle around problems??
+
+
 	disambiguate clicks/shapes (maybe only in weave)
 	interactive set div
+	freehand rotation
 	move the view / click and drag
 	maybe refactor hooks
 	still can't draw point (lol)
-	hint snappy points
+	hint snappy points (drawing shapes and lines)
+	swap circle ends
 
 do now:
-	interactive color picker
-	broken lines
-	help text (just put it in the menu)
+	interactive color-picker
+	broken-lines
 
 want :
 	zen view
 	pdf guide pages (with marks for nails)
+	use V for pinning terminal commands
 	autosaves (+ weird nested system? for rewind)
 	more shapes: interpolated curves, arcs, ellipses?
 	visual linear transforms?, register transforms to shapes etc
@@ -47,6 +26,4 @@ want :
 	#
 	more termcommands : dump, point
 	commandline options? 
-
-						
 

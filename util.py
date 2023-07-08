@@ -58,3 +58,8 @@ def returned(decorated):
 #     def ret(): ref.update(n = ref.n + 1); return ref.n
 #     return ret
 # 
+
+def do_chain(fun, *more):
+    return lambda: [ fun() for fun in [fun, *more]][-1]
+
+

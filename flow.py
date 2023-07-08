@@ -4,10 +4,10 @@ from pygame import *
 
 from shape import *
 from context import g
-from util import dist, Rec
+from util import dist, Rec, do_chain
 import params
 import text
-from text import post_error, MENULINE1, TERMLINE
+from text import post_error, post_info, MENULINE1, TERMLINE
 from miniter import miniter_exec
 
 def snappy_get_point(pos, context = g):
@@ -111,10 +111,13 @@ def alpha_scan(event):
     return chr(ord('A') + event.scancode - 4)
 
 ########### INTERACTIVE ACTIONS ###################
+_ACCEPT_FORWARD = event.custom_type()
+
 def create_shapes(*shapes, context = g):
     context.shapes.extend(shapes)
     if hasattr(context, 'selected'):
         context.selected = list(shapes)
+
 
 def zoom_hook(hook, factor = params.zoom_factor, context = g):
     hook.watched = { MOUSEWHEEL }
@@ -324,14 +327,25 @@ def delete_selection(context = g):
 # transform : center follows cursor, add menu-keys for default rot,  
 # rot: scroll angle +/-= default_rot, center follows cursor
 
-#def copy_weaves_inside(dest, src, weave_superset)
+def copy_weaves_inside(dest_shapes, src_shapes, weave_superset):
+    new_weaves = []
+    for we in weave_superset:
+        [s1, s2] = [ hg.s for hg in we.hangpoints]
+        try: i1, i2 = src_shapes.index(s1), src_shapes.index(s2)
+        except: continue
+        #
+        new = we.copy()
+        new.hangpoints[0].s, new.hangpoints[1].s = dest_shapes[i1], dest_shapes[i2]
+        new_weaves.append(new)
+    return new_weaves
+
 def move_selection_hook(hook, *, want_copy = False, context = g):
     hook.watched = {MOUSEBUTTONDOWN, MOUSEMOTION}
     cx = context
     def cleanup(): cx.hints = []
     hook.cleanup = cleanup
     start_pos, _ = snappy_get_point(mouse.get_pos(), cx) # want snappy? (i think yes but unsure)
-    def moved_selection(motion): # RAM problems ?
+    def moved_selection(motion):
         return [ sh.moved(motion) for sh in cx.selected ]
     #
     def iter():
@@ -344,27 +358,11 @@ def move_selection_hook(hook, *, want_copy = False, context = g):
             elif left_click(ev): # = Confirm
                 if want_copy:
                     new_shapes = moved_selection(cur_pos - start_pos)
-                    new_weaves = []
-                    for we in cx.weaves:
-                        [s1, s2] = [ hg.s for hg in we.hangpoints]
-                        print(id(s1), id(s2), [id(sh) for sh in cx.selected])
-                        try:
-                            print(cx.selected.index(s1))
-                            print(cx.selected.index(s2))
-                        except:
-                            print(' missing at least 1')
-                        try: i1, i2 = cx.selected.index(s1), cx.selected.index(s2)
-                        except: continue
-                        #
-                        print('hello')
-                        nw = we.copy()
-                        print(new_shapes, id(new_shapes[i1]))
-                        nw.hangpoints[0].s, nw.hangpoints[1].s = new_shapes[i1], new_shapes[i2]
-                        new_weaves.append(nw)
+                    new_weaves = copy_weaves_inside(new_shapes, cx.selected, cx.weaves)
                     #
-                    context.shapes.extend( new_shapes )
-                    context.selected = new_shapes
-                    context.weaves.extend(new_weaves)
+                    cx.shapes.extend(new_shapes)
+                    cx.weaves.extend(new_weaves)
+                    cx.selected = new_shapes
                 else:
                     for sh in context.selected: 
                         sh.move(cur_pos - start_pos)
@@ -375,7 +373,64 @@ def move_selection_hook(hook, *, want_copy = False, context = g):
 def copymove_selection_hook(hook, context = g):
     return move_selection_hook(hook, want_copy = True, context = context)
 
-############ MINITER HOOK #######################à
+def transform_selection_hook(hook, *, want_copy = False, context = g):
+    mirror_matrix = np.array([ [-1, 0], [0, 1] ])
+    def rot_matrix(angle):
+        return np.array([
+            [np.cos(angle), -np.sin(angle)],
+            [np.sin(angle),  np.cos(angle)]
+            ])
+    ##
+    hook.watched = { MOUSEBUTTONDOWN, MOUSEMOTION, _ACCEPT_FORWARD}
+    cx = context
+    cx.menu.temporary_display('QWERASDF', {'S': "+Rotaion", 'D': "-Rotation", 'F': "Mirror"})
+    def cleanup(): cx.hints = []; cx.menu.restore_display(); print('fooffo')
+    hook.cleanup = cleanup
+    hook.forward_request = (lambda ev: ev.type == KEYDOWN and alpha_scan(ev) in 'ASDFQWER')
+    def transformed_selection(matrix, center):
+        return [ sh.transformed(matrix, center) for sh in cx.selected ]
+    #
+    def iter():
+        rot_angle = 0
+        mirror = False
+        while (ev := hook.ev):
+            if right_click(ev): # = Cancel
+                return
+            #
+            if (ev.type == _ACCEPT_FORWARD):
+                print('got forward')
+                match alpha_scan(ev):
+                    case 'A': pass # TODO (add new hook)
+                    case 'S': rot_angle += cx.default_rotation
+                    case 'D': rot_angle -= cx.default_rotation
+                    case 'F': mirror = not mirror
+                yield
+            #
+            matrix = rot_matrix(rot_angle)
+            if mirror: matrix = matrix @ mirror_matrix
+            center, _ = snappy_get_point(mouse.get_pos(), cx)
+            #
+            if is_motion(ev):
+                cx.hints = transformed_selection(matrix, center)
+            elif left_click(ev): # = Confirm
+                if want_copy:
+                    new_shapes = transformed_selection(matrix, center)
+                    new_weaves = copy_weaves_inside(new_shapes, cx.selected, cx.weaves)
+                    #
+                    cx.shapes.extend(new_shapes)
+                    cx.weaves.extend(new_weaves)
+                    cx.selected = new_shapes
+                else:
+                    for sh in context.selected: 
+                        sh.transform(matrix, center)
+                return
+            yield
+    return iter()
+#
+def copytransform_selection_hook(hook, context = g):
+    return transform_selection_hook(hook, want_copy = True, context = context)
+
+############ MINITER HOOK #######################
 def miniter_hook(hook, context = g):
     hook.watched = {KEYDOWN}
     c = context
@@ -399,16 +454,15 @@ def miniter_hook(hook, context = g):
                 elif ev.key == K_BACKSPACE or ev.key == K_DELETE:
                     command = command[:-1]
                 elif ev.key == K_RETURN:
-                    if (command == ''): # double Enter exits terminal
+                    if (command.strip() == ''): # double Enter exits terminal
                         return
                     status = miniter_exec(command)
-                    #if status == 0: # 0 = good
-                    #    term_history.append(command)
                     break
                 # ignore ctrl/alt modded keys + ascii control codes
                 elif ev.mod & KMOD_CTRL == 0: 
                     if ev.unicode and 127 != ord(ev.unicode) >= 32:
                         command += ev.unicode
+                        if command.strip().lower() == 'zz': return
                 set_line(command)
                 yield
             command = ''
@@ -418,15 +472,18 @@ def miniter_hook(hook, context = g):
 
 ######################## MENU ########################
 class Menu:
-    class Shortuct:
+    class Shortcut:
         def __init__(self, path): self.path = path
         def get(self): return self.path
+    ###
     def __init__(self, nested = {}, pinned = {}):
         self._path = ""
         self.root = nested
         self.pos = self.root # pos is always a dict
         #
         self.pinned = pinned
+        self.temp_show = {}
+        self.temp_show_mask = ''
     #
     def _is_leaf(self, thing):
         return type(thing) is str
@@ -440,9 +497,9 @@ class Menu:
                 return down
             else:
                 if navigate:
-                    match type(down[1]):
-                        case dict: self.pos = down[1]; self._path += key
-                        case Menu.Shortuct: self.go_path(down[1].get())
+                    if type(down[1]) is dict: self.pos = down[1]; self._path += key
+                    elif type(down[1]) is Menu.Shortcut: self.go_path(down[1].get())
+                    else: assert False
                 return down[0]
         else:
             return None
@@ -466,6 +523,13 @@ class Menu:
     def up(self, n = 1): # 0 go to root
         self.go_path(self._path[:-n])
     #
+    def temporary_display(self, mask, items):
+        self.temp_show_mask = mask
+        self.temp_show = items
+    #
+    def restore_display(self):
+        self.temporary_display('', {})
+    #
     def show(self, context = g):
         menu_layout = ['QWER', 'ASDF', 'ZXCV']
         text_area = context.text_area
@@ -475,7 +539,11 @@ class Menu:
         for (i, row) in enumerate(menu_layout):
             line = "|"
             for key in row:
-                label = self[key]
+                if key in self.temp_show_mask:
+                    if key in self.temp_show: label = self.temp_show[key]
+                    else: label = None
+                else:
+                    label = self[key]
                 #
                 if label:
                     line += f" {key}: "
@@ -486,54 +554,68 @@ class Menu:
             text_area.set_line(MENULINE1 + i, line)
     ###
 
+_sho = Menu.Shortcut
 _nested_menu = {
         'S': ("Selection", 
             { 'Q': "Unselect All", 'E': "Unweave", 'R': "Remove",
                 'A': "Transform", 'S': "Cp-Transform", 'D': "Move", 'F': "Copy-Move"
                 }),
         'D': ("New Shape", 
-            {'A': "New Point", 'S': "New Segment", 'D': "New Circle", 'F' : ("Draw Weave", sho('F'))}),
+            {'A': "New Point", 'S': "New Segment", 'D': "New Circle", 'F' : ("Draw Weave", _sho('F'))}),
         'F': ("Draw Weave", 
-            {'A' : "Invert", 'S': "Select Color", 'D': ("New Shape", sho('D')), 'F': "Draw Weave"}),
+            {'A' : "Invert", 'S': "Select Color", 'D': ("New Shape", _sho('D')), 'F': "Draw Weave"}),
         }
+del _sho
 _pinned_menu = {'Z': "Menu Top", 'X': "Back", 'C': "Command"}
 _menuaction_info = { # What the user has to do AFTER, not what it does
-        "New Point": "lclick to add a point" #TODO
-        "New Segment": "lclick on two points to draw a line between them"
-        "New Circle": "lclick on the center and any point on the perimeter to draw a circle"
-        "Draw Weave": "lclick on 3 points on (1 or) 2 shapes to add colorful strings"
-        "Select Color": "press key to choose color"
-        "Selection": "lclick -> select under cursor. rclick -> toggle selection"
-        "Transform": "lclick -> confirm (shape will change), rclick -> cancel" # TODO
-        "Cp-Transform": "lclick -> confirm (new copy will be created), rclick -> cancel" # TODO
-        "Move": "lclick -> confirm (shape will move), rclick -> cancel"
-        "Copy-Move": "lclick -> confirm (new copy will be created), rclick -> cancel"
+        "Command": "Termin: 'ls' for a list of commands. Ctrl-C to exit (or Enter when prompt is empty, or ZZ)",
+        "New Point": "lclick to add a point", #TODO
+        "New Segment": "lclick on two points to draw a line between them",
+        "New Circle": "lclick on the center and any point on the perimeter to draw a circle",
+        "Draw Weave": "lclick on 3 points on (1 or) 2 shapes to add colorful strings",
+        "Select Color": "press key to choose color",
+        "Selection": "lclick -> select under cursor. rclick -> toggle selection",
+        "Transform": "lclick -> confirm (shape will change), rclick -> cancel", # TODO
+        "Cp-Transform": "lclick -> confirm (new copy will be created), rclick -> cancel", # TODO
+        "Move": "lclick -> confirm (shape will move), rclick -> cancel",
+        "Copy-Move": "lclick -> confirm (new copy will be created), rclick -> cancel",
         }
 
 def menu_hook(hook, context = g):
     hook.watched = { KEYDOWN }
     c = context
     #
-    sho = Menu.Shortcut
-    #
     c.menu = Menu(_nested_menu, _pinned_menu)
     c.menu.show(c)
     def iter():
-        cur_hook = None
+        main_hook = None
+        forward_request = None
         def set_hook(hook_fun, *a, **ka):
-            if cur_hook: cur_hook.finish()
-            if hook_fun: cur_hook = c.dispatch.add_hook(hook_fun, *a, *ka)
+            nonlocal main_hook, forward_request
+            forward_request = None
+            if main_hook: main_hook.finish()
+            if hook_fun: main_hook = c.dispatch.add_hook(hook_fun, *a, *ka)
             else: top_hook = None
         #
         def detached_hook(hook_fun, *a, **ka): # does its thing / overrides controls
             return c.dispatch.add_hook(hook_fun, *a, **ka)
         def bound_hook(hook_fun, *a, **ka): # "killed" if main hook is reset
+            # this seemED like a good a way to do it but it's clearly not the way
+            # eh it works for now
+            def unset_request():
+                nonlocal forward_request
+                forward_request = None
+            #
+            nonlocal main_hook, forward_request
             tmp_hook = detached_hook(hook_fun, *a, **ka)
-            if cur_hook: 
-                oldcleanup = cur_hook.cleanup
-                def cleanup(): tmp_hook.finish(); oldcleanup()
-                cur_hook.cleanup = cleanup
-            else: cur_hook = tmp_hook
+            if hasattr(tmp_hook, 'forward_request'):
+                forward_request = tmp_hook.forward_request
+                tmp_hook.cleanup = do_chain(unset_request, tmp_hook.cleanup)
+            #
+            if main_hook: 
+                main_hook.cleanup = do_chain(tmp_hook.finish, main_hook.cleanup)
+            else: main_hook = tmp_hook
+            print('in bound hook:', forward_request)
         ###
         while (ev := hook.ev):
             key = alpha_scan(ev)
@@ -543,20 +625,26 @@ def menu_hook(hook, context = g):
             print("got menu:", key) # debug
             menu_action = c.menu.go(key)
             if menu_action in {"Back", "Menu Top", "Command"}:
-                match menu_action
+                try: post_info(_menuaction_info[menu_action])
+                except KeyError: pass
+                print('pinned')
+                match menu_action:
                     # Pinned
                     case "Menu Top":
                         c.menu.go_path("")
-                        set_top_hook(None)
+                        set_hook(None)
                     case "Back":
-                        set_top_hook(None) 
+                        set_hook(None) 
                         c.menu.up(1)
                     case "Command": detached_hook(miniter_hook, c)
-                    case _: pass
-            elif hasattr(cur_hook, 'forward_request') and cur_hook.forward_request(ev):
-                ev.type = _ACCEPT_FORWARD
-                event.post(ev)
+            elif forward_request and forward_request(ev):
+                print('forward')
+                ev_dict = ev.__dict__
+                event.post(event.Event(_ACCEPT_FORWARD, **ev_dict))
             else:
+                print('no forward')
+                try: post_info(_menuaction_info[menu_action])
+                except KeyError: pass
                 match menu_action:
                     # Create Shapes
                     case "New Point": pass # TODO
@@ -573,13 +661,13 @@ def menu_hook(hook, context = g):
                     case "Unselect All": context.selected = []
                     case "Unweave": unweave_selection(context = c)
                     case "Remove": delete_selection(context = c)
-                    case "Transform": pass # TODO
-                    case "Cp-Transform": pass # TODO
+                    case "Transform": bound_hook(transform_selection_hook, context = c)
+                    case "Cp-Transform": bound_hook(copytransform_selection_hook, context = c)
                     case "Move": bound_hook(move_selection_hook, context = c)
                     case "Copy-Move": bound_hook(copymove_selection_hook, context = c)
                     #
                     case _: pass
-            c.menu.show(c)
             yield
     #
     return iter()
+

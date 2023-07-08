@@ -1,5 +1,6 @@
 from pygame import *
 from itertools import chain
+from numpy import pi
 
 import params
 from util import eprint
@@ -27,6 +28,7 @@ def g_init():
     g.palette = params.start_palette
     g.color_key = 'Q'
     g.show_palette = False
+    g.default_rotation = 2 * pi / 6
     g.QUIT = False
 
 def draw_palette(palette, selected = None, label_color = params.background):
@@ -79,6 +81,7 @@ def main():
             for hint in g.hints:
                 hint.draw(g.screen, g.view, color = params.hint_color)
             #
+            g.menu.show()
             text_img = g.text_area.render()
             text_y = display.get_window_size()[1] - text_img.get_height() - 1
             g.screen.blit(text_img, (0, text_y))

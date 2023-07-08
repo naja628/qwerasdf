@@ -6,25 +6,24 @@ from pygame import draw, Color
 import params
 from util import farr, dist, Rec
 
+def near_zero(x):
+    return -params.eps < x < params.eps
+
 def draw_point(screen, point, color = params.div_color):
     draw.circle(screen, color, point, params.point_radius)
 
 class Shape:
     _KEYPOINT_NAMES = ()
     #
-    def __init__(self, *keypoints, ndivs = params.start_ndivs):
-        self.keypoints = np.array([farr(p) for p in keypoints])
-        self.set_divs(ndivs)
-    ## Children MUST implement:
-    #
     def draw(self, screen, view, color):
         raise NotImplementedError()
     #
     def set_divs(self, ndivs):
         raise NotImplementedError()
-    ## Children MAY implement:
-    def _allow_transform(self, matrix): return True # TODO True iff similitude (good default)
-    ## Generic functionality (MUST NOT implement)
+    #####
+    def __init__(self, *keypoints, ndivs = params.start_ndivs):
+        self.keypoints = np.array([farr(p) for p in keypoints])
+        self.set_divs(ndivs)
     #
     def __setattr__(self, key, val):
         try:
@@ -43,7 +42,7 @@ class Shape:
             except KeyError: raise AttributeError(key)
     #
     def __repr__(self):
-        typre = subshape_type_to_prefix(type(self))
+        typre = subshape_to_prefix(self)
         repre = f"{typre} {len(self.divs)}"
         for p in self.keypoints:
             repre += f" {p[0]} {p[1]}"
@@ -73,15 +72,17 @@ class Shape:
     #
     def transform(self, matrix, center):
         def aux(points):
-            points -= center # new relative
-            transformed = matrix @ points.transpose()
-            # needs another transpose?
-            return transformed + center
+            points -= center
+            points = points.transpose()
+            points = (matrix @ points).transpose()
+            points += center 
+            return points
         self.keypoints = aux(self.keypoints)
-        self.set_div( len(self.divs) )
+        #self.divs = aux(self.divs)
+        self.set_divs( len(self.divs) )
         return self
     #
-    def transform(self, matrix, center):
+    def transformed(self, matrix, center):
         return deepcopy(self).transform(matrix, center)
     #
 #     def rotate(self, angle, center):
@@ -101,8 +102,9 @@ class Shape:
 
 class Circle(Shape):
     _KEYPOINT_NAMES = ('center', 'other')
-    def __init__(self, center, other, ndivs = 120):
+    def __init__(self, center, other, ndivs = 120, clockwise = False):
         self.loopy = True
+        self.clockwise = clockwise
         Shape.__init__(self, center, other, ndivs = ndivs)
     #
     def set_divs(self, ndivs):
@@ -114,7 +116,8 @@ class Circle(Shape):
                 cos_theta = cos0 * cos(Dtheta) - sin0 * sin(Dtheta)
                 sin_theta = sin0 * cos(Dtheta) + cos0 * sin(Dtheta)
                 return self.center + r * np.array([cos_theta, sin_theta])
-            ts = np.linspace(0.0, 2 * pi, ndivs, False)
+            rot_dir = -1 if self.clockwise else 1
+            ts = np.linspace(0.0, 2 * pi * rot_dir, ndivs, False)
             self.divs = np.array([at_angle(t) for t in ts])
         except ZeroDivisionError:
             self.divs = np.array([center] * ndivs)
@@ -124,6 +127,12 @@ class Circle(Shape):
         pradius = view.rtopd(dist(self.center, self.other))
         draw.circle(screen, color, pcenter, pradius, width = 1)
         Shape.draw_divs(self, screen, view)
+    #
+    def transform(self, matrix, center):
+        [[a, b], [c, d]] = matrix
+        det = a * d - b * c
+        if det < 0: self.clockwise = not self.clockwise
+        return Shape.transform(self, matrix, center)
     ###
 
 class Point(Shape):
@@ -156,18 +165,39 @@ class Line(Shape):
 
 ###### SHAPE SERIALIZATION ###########
 
-_subshape_dict = {'cr' : Circle, 'ln': Line, 'p': Point}
-def subshape_prefix_to_type(prefix):
-    return _subshape_dict[prefix]
+_prefix_to_initializer = { 
+        'cr' : (Circle, {'clockwise': False}),
+        'ccr' : (Circle, {'clockwise': True}), 
+        'ln' : (Line, {}),
+        'p' : (Point, {}),
+        }
 
-_prefix_dict = { ty : pre for pre, ty in _subshape_dict.items() }
-def subshape_type_to_prefix(subtype):
-    return _prefix_dict[subtype]
+def subshape_prefix_to_initializer(prefix):
+    return _prefix_to_initializer[prefix]
+
+_subtype_to_prefix_candidates = { ini[0] : [] for ini in _prefix_to_initializer.values() }
+for pre, (ty, ka) in _prefix_to_initializer.items():
+    _subtype_to_prefix_candidates[ ty ].append( (pre, ka) )
+#
+
+def is_subdict(sub, sup, values_must_match = True):
+    for k, v in sub.items():
+        if not k in sup: return False
+        if values_must_match and sup[k] != v: return False
+    return True
+#
+def subshape_to_prefix(subshape):
+    candidates = _subtype_to_prefix_candidates[ type(subshape) ]
+    for pre, ka in candidates:
+        if is_subdict(ka, subshape.__dict__):
+            return pre
+    else: assert False
 
 def create_shape_from_repr( repre ):
     [typre, ndivs, *xys] = repre.split()
     keypoints = [[x, y] for x, y in zip(xys[::2], xys[1::2])]
-    return subshape_prefix_to_type(typre) (*keypoints, ndivs = int(ndivs))
+    Ty, ka = subshape_prefix_to_initializer(typre)
+    return  Ty(*keypoints, ndivs = int(ndivs), **ka)
 
 ################ WEAVE #################
 # needs its own module? 
