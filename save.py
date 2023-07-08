@@ -16,7 +16,6 @@ def save(filename, overwrite_ok = True, context = g):
         line += f"{shape_id1} {we.hangpoints[0].i} {shape_id2} {we.hangpoints[1].i}" 
         return line
     #
-    if filename[-3:] != '.qw': filename += '.qw'
     open_flags = 'w' if overwrite_ok else 'x'
     #
     try:
@@ -49,6 +48,8 @@ def save(filename, overwrite_ok = True, context = g):
 
 def save_path(file):
     # note: `file` can be nested
+    if file[-3:] != '.qw': file += '.qw'
+    #
     prefixed = os.path.join(params.save_dir, file)
     os.makedirs(os.path.dirname(prefixed), exist_ok = True)
     return prefixed
@@ -70,9 +71,6 @@ class ParseError(BaseException):
     ###
 
 def load(filename):
-    if not filename[-3:] == '.qw' and os.path.exists(filename + '.qw'):
-        filename += '.qw'
-    #
     try:
         with open(filename, 'r') as f:
             section = None
@@ -120,5 +118,5 @@ def load_to_context(file, context = g):
     if hasattr(context, 'hints'): context.hints = []
     if hasattr(context, 'selected'): context.selected = []
     #
-    context.set(load(file))
+    context.update(load(file))
 

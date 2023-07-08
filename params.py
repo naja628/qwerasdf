@@ -21,9 +21,9 @@ start_palette = {
  'R': Color(192, 128, 0),
  #
  'A': Color(160, 200, 128),
- 'S': Color(192, 192, 128),
+ 'S': Color(0, 200, 100),
  'D': Color(192, 96, 32),
- 'F': Color(192, 32, 160),
+ 'F': Color(100, 0, 200),
  }
 
 font_size = 15
@@ -35,6 +35,8 @@ start_ndivs = 60
 point_radius = 2 
 snap_radius = 7
 
-eps = 0.01 # distance under which two points are considered "the same"
+eps = 0.0000001 # distance under which two points are considered "the same"
 zoom_factor = 1.1
+
+max_div = 2000
 

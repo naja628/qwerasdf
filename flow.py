@@ -1,14 +1,14 @@
 import os
+from copy import copy
 from pygame import *
 
 from shape import *
 from context import g
-from util import dist, Rec, unique_closure
-# from params import params
+from util import dist, Rec
 import params
 import text
 from text import post_error, MENULINE1, TERMLINE
-from save import *
+from miniter import miniter_exec
 
 def snappy_get_point(pos, context = g):
     c = context # shorter to write
@@ -114,7 +114,15 @@ def alpha_scan(event):
 def create_shapes(*shapes, context = g):
     context.shapes.extend(shapes)
     if hasattr(context, 'selected'):
-        context.selected = shapes
+        context.selected = list(shapes)
+
+def zoom_hook(hook, factor = params.zoom_factor, context = g):
+    hook.watched = { MOUSEWHEEL }
+    def iter():
+        while e := hook.ev:
+            context.view.zoom(mouse.get_pos(), factor ** e.y)
+            yield
+    return iter()
 
 def draw_circles_hook(hook, context = g):
     hook.watched = { MOUSEBUTTONDOWN, MOUSEMOTION }
@@ -174,14 +182,6 @@ def draw_lines_hook(hook, context = g):
                     a = None
             elif e.type == MOUSEMOTION and a is not None:
                 context.hints = [get_line(a, e.pos)]
-            yield
-    return iter()
-
-def zoom_hook(hook, factor = params.zoom_factor, context = g):
-    hook.watched = { MOUSEWHEEL }
-    def iter():
-        while e := hook.ev:
-            context.view.zoom(mouse.get_pos(), factor ** e.y)
             yield
     return iter()
 
@@ -245,14 +245,14 @@ def create_weave_hook(hook, context = g):
 
 def choose_color_hook(hook, context = g):
     hook.watched = {KEYDOWN}
-    c = context
-    def cleanup(): c.show_palette = False
+    save_show = context.show_palette
+    def cleanup(): context.show_palette = save_show
     hook.cleanup = cleanup
     #
-    c.show_palette = True
+    context.show_palette = True
     def iter():
-        if (ch := alpha_scan(hook.ev)) in c.palette:
-            c.color_key = ch
+        if (ch := alpha_scan(hook.ev)) in context.palette:
+            context.color_key = ch
         return
         assert False; yield
     return iter()
@@ -260,8 +260,9 @@ def choose_color_hook(hook, context = g):
 def select_hook(hook, context = g):
     # left-click -> select ONE, right-click -> toggle selected
     hook.watched = { MOUSEBUTTONDOWN, MOUSEMOTION }
-    def cleanup(): context.selected = []; context.hints = []
+    def cleanup(): context.hints = []
     hook.cleanup = cleanup
+    #
     def iter():
         def get_shapes():
             if not hasattr(hook.ev, 'pos'): 
@@ -315,51 +316,66 @@ def delete_selection(context = g):
     c.selected = []
 
 # Transform
-def move_selection_hook(): pass
-def transform(): pass
+# transform, copy-transform, move, copy-move
+#
+# move: copy of selected follows cursor. lclick -> confirm, rclick -> cancel
+# copy-move: like move but selection is not deleted
+## note: for copy only weaves INSIDE are copied, 
+# transform : center follows cursor, add menu-keys for default rot,  
+# rot: scroll angle +/-= default_rot, center follows cursor
 
-############ MINITER #######################à
-def term_exec(cmd, context = g):
-    cmd_map = terminal_command_map
+#def copy_weaves_inside(dest, src, weave_superset)
+def move_selection_hook(hook, *, want_copy = False, context = g):
+    hook.watched = {MOUSEBUTTONDOWN, MOUSEMOTION}
+    cx = context
+    def cleanup(): cx.hints = []
+    hook.cleanup = cleanup
+    start_pos, _ = snappy_get_point(mouse.get_pos(), cx) # want snappy? (i think yes but unsure)
+    def moved_selection(motion): # RAM problems ?
+        return [ sh.moved(motion) for sh in cx.selected ]
     #
-    def parse_cmd(cmd):
-        # maybe parse opts?
-        # maybe allow some quoting
-        def autocast(s):
-            assert len(s) > 0 # ok bc comes from `split`
-            if s[0] == '-' or '0' <= s[0] <= '9':
-                if '.' in s:
-                    return float(s)
+    def iter():
+        while (ev := hook.ev):
+            if right_click(ev): # = Cancel
+                return
+            cur_pos, _ = snappy_get_point(ev.pos, cx)
+            if is_motion(ev):
+                cx.hints = moved_selection(cur_pos - start_pos)
+            elif left_click(ev): # = Confirm
+                if want_copy:
+                    new_shapes = moved_selection(cur_pos - start_pos)
+                    new_weaves = []
+                    for we in cx.weaves:
+                        [s1, s2] = [ hg.s for hg in we.hangpoints]
+                        print(id(s1), id(s2), [id(sh) for sh in cx.selected])
+                        try:
+                            print(cx.selected.index(s1))
+                            print(cx.selected.index(s2))
+                        except:
+                            print(' missing at least 1')
+                        try: i1, i2 = cx.selected.index(s1), cx.selected.index(s2)
+                        except: continue
+                        #
+                        print('hello')
+                        nw = we.copy()
+                        print(new_shapes, id(new_shapes[i1]))
+                        nw.hangpoints[0].s, nw.hangpoints[1].s = new_shapes[i1], new_shapes[i2]
+                        new_weaves.append(nw)
+                    #
+                    context.shapes.extend( new_shapes )
+                    context.selected = new_shapes
+                    context.weaves.extend(new_weaves)
                 else:
-                    return int(s)
-            else:
-                return s
-        #
-        def parse_kwarg(kwarg):
-            split = kwarg.find('=')
-            return kwarg[:split], autocast(kwarg[split + 1:])
-        #
-        [cmd, *tokens] = cmd.split()
-        args = [autocast(tok) for tok in tokens if '=' not in tok]
-        kwarg_list = [parse_kwarg(tok) for tok in tokens if '=' in tok]
-        kwargs = { k : v for (k, v) in kwarg_list }
-        kwargs['_env'] = Rec(context = context, cmd = cmd)
-        return cmd, args, kwargs
-    #
-    try:
-        cmd, args, kwargs = parse_cmd(cmd)
-        if not cmd in cmd_map:
-            post_error("Command not found", context = context)
-            return 1
-        cmd_map[cmd](*args, **kwargs)
-        return 0
-    except BaseException as e:
-        try:
-            post_error(str(e), context = context)
-        except:
-            post_error("unexpected error", context = context)
-        return 1
+                    for sh in context.selected: 
+                        sh.move(cur_pos - start_pos)
+                return
+            yield
+    return iter()
+#
+def copymove_selection_hook(hook, context = g):
+    return move_selection_hook(hook, want_copy = True, context = context)
 
+############ MINITER HOOK #######################à
 def miniter_hook(hook, context = g):
     hook.watched = {KEYDOWN}
     c = context
@@ -385,7 +401,7 @@ def miniter_hook(hook, context = g):
                 elif ev.key == K_RETURN:
                     if (command == ''): # double Enter exits terminal
                         return
-                    status = term_exec(command)
+                    status = miniter_exec(command)
                     #if status == 0: # 0 = good
                     #    term_history.append(command)
                     break
@@ -400,152 +416,17 @@ def miniter_hook(hook, context = g):
             yield
     return iter()
 
-############## CMDS (COMMANDS) ######################
-class Exn(Exception): pass
-
-def color_cmd(*args, _env):
-    palette = _env.context.palette
-    try:
-        key = args[0].upper()
-        if key not in palette: raise RuntimeError
-    except:
-        raise Exn("first argument must be a valid color key")
-    #
-    def set_rgb(r, g, b):
-        palette[key] = Color(r, g, b)
-    #
-    def set_hex(hexstr):
-        hexstr = str(hexstr)
-        if hexstr[:2].lower() == "0x":
-            hexstr = hexstr[2:]
-        hexstr = hexstr.rjust(6, '0')
-        [r, g, b] = [int(hexstr[i:i+2], 16) for i in range(0, 6, 2)]
-        set_rgb(r, g, b)
-    #
-    try:
-        match args[1:]:
-            case []: _env.context.color_key = key
-            case [hexcolor]: set_hex(hexcolor)
-            case [r, g, b]: set_rgb(r, g, b)
-    except BaseException as e:
-        cmd = _env.cmd
-        raise Exn(f"usage: {cmd} key OR {cmd} key r g b OR {cmd} hex")
-    #
-
-def show_palette_cmd(*, _env):
-    _env.context.show_palette = not _env.context.show_palette
-
-def set_div_cmd(n, *, _env):
-    if not type(n) is int:
-        raise Exn(f"usage: {_env.cmd} <new number of nails (int)>")
-    if n <= 0:
-        raise Exn("number must be at least 1")
-    for sh in _env.context.selected:
-        sh.set_divs(n)
-
-def set_weavity_cmd(inc0, inc1, *, _env):
-    if inc1 == 0:
-        raise Exn("cant't be _, 0")
-    if (type(inc0), type(inc1)) != (int, int):
-        raise Exn("usage: {_env.cmd} bound_increment, free_increment")
-    _env.context.weave_incrs = (inc0, inc1)
-
-def fullscreen_cmd(*, _env):
-    g.screen = display.set_mode(flags = FULLSCREEN)
-
-def resize_cmd(w, h, *, _env):
-    try:
-        if w < 300 or h < 300 or w > 9000 or h > 9000:
-            raise Exn("bad dimensions")
-        g.screen = display.set_mode((w, h))
-    except BaseException:
-        raise Exn("usage: {_env.cmd} width height")
-
-def exit_cmd(save_or_bang, *, _env):
-    try:
-        if save_or_bang != '!':
-            save(save_path(save_or_bang), overwrite_ok = True)
-        g.QUIT = True
-    except: raise Exn("usage: {_env.cmd} save_to OR {_env.cmd} !}")
-
-_last_save_filename = None
-def save_cmd(*a, _env):
-    global _last_save_filename
-    usage_msg = f"usage:  {_env.cmd} file OR {_env.cmd} ! OR {_env.cmd} ! file"
-    print(a, len(a), 1 <= len(a) <= 2)
-    if not (1 <= len(a) <= 2):
-        raise Exn(usage_msg)
-    print('here')
-    try:
-        if a[0] == '!':
-            file = _last_save_filename if len(a) == 1 else a[1]
-        else:
-            file = a[0]
-        if file == None: raise Exn("No previous savename")
-        overwrite_ok = (a[0] == '!')
-        print(overwrite_ok, file)
-        save(save_path(file), overwrite_ok, _env.context)
-        _last_save_filename = file
-    except FileExistsError:
-        raise Exn(f"'{file}' exists. to allow overwrites, use: {_env.cmd} ! {file}")
-    except: 
-        raise
-
-def load_cmd(save, load, *, _env):
-    usage_msg = f"Usage: {_env.cmd} save_to load_from OR {_env.cmd} ! load_from"
-    if save != '!':
-        try:
-            save(save_path(save), overwrite_ok = False, context = _env.context)
-        except FileExistsError:
-            raise Exn(f"{save} exists." + usage_msg)
-    #
-    try:
-        load_to_context(save_path(load), _env.context)
-    except LoadError: raise Exn(f"Error loading {load}")
-
-def clear_cmd(*, _env):
-    for line in text.ERRLINE, text.INFOLINE:
-        _env.context.text_area.set_line(line, '')
-    #
-
-def list_cmd(): pass
-
-_tmp_cmd_map = {
-        ('set_color', 'co'): color_cmd,
-        ('palette', 'pal'): show_palette_cmd,
-        ('exit', 'quit', 'q'): exit_cmd,
-        ('set_div', 'div'): set_div_cmd,
-        ('fullscreen', 'fu' ) : fullscreen_cmd,
-        ('resize', 'res'): resize_cmd,
-        ('weavity', 'wy'): set_weavity_cmd,
-        ('save', 's'): save_cmd,
-        ('load', 'lo'): load_cmd,
-        ('list', 'help', 'h', 'ls'): list_cmd,
-        ('clear', ): clear_cmd
-        }
-
-terminal_command_map = {}
-for ks, v in _tmp_cmd_map.items():
-    terminal_command_map.update({k : v for k in ks})
-
-# h, default_rot 
-
-# autosave_prefix, rewind
 ######################## MENU ########################
 class Menu:
-    def __init__(self):
+    class Shortuct:
+        def __init__(self, path): self.path = path
+        def get(self): return self.path
+    def __init__(self, nested = {}, pinned = {}):
         self._path = ""
-        self.root = {
-            'S': ("Select", 
-                {'E': "Unweave", 'R': "Remove"} ),
-            'D': ("Draw Weave", 
-                {'A' : "Invert", 'S': "Select Color", 'D': "Draw Weave", 'F': "New Shape"}),
-            'F': ("New Shape", 
-                {'A': "New Point", 'S': "New Segment", 'D': "Draw Weave", 'F' : "New Circle"}),
-        }
+        self.root = nested
         self.pos = self.root # pos is always a dict
         #
-        self.pinned = {'Z': "Menu Top", 'X': "Back", 'C': "Command"}
+        self.pinned = pinned
     #
     def _is_leaf(self, thing):
         return type(thing) is str
@@ -559,8 +440,9 @@ class Menu:
                 return down
             else:
                 if navigate:
-                    self.pos = down[1] # navigate down
-                    self._path += key
+                    match type(down[1]):
+                        case dict: self.pos = down[1]; self._path += key
+                        case Menu.Shortuct: self.go_path(down[1].get())
                 return down[0]
         else:
             return None
@@ -604,224 +486,100 @@ class Menu:
             text_area.set_line(MENULINE1 + i, line)
     ###
 
-# *** Menu Structure ***
-### Pinned:
-# Menu Top
-# Back
-# Command
-#
-### Nested:
-# New Shape
-#     New Point
-#     New Segment
-#     New Circle
-# Select
-#     Unweave
-#     Remove
-# Draw Weave
-#     Invert
-#     Swap
-#     Choose Color
-#
+_nested_menu = {
+        'S': ("Selection", 
+            { 'Q': "Unselect All", 'E': "Unweave", 'R': "Remove",
+                'A': "Transform", 'S': "Cp-Transform", 'D': "Move", 'F': "Copy-Move"
+                }),
+        'D': ("New Shape", 
+            {'A': "New Point", 'S': "New Segment", 'D': "New Circle", 'F' : ("Draw Weave", sho('F'))}),
+        'F': ("Draw Weave", 
+            {'A' : "Invert", 'S': "Select Color", 'D': ("New Shape", sho('D')), 'F': "Draw Weave"}),
+        }
+_pinned_menu = {'Z': "Menu Top", 'X': "Back", 'C': "Command"}
+_menuaction_info = { # What the user has to do AFTER, not what it does
+        "New Point": "lclick to add a point" #TODO
+        "New Segment": "lclick on two points to draw a line between them"
+        "New Circle": "lclick on the center and any point on the perimeter to draw a circle"
+        "Draw Weave": "lclick on 3 points on (1 or) 2 shapes to add colorful strings"
+        "Select Color": "press key to choose color"
+        "Selection": "lclick -> select under cursor. rclick -> toggle selection"
+        "Transform": "lclick -> confirm (shape will change), rclick -> cancel" # TODO
+        "Cp-Transform": "lclick -> confirm (new copy will be created), rclick -> cancel" # TODO
+        "Move": "lclick -> confirm (shape will move), rclick -> cancel"
+        "Copy-Move": "lclick -> confirm (new copy will be created), rclick -> cancel"
+        }
 
-def menu_hook(hook, menu, context = g):
+def menu_hook(hook, context = g):
     hook.watched = { KEYDOWN }
-    #
     c = context
-    menu.show(c)
+    #
+    sho = Menu.Shortcut
+    #
+    c.menu = Menu(_nested_menu, _pinned_menu)
+    c.menu.show(c)
     def iter():
-        top_hook = None
-        def set_top_hook(hook_fun, *a, **ka):
-            nonlocal top_hook
-            if top_hook != None: top_hook.finish()
-            if hook_fun != None: top_hook = c.dispatch.add_hook(hook_fun, *a, **ka)
+        cur_hook = None
+        def set_hook(hook_fun, *a, **ka):
+            if cur_hook: cur_hook.finish()
+            if hook_fun: cur_hook = c.dispatch.add_hook(hook_fun, *a, *ka)
             else: top_hook = None
         #
+        def detached_hook(hook_fun, *a, **ka): # does its thing / overrides controls
+            return c.dispatch.add_hook(hook_fun, *a, **ka)
+        def bound_hook(hook_fun, *a, **ka): # "killed" if main hook is reset
+            tmp_hook = detached_hook(hook_fun, *a, **ka)
+            if cur_hook: 
+                oldcleanup = cur_hook.cleanup
+                def cleanup(): tmp_hook.finish(); oldcleanup()
+                cur_hook.cleanup = cleanup
+            else: cur_hook = tmp_hook
+        ###
         while (ev := hook.ev):
             key = alpha_scan(ev)
             if not key:
                 yield; continue
             #
             print("got menu:", key) # debug
-            match menu.go(key):
-                # Pinned
-                case "Back":
-                    if top_hook != None: set_top_hook(None) 
-                    menu.up(1)
-                case "Menu Top": 
-                    menu.go_path("")
-                    set_top_hook(None)
-                case "Command":
-                    # don't use set_top_hook bc we cede control
-                    c.dispatch.add_hook(miniter_hook, c)
-                # Create Shapes
-                case "New Point": pass # TODO
-                case "New Segment": set_top_hook(draw_lines_hook, c)
-                case "New Circle": set_top_hook(draw_circles_hook, c)
-                # Alter Selection
-                case "Select": set_top_hook(select_hook, c)
-                case "Unweave": unweave_selection(context = c)
-                case "Remove": delete_selection(context = c)
-                # Alter Weave Behavior
-                case "Draw Weave": set_top_hook(create_weave_hook, c)
-                case "Invert":
-                    inc0, inc1 = context.weave_incrs
-                    context.weave_incrs = (-inc0, inc1)
-                case "Choose Color":
-                    c.dispatch.add_hook(choose_color_hook, c)
-                #
-                case _:
-                    pass
-            menu.show(c)
+            menu_action = c.menu.go(key)
+            if menu_action in {"Back", "Menu Top", "Command"}:
+                match menu_action
+                    # Pinned
+                    case "Menu Top":
+                        c.menu.go_path("")
+                        set_top_hook(None)
+                    case "Back":
+                        set_top_hook(None) 
+                        c.menu.up(1)
+                    case "Command": detached_hook(miniter_hook, c)
+                    case _: pass
+            elif hasattr(cur_hook, 'forward_request') and cur_hook.forward_request(ev):
+                ev.type = _ACCEPT_FORWARD
+                event.post(ev)
+            else:
+                match menu_action:
+                    # Create Shapes
+                    case "New Point": pass # TODO
+                    case "New Segment": set_hook(draw_lines_hook, c)
+                    case "New Circle": set_hook(draw_circles_hook, c)
+                    # Weave
+                    case "Draw Weave": set_hook(create_weave_hook, c)
+                    case "Invert":
+                        inc0, inc1 = context.weave_incrs
+                        context.weave_incrs = (-inc0, inc1)
+                    case "Select Color": detached_hook(choose_color_hook, c)
+                    # Selection
+                    case "Selection": set_hook(select_hook, c)
+                    case "Unselect All": context.selected = []
+                    case "Unweave": unweave_selection(context = c)
+                    case "Remove": delete_selection(context = c)
+                    case "Transform": pass # TODO
+                    case "Cp-Transform": pass # TODO
+                    case "Move": bound_hook(move_selection_hook, context = c)
+                    case "Copy-Move": bound_hook(copymove_selection_hook, context = c)
+                    #
+                    case _: pass
+            c.menu.show(c)
             yield
     #
     return iter()
-
-# # Event and dispatch
-# _DETACHED = 0; _DONE = 1; _ATTACHED = 2; _JOINING = 3; _BAD = 4
-# class EvHook:
-#     def __init__(self, make_hook, *args, **kwargs):
-#         self.status = HS.DETACHED
-#         self.cleanup = lambda : None
-#         self.iter = make_hook(self, *args, **kwargs)
-#         assert 'watched' in self.__dict__ # should be set-up by `make_hook`
-#         # self.ret = None
-#     #
-#     def pass_ev(self, event):
-#         assert event.type in self.watched
-#         self.ev = event
-#         try:
-#             next(self.iter)
-#         except StopIteration:
-#             self.finish()
-#             #
-#             match self.status:
-#                 case _DETACHED: self.status = _DONE
-#                 case _ATTACHED: self.status = _JOINING
-#                 case _: self.status = _BAD
-#     #
-#     def finish(self):
-#         self.cleanup()
-#         self.watched = set()
-#         self.done = True
-#     #
-#     def detached(): return self.status == _DETACHED
-#     def done(): return self.status == _DONE
-#     def attached(): return self.status == _ATTACHED
-#     def joining(): return self.status == _JOINING
-#     def bad(): return self.status == _BAD
-#     ###
-# 
-# class EvDispatch: # event dispatcher
-#     def __init__(self):
-#         self.type_to_hook = {}
-#     #
-#     def add_hook(self, make_hook, *args, **kwargs):
-#         new_hook = EvHook(make_hook, *args, **kwargs)
-#         for type_ in new_hook.watched:
-#             try:
-#                 self.type_to_hook[type_].append(new_hook)
-#             except KeyError:
-#                 self.type_to_hook[type_] = [new_hook]
-#         return new_hook
-#     #
-#     def dispatch1(self, ev):
-#         if not ev.type in self.type_to_hook:
-#             return
-#         #
-#         hooks = self.type_to_hook[ev.type]
-#         while hooks and hooks[-1].done:
-#             hooks.pop()
-#         if not hooks:
-#             del self.type_to_hook[ev.type]
-#             return
-#         #
-#         hooks[-1].pass_ev(ev)
-#         if hooks[-1].joining():
-#             self.dispatch1(ev)
-#     #
-#     def dispatch(self, events):
-#         for ev in events:
-#             dispatch1(ev)
-#     ###
-
-# def show_menu(keypath, highlighted = '', context = g):
-#     text_area = context.text_area
-#     label_size = 10
-#     def get_nested_label(last_key):
-#         sub = nested_menu
-#         for key in keypath:
-#             if not key in sub:
-#                 return None
-#             else:
-#                 sub = sub[key][1]
-#         try:
-#             return sub[last_key][0]
-#         except KeyError:
-#             return None
-#     #
-#     for (i, row) in enumerate(menu_layout):
-#         line = "|"
-#         for key in row:
-#             if key in pinned_menu:
-#                 label = pinned_menu[key]
-#             elif label := get_nested_label(key):
-#                 pass
-#             else:
-#                 label = None
-#             if label:
-#                 line += f" {key}: "
-#                 line += label[:label_size].ljust(label_size, ' ')
-#             else:
-#                 line += ' ' * (len(" X: ") + label_size)
-#             line += ' |'
-#         text_area.set_line(i + MENULINE1, line)
-#     ###
-# 
-# def menu_dispatch_hook(hook, context = g):
-#     # F -> draw: F line, D circle
-#     # G -> reset
-#     # X -> Cancel
-#     hook.watched = { KEYDOWN }
-#     show_menu('')
-#     #
-#     def iter():
-#         menu_path = ""
-#         top_hook = None
-#         def reset_hook():
-#             if top_hook is None: return
-#             else: top_hook.finish()
-#         while e := hook.ev:
-#             print("got menu:", alpha_scan(e))
-#             match menu_path, alpha_scan(e): 
-#                 case "", 'D':
-#                     reset_hook()
-#                     menu_path = "D"
-#                     top_hook = g.dispatch.add_hook(create_weave_hook)
-#                 case "D", ' ':
-#                     inc0, inc1 = context.weave_incrs
-#                     context.weave_incrs = (-inc0, inc1)
-#                 case "", 'F':
-#                     menu_path = "F"
-#                 case "F", 'F':
-#                     reset_hook()
-#                 case "F", 'D':
-#                     reset_hook()
-#                     top_hook = g.dispatch.add_hook(draw_circles_hook)
-#                 case _, 'G':
-#                     reset_hook()
-#                     menu_path = ""
-#                 case _, 'X': # TODO rethink this
-#                     reset_hook()
-#                     menu_path = menu_path[:-1] if menu_path else ""
-#                 case _, 'C':
-#                     top_hook = g.dispatch.add_hook(miniter_hook)
-#                 case _:
-#                     pass
-#             show_menu(menu_path)
-#             yield
-#     return iter()
-# 
-# Note: weird pygame "bug" (?) where pressing control+key (at KEYUP)
-# very fast results in unmodified ascii control code
-# (ie CTRL-c -> key = 'c', unicode = '\0x03' (ie ^C), mod = 0)

@@ -1,8 +1,10 @@
+from copy import deepcopy
 import numpy as np
 from numpy import sin, cos, pi
 from pygame import draw, Color
+
 import params
-from util import farr, dist, Rec, unique_closure
+from util import farr, dist, Rec
 
 def draw_point(screen, point, color = params.div_color):
     draw.circle(screen, color, point, params.point_radius)
@@ -13,12 +15,16 @@ class Shape:
     def __init__(self, *keypoints, ndivs = params.start_ndivs):
         self.keypoints = np.array([farr(p) for p in keypoints])
         self.set_divs(ndivs)
+    ## Children MUST implement:
     #
     def draw(self, screen, view, color):
         raise NotImplementedError()
     #
     def set_divs(self, ndivs):
         raise NotImplementedError()
+    ## Children MAY implement:
+    def _allow_transform(self, matrix): return True # TODO True iff similitude (good default)
+    ## Generic functionality (MUST NOT implement)
     #
     def __setattr__(self, key, val):
         try:
@@ -32,7 +38,9 @@ class Shape:
             i = type(self)._KEYPOINT_NAMES.index(key)
             return self.keypoints[i]
         except ValueError:
-            return self.__dict__[key]
+            try:
+                return self.__dict__[key]
+            except KeyError: raise AttributeError(key)
     #
     def __repr__(self):
         typre = subshape_type_to_prefix(type(self))
@@ -53,28 +61,42 @@ class Shape:
             try: return self.divs[i]
             except IndexError: return None
     #
+    def move(self, motion):
+        # breakpoint()
+        self.keypoints += motion
+        self.divs += motion
+        return self
+    #
+    def moved(self, motion):
+        # breakpoint()
+        return deepcopy(self).move(motion)
+    #
     def transform(self, matrix, center):
         def aux(points):
-            rels = points - center
-            transformed = matrix @ rels.transpose()
-            final = transformed + center
-            return final
+            points -= center # new relative
+            transformed = matrix @ points.transpose()
+            # needs another transpose?
+            return transformed + center
         self.keypoints = aux(self.keypoints)
-        self.divs = aux(self.divs)
+        self.set_div( len(self.divs) )
+        return self
     #
-    def rotate(self, angle, center):
-        rot = np.array([
-            [np.cos(angle), -np.sin(angle)],
-            [np.sin(angle),  np.cos(angle)]
-            ])
-        self.transform(angle, center)
+    def transform(self, matrix, center):
+        return deepcopy(self).transform(matrix, center)
     #
-    def mirror(self, center):
-        S = np.array([ [-1, 0], [0, 1] ])
-        self.transform(S, center)
-    #
-    def scale(self, ratio, center):
-        self.transform(ratio * np.identity(2), center)
+#     def rotate(self, angle, center):
+#         rot = np.array([
+#             [np.cos(angle), -np.sin(angle)],
+#             [np.sin(angle),  np.cos(angle)]
+#             ])
+#         self.transform(angle, center)
+#     #
+#     def mirror(self, center):
+#         S = np.array([ [-1, 0], [0, 1] ])
+#         self.transform(S, center)
+#     #
+#     def scale(self, ratio, center):
+#         self.transform(ratio * np.identity(2), center)
     ####
 
 class Circle(Shape):
@@ -135,18 +157,14 @@ class Line(Shape):
 ###### SHAPE SERIALIZATION ###########
 
 _subshape_dict = {'cr' : Circle, 'ln': Line, 'p': Point}
-
 def subshape_prefix_to_type(prefix):
     return _subshape_dict[prefix]
 
-@unique_closure
-def subshape_type_to_prefix():
-    ty_pre = { ty : pre for pre, ty in _subshape_dict.items() }
-    def actual(subtype):
-        return ty_pre[subtype]
-    return actual
+_prefix_dict = { ty : pre for pre, ty in _subshape_dict.items() }
+def subshape_type_to_prefix(subtype):
+    return _prefix_dict[subtype]
 
-def create_shape_from_repr( repre ): # STATIC
+def create_shape_from_repr( repre ):
     [typre, ndivs, *xys] = repre.split()
     keypoints = [[x, y] for x, y in zip(xys[::2], xys[1::2])]
     return subshape_prefix_to_type(typre) (*keypoints, ndivs = int(ndivs))
@@ -174,6 +192,11 @@ class Weave:
         self.color_key = color_key
         self.palette = palette
         if color_key: assert color_key in palette
+    #
+    def copy(self):
+        [hg1, hg2] = self.hangpoints
+        new_hangpoints = [Rec(s = hg1.s, i = hg1.i), Rec(s = hg2.s, i = hg2.i)]
+        return Weave(new_hangpoints, self.nwires, self.incrs, self.color_key, self.palette)
     #
     def draw(self, screen, view, color = None):
         color = color or self.color()

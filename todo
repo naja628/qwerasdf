@@ -1,33 +1,52 @@
+impl:
+	create pygame user event FORWARD_ACCEPTED
+		use it for interactive color-picker
+		+ transforms
+	Menu:
+		shortcuts
+		go back to selection after move/transform (use 2 hooks?)
+		handle request_forward, (2 match blocks 1 for pinned and one for rest (2nd skipped when request matches))
+	create transform hooks
+	Shape: 
+		add {shape specific data} section to repr (needed for circle clockwise-ness)
+		(names: `serialize_specific`, `restore_specific`)
+		add _allow_transform methods, and use it in transform
+		test transform code
+	#
+	use V for pinning any argless terminal command (set with params)
+	command to open a new file
+	fu TOGGLES fullscreen
+	#
+	wanted: 
+		redraw (add `assign` method to shape)
+		freehand rotation
+		-c option to read script, sh + T terminal commands
+	
 "details":
+	circle mirroring spin problems
 	circle around problems??
-	Menu ctor (change where menu is hardcoded)
 	disambiguate clicks/shapes (maybe only in weave)
+	interactive set div
+	move the view / click and drag
 	maybe refactor hooks
-	maybe refactor terminal
-
-easy:
-	duplicate menu items
+	still can't draw point (lol)
+	hint snappy points
 
 do now:
-	#
-	modify/redraw shapes: rot (dfl or freehand), symetry, scaling?
-	#
 	interactive color picker
-	help text
 	broken lines
+	help text (just put it in the menu)
 
 want :
-	interactive set div
-	autosaves
-	move the view / click and drag
-	more shapes : broken lines, curves
 	zen view
 	pdf guide pages (with marks for nails)
+	autosaves (+ weird nested system? for rewind)
+	more shapes: interpolated curves, arcs, ellipses?
 	visual linear transforms?, register transforms to shapes etc
+	maybe more view options? ruler, grid etc
 	#
-	improved term-parsing
-	terminal options: (exec commands, non-iteractive, open etc)
-	more termcommands : dump, help etc
-						create shape
-						any transform
+	more termcommands : dump, point
+	commandline options? 
+
+						
 

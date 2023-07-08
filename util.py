@@ -1,5 +1,10 @@
 import numpy as np
 
+import sys
+def eprint(*a, **ka):
+    ka['file'] = sys.stderr
+    print(*a, **ka)
+
 def farr(seq):
     return np.array([float(x_i) for x_i in seq])
 
@@ -13,30 +18,43 @@ class Rec:
     def __init__(self, **kwargs):
         self.__dict__ = kwargs
     #
-    def set(self, other = None, /, **kwargs):
+    def update(self, other = None, /, **ka):
         if other:
-            kwargs = other.__dict__
-        #
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+            ka = other.__dict__
+        self.__dict__.update(ka)
         return self
+    ###
 
 def naive_scan(s, *conversions):
     def conv(i, tok): return conversions[i](tok) if conversions[i] else tok
     #
     return tuple([conv(i, tok) for (i, tok) in enumerate(s.split())])
 
-# Seems pretty bad?
-def unique_closure(decorated):
-    return decorated()
-# 
+####### DECORATORS
+# (decorator(f, *a, **ka) -> wf) -> (meta(*a, **ka) -> (ret(f) -> wf))
+def param_decorator(wrapped_deco):
+    def meta(*a, **ka):
+        return lambda f : wrapped_deco(f, *a, **ka)
+    return meta
 # Dumb Example:
-#
-# @unique_closure
-# def count_up():
-#     n, p = 0, 0
-#     def closure():
-#         nonlocal n, p
-#         n += 1
-#         return n - 1
-#     return closure
+# 
+# @param_decorator
+# def declaring(f, msg):
+#     def wrapped(*a, **ka):
+#         print(msg)
+#         return f(*a, **ka)
+#     return wrapped
+# 
+# @declaring("foo")
+# def add(a, b): return a + b
+
+def returned(decorated):
+    return decorated()
+# Useful for things like unique closures, fake "singletons", ...
+### eg:
+# @returned
+# def unique_counter():
+#     ref = Rec(n = 0)
+#     def ret(): ref.update(n = ref.n + 1); return ref.n
+#     return ret
+# 
