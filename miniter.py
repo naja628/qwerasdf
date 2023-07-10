@@ -254,7 +254,6 @@ def set_default_rotation_cmd(*a, _env):
 @miniter_command(('select_all', 'sel*'))
 def select_all_cmd(*, _env):
     "select all shapes"
-    #_env.context.selected[:] = _env.context.shapes[:]
     _env.context.selected = _env.context.shapes[:]
 
 @miniter_command(('translate_colors', 'trans'), "$CMD from to  (eg $CMD qw az)")
