@@ -59,11 +59,11 @@ def term_exec(cmd, cmd_map, usage_map, context = g):
     #except DebugError as e: raise e.exn
     except BaseException as e:
         try:
-            eprint('debug info: term caught', type(e), e)
+            #eprint('debug info: term caught', type(e), e) # debug
             usage_msg = usage_map[cmd_map[cmd]].replace('$CMD', cmd)
             post_error(usage_msg, context = context)
         except BaseException as e:
-            eprint('debug info: term REcaught', type(e), e)
+            #eprint('debug info: term REcaught', type(e), e) #debug
             post_error(str(e), context = context)
         return 1
 

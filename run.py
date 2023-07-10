@@ -54,6 +54,7 @@ def draw_palette(palette, selected = None, label_color = params.background):
     
 def main():
     g_init()
+    post_info("WHEEL: zoom | RCLICK: move the view")
     g.dispatch.add_hook(zoom_hook)
     g.dispatch.add_hook(click_move_hook)
     g.dispatch.add_hook(menu_hook)

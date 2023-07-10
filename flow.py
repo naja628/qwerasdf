@@ -146,7 +146,7 @@ def click_move_hook(hook, context = g):
                 dx = -view.ptord(ev.pos[0] - start[0])
                 dy = +view.ptord(ev.pos[1] - start[1])
                 view.corner = start_corner + np.array([dx, dy])
-                if right_click(ev) or left_click(ev): print('foo'); return
+                if right_click(ev) or left_click(ev): return
                 else: yield
         return iter()
     #
@@ -704,7 +704,7 @@ def menu_hook(hook, context = g):
             if not key:
                 yield; continue
             #
-            eprint("got menu:", key) # debug
+            #eprint("got menu:", key) # debug
             if main_hook and main_hook.done: forward_request = None
             menu_action = c.menu.go(key)
             if menu_action in {"Back", "Menu Top", "Command"}:
@@ -720,11 +720,11 @@ def menu_hook(hook, context = g):
                         c.menu.up(1)
                     case "Command": detached_hook(miniter_hook, c)
             elif forward_request and forward_request(ev):
-                eprint('forward')
+                #eprint('forward')
                 ev_dict = ev.__dict__
                 event.post(event.Event(_ACCEPT_FORWARD, **ev_dict))
             else:
-                print('no forward')
+                #eprint('no forward')
                 try: post_info(_menuaction_info[menu_action])
                 except KeyError: pass
                 match menu_action:
