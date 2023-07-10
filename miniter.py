@@ -254,7 +254,8 @@ def set_default_rotation_cmd(*a, _env):
 @miniter_command(('select_all', 'sel*'))
 def select_all_cmd(*, _env):
     "select all shapes"
-    _env.context.selected[:] = _env.context.shapes[:]
+    #_env.context.selected[:] = _env.context.shapes[:]
+    _env.context.selected = _env.context.shapes[:]
 
 @miniter_command(('translate_colors', 'trans'), "$CMD from to  (eg $CMD qw az)")
 def translate_colors_cmd(src, dest, *, _env):
@@ -272,3 +273,12 @@ def translate_colors_cmd(src, dest, *, _env):
         except: pass
     ###
 
+@miniter_command(('highlight', 'hi'), "$CMD highlighted_nail_index1 ...")
+def highlight_cmd(index, *more, _env):
+    "highlight the nails at the specified indices on all selected shapes"
+    cx = _env.context
+    cx.hints = []
+    for sh in cx.selected: 
+        cx.hints.extend([Point(sh.get_div(i)) 
+            for i in [index, *more] if sh.get_div(i) is not None])
+    ###
