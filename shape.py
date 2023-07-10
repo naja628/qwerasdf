@@ -163,12 +163,63 @@ class Line(Shape):
         Shape.draw_divs(self, screen, view)
     ###
 
+class PolyLine(Shape):
+    def __init__(self, point1, *points, ndivs = 120, loopy = False):
+        self.loopy = loopy
+        Shape.__init__(self, point1, *points, ndivs = ndivs)
+    #
+    def _compute_len(self):
+        self.len = sum([dist(a, b) for a, b in zip(self.keypoints[:-1], self.keypoints[1:])])
+        if self.loopy:
+            self.len += dist(self.keypoints[-1], self.keypoints[0])
+    #
+    def set_divs(self, ndivs):
+        if not hasattr(self, 'len'):
+            self._compute_len()
+        #
+        if ndivs == 1: 
+            self.divs = np.array([self.keypoints[0]])
+            return
+        if near_zero(self.len):
+            self.divs = np.array(ndivs * [self.keypoints[0]])
+            return
+        #
+        offset, divs = 0, []
+        spacing = self.len / (ndivs - 1)
+        n = len(self.keypoints)
+        for i in range(n + int(self.loopy) - 1):
+            seglen = dist(self.keypoints[i], self.keypoints[(i + 1) % n])
+            if near_zero(seglen): 
+                continue
+            #
+            dir_vec = 1.0 / seglen * (self.keypoints[(i + 1) % n] - self.keypoints[i])
+            new_divs = [ self.keypoints[i] + t * dir_vec
+                    for t in np.arange(offset, seglen, spacing) ]
+            divs.extend(new_divs)
+            #
+            r = (seglen - offset) % spacing
+            offset = spacing - r
+        if len(divs) == ndivs - 1:
+            divs.append(self.keypoints[0] if self.loopy else self.keypoints[-1])
+        assert len(divs) == ndivs
+        self.divs = np.array(divs)
+    #
+    def draw(self, screen, view, color = params.shape_color):
+        if len(self.keypoints) == 1:
+            draw_point(screen, self.keypoints[0], color)
+            return
+        ppoints = [view.rtop(rp) for rp in self.keypoints]
+        draw.lines(screen, color, self.loopy, ppoints)
+        Shape.draw_divs(self, screen, view)
+
 ###### SHAPE SERIALIZATION ###########
 
 _prefix_to_initializer = { 
         'cr' : (Circle, {'clockwise': False}),
         'ccr' : (Circle, {'clockwise': True}), 
         'ln' : (Line, {}),
+        'ls' : (PolyLine, {'loopy': False}),
+        'po' : (PolyLine, {'loopy': True}),
         'p' : (Point, {}),
         }
 
@@ -186,6 +237,7 @@ def is_subdict(sub, sup, values_must_match = True):
         if values_must_match and sup[k] != v: return False
     return True
 #
+
 def subshape_to_prefix(subshape):
     candidates = _subtype_to_prefix_candidates[ type(subshape) ]
     for pre, ka in candidates:

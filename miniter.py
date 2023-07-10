@@ -55,6 +55,8 @@ def term_exec(cmd, cmd_map, usage_map, context = g):
     # except BaseException as e: post_error(str(e), context = context)
     except CmdExn as e: 
         post_error(str(e), context = context); return e.exit_code
+    # Uncomment and raise in code being debugged to crash with traceback
+    #except DebugError as e: raise e.exn
     except BaseException as e:
         try:
             eprint('debug info: term caught', type(e), e)
@@ -69,6 +71,9 @@ class CmdExn(Exception):
     def __init__(self, *a, exit_code = 1, **ka):
         self.exit_code = exit_code
         Exception.__init__(self, *a, *ka)
+
+class DebugError(Exception): # for crashing
+    def __init__(self, exn): self.exn = exn
 
 @param_decorator
 def miniter_command(cmd_fun, aliases, usage = '$CMD'):
@@ -159,12 +164,18 @@ def set_weavity_cmd(inc0 = 1, inc1 = 1, *, _env):
         raise CmdExn("2nd argument cannot be 0")
     _env.context.weave_incrs = (inc0, inc1)
 
+def resize_context(context = g): # should this really be here?
+    new_width = context.screen.get_size()[0]
+    context.text_area.set_surface(new_width)
+    context.color_picker.reset(new_width, min_sat = params.min_pick_saturation)
+
 @miniter_command( ('fullscreen', 'fu') )
 def fullscreen_cmd(*, _env):
     "go fullscreen"
     #
-    g.screen = display.set_mode(flags = FULLSCREEN)
-    _env.context.text_area.set_surface(display.get_window_size()[0])
+    _env.context.screen = display.set_mode(flags = FULLSCREEN)
+    resize_context(_env.context)
+
 
 @miniter_command( ('resize', 'res'), "$CMD win_width win_height")
 def resize_cmd(w = params.start_dimensions[0], h = params.start_dimensions[1], *, _env):
@@ -173,7 +184,7 @@ def resize_cmd(w = params.start_dimensions[0], h = params.start_dimensions[1], *
     if w < 300 or h < 300 or w > 9000 or h > 9000:
         raise CmdExn("bad dimensions")
     _env.context.screen = display.set_mode((w, h))
-    _env.context.text_area.set_surface(display.get_window_size()[0])
+    resize_context(_env.context)
 
 @miniter_command( ('exit', 'quit', 'q'), "$CMD save_to OR $CMD !}")
 def exit_cmd(save_or_bang, *, _env):
@@ -200,7 +211,7 @@ def save_cmd(*a, _env):
         save(save_path(file), overwrite_ok, _env.context)
         _last_save_filename = file
     except FileExistsError:
-        raise Exn(f"'{file}' exists. to allow overwrites, use: {_env.cmd} ! {file}")
+        raise CmdExn(f"'{file}' exists. to allow overwrites, use: {_env.cmd} ! {file}")
 
 @miniter_command(('load', 'lo'), "$CMD save_to load_from OR $CMD ! load_from")
 def load_cmd(save, load, *, _env):
@@ -223,10 +234,9 @@ def load_cmd(save, load, *, _env):
 @miniter_command(('clear', 'cl'))
 def clear_cmd(*, _env):
     "clears info/error area"
-    #
     for line in ERRLINE, INFOLINE:
         _env.context.text_area.set_line(line, '')
-    #
+    ##
 
 @miniter_command(('set_rotation', 'rot'), "$CMD new_angle OR $CMD p / q  (p qth of a turn)")
 def set_default_rotation_cmd(*a, _env):
@@ -244,7 +254,7 @@ def set_default_rotation_cmd(*a, _env):
 @miniter_command(('select_all', 'sel*'))
 def select_all_cmd(*, _env):
     "select all shapes"
-    _env.context.selected = _env.context.shapes
+    _env.context.selected[:] = _env.context.shapes[:]
 
 @miniter_command(('translate_colors', 'trans'), "$CMD from to  (eg $CMD qw az)")
 def translate_colors_cmd(src, dest, *, _env):

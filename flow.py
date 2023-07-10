@@ -4,7 +4,7 @@ from pygame import *
 
 from shape import *
 from context import g
-from util import dist, Rec, do_chain
+from util import dist, Rec, do_chain, clamp, eprint
 import params
 import text
 from text import post_error, post_info, MENULINE1, TERMLINE
@@ -31,6 +31,7 @@ def snappy_get_point(pos, context = g):
 ######### EVENT AND DISPATCH ##########
 class EvHook:
     def __init__(self, make_hook, *args, **kwargs):
+        self.attached = []
         self.cleanup = lambda : None
         self.iter = make_hook(self, *args, **kwargs)
         assert hasattr(self, 'watched') # should be set-up by `make_hook`
@@ -45,9 +46,14 @@ class EvHook:
             self.finish()
     #
     def finish(self):
-        self.cleanup()
-        self.watched = set()
+        for sub in self.attached:
+            sub.finish()
         self.done = True
+        self.watched = set()
+        self.cleanup()
+    #
+    def attach(self, other):
+        self.attached.append(other)
     ###
 
 class EvDispatch: # event dispatcher
@@ -118,12 +124,36 @@ def create_shapes(*shapes, context = g):
     if hasattr(context, 'selected'):
         context.selected = list(shapes)
 
-
 def zoom_hook(hook, factor = params.zoom_factor, context = g):
     hook.watched = { MOUSEWHEEL }
     def iter():
         while e := hook.ev:
             context.view.zoom(mouse.get_pos(), factor ** e.y)
+            yield
+    return iter()
+
+def click_move_hook(hook, context = g):
+    hook.watched = {MOUSEBUTTONDOWN}
+    view = context.view
+    #
+    def subhook(hook, start):
+        hook.watched = {MOUSEMOTION, MOUSEBUTTONDOWN}
+        post_info("CLICK again to release")
+        start_corner = view.corner
+        #
+        def iter():
+            while (ev := hook.ev):
+                dx = -view.ptord(ev.pos[0] - start[0])
+                dy = +view.ptord(ev.pos[1] - start[1])
+                view.corner = start_corner + np.array([dx, dy])
+                if right_click(ev) or left_click(ev): print('foo'); return
+                else: yield
+        return iter()
+    #
+    def iter():
+        while (ev := hook.ev):
+            if right_click(ev):
+                context.dispatch.add_hook(subhook, ev.pos)
             yield
     return iter()
 
@@ -153,12 +183,14 @@ def draw_circles_hook(hook, context = g):
                         create_point_at_center = False
                     context.hints = []
                     center = None
-            elif e.type == MOUSEMOTION and center is not None:
-                context.hints = [get_circle(center, e.pos)]
+            elif e.type == MOUSEMOTION:
+                if center is None:
+                    context.hints = [ Point(snappy_get_point(e.pos, context)[0]) ]
+                else:
+                    context.hints = [get_circle(center, e.pos)]
             yield
     return iter()
 
-# looks very duplicated (TODO ?)
 def draw_lines_hook(hook, context = g):
     hook.watched = { MOUSEBUTTONDOWN, MOUSEMOTION }
     #
@@ -183,13 +215,60 @@ def draw_lines_hook(hook, context = g):
                     create_shapes(get_line(a, e.pos), context = context)
                     context.hints = []
                     a = None
-            elif e.type == MOUSEMOTION and a is not None:
-                context.hints = [get_line(a, e.pos)]
+            elif e.type == MOUSEMOTION:
+                if a is None:
+                    context.hints = [ Point(snappy_get_point(e.pos, context)[0]) ]
+                else:
+                    context.hints = [get_line(a, e.pos)]
+            yield
+    return iter()
+
+def draw_points_hook(hook, context = g):
+    hook.watched = { MOUSEBUTTONDOWN, MOUSEMOTION }
+    def cleanup(): context.hints = []
+    hook.cleanup = cleanup
+    #
+    def iter():
+        def get_point(pos):
+            return Point( snappy_get_point(ev.pos, context)[0] )
+        #
+        while (ev := hook.ev):
+            if left_click(ev):
+                create_shapes(get_point(ev.pos), context = context)
+            elif ev.type == MOUSEMOTION:
+                context.hints = [ get_point(ev.pos) ]
+            yield
+    return iter()
+
+def draw_poly_lines_hook(hook, context = g):
+    hook.watched = { MOUSEBUTTONDOWN, MOUSEMOTION }
+    def cleanup(): context.hints = []
+    hook.cleanup = cleanup
+    #
+    def iter():
+        points = [None] # always including under cursor
+        while (ev := hook.ev):
+            pos, _ = snappy_get_point(ev.pos, context)
+            if len(points) > 2 and context.view.rtopd( dist(pos, points[0]) ) < params.snap_radius:
+                pos = points[0]
+            points[-1] = pos
+            context.hints = [PolyLine(*points, loopy = False)]
+            if left_click(ev): 
+                if len(points) >= 2 and near_zero( dist(pos, points[0]) ):
+                    create_shapes(PolyLine(*points[:-1], loopy = True), context = context)
+                    points, context.hints = [None], []; yield; continue
+                points.append(None)
+            elif len(points) >= 2 and right_click(ev):
+                create_shapes(PolyLine(*points[:-1], loopy = False), context = context)
+                points, context.hints = [None], []
+            #
             yield
     return iter()
 
 def create_weave_hook(hook, context = g):
     hook.watched = { MOUSEBUTTONDOWN, MOUSEMOTION }
+    disambiguate_index = 0
+    #
     def iter():
         c, hangs = context, [None] * 3
         #
@@ -236,16 +315,15 @@ def create_weave_hook(hook, context = g):
                     post_error("must belong to same shape", context = c)
                 yield
             #
-            # new_weave = Weave(hangs, c.weave_incrs)
             new_weave = Weave.CreateFrom3(hangs, c.weave_incrs)
             if hasattr(c, 'color_key') and hasattr(c, 'palette'):
                 new_weave.set_color(c.color_key, c.palette)
             c.weaves.append(new_weave)
             hangs, c.hints = [None] * 3, [] # reset
             yield
-            continue
     return iter()
 
+ 
 def choose_color_hook(hook, context = g):
     hook.watched = {KEYDOWN}
     save_show = context.show_palette
@@ -268,8 +346,9 @@ def select_hook(hook, context = g):
     #
     def iter():
         def get_shapes():
-            if not hasattr(hook.ev, 'pos'): 
-                return None
+            assert hasattr(hook.ev, 'pos')
+            # if not hasattr(hook.ev, 'pos'): 
+            #     return None
             #
             _, matches = snappy_get_point(hook.ev.pos, context)
             if not matches: 
@@ -308,24 +387,24 @@ def unweave1(shape, context = g):
         return (weave.hangpoints[0].s == shape) or (weave.hangpoints[1].s == shape)
     c.weaves = [w for w in c.weaves if not connected(w, shape)]
 #
-def unweave_selection(context = g):
+def unweave_pre_delete(context = g):
     for sh in context.selected:
         unweave1(sh, context)
 #
 def delete_selection(context = g):
     c = context
-    unweave_selection(c)
+    unweave_pre_delete(c)
     c.shapes = [sh for sh in c.shapes if not sh in c.selected]
     c.selected = []
-
-# Transform
-# transform, copy-transform, move, copy-move
 #
-# move: copy of selected follows cursor. lclick -> confirm, rclick -> cancel
-# copy-move: like move but selection is not deleted
-## note: for copy only weaves INSIDE are copied, 
-# transform : center follows cursor, add menu-keys for default rot,  
-# rot: scroll angle +/-= default_rot, center follows cursor
+def unweave_inside_selection(context = g):
+    cx = context
+    new_weaves = []
+    for we in cx.weaves:
+        s1, s2 = (hg.s for hg in we.hangpoints)
+        if not (s1 in cx.selected and s2 in cx.selected):
+            new_weaves.append(we)
+    cx.weaves = new_weaves
 
 def copy_weaves_inside(dest_shapes, src_shapes, weave_superset):
     new_weaves = []
@@ -384,7 +463,7 @@ def transform_selection_hook(hook, *, want_copy = False, context = g):
     hook.watched = { MOUSEBUTTONDOWN, MOUSEMOTION, _ACCEPT_FORWARD}
     cx = context
     cx.menu.temporary_display('QWERASDF', {'S': "+Rotaion", 'D': "-Rotation", 'F': "Mirror"})
-    def cleanup(): cx.hints = []; cx.menu.restore_display(); print('fooffo')
+    def cleanup(): cx.hints = []; cx.menu.restore_display() 
     hook.cleanup = cleanup
     hook.forward_request = (lambda ev: ev.type == KEYDOWN and alpha_scan(ev) in 'ASDFQWER')
     def transformed_selection(matrix, center):
@@ -398,7 +477,6 @@ def transform_selection_hook(hook, *, want_copy = False, context = g):
                 return
             #
             if (ev.type == _ACCEPT_FORWARD):
-                print('got forward')
                 match alpha_scan(ev):
                     case 'A': pass # TODO (add new hook)
                     case 'S': rot_angle += cx.default_rotation
@@ -462,7 +540,7 @@ def miniter_hook(hook, context = g):
                 elif ev.mod & KMOD_CTRL == 0: 
                     if ev.unicode and 127 != ord(ev.unicode) >= 32:
                         command += ev.unicode
-                        if command.strip().lower() == 'zz': return
+                        if params.term_xx_close and command[-2:].lower() == 'xx': return
                 set_line(command)
                 yield
             command = ''
@@ -560,25 +638,29 @@ _nested_menu = {
             { 'Q': "Unselect All", 'E': "Unweave", 'R': "Remove",
                 'A': "Transform", 'S': "Cp-Transform", 'D': "Move", 'F': "Copy-Move"
                 }),
-        'D': ("New Shape", 
-            {'A': "New Point", 'S': "New Segment", 'D': "New Circle", 'F' : ("Draw Weave", _sho('F'))}),
-        'F': ("Draw Weave", 
-            {'A' : "Invert", 'S': "Select Color", 'D': ("New Shape", _sho('D')), 'F': "Draw Weave"}),
+        'D': ("New Shape", {
+            'W': "New Polyline",
+            'A': "New Point", 'S': "New Segment", 'D': "New Circle", 'F' : ("Draw Weave", _sho('F'))}),
+        'F': ("Draw Weave", {
+            'W' : "Color Picker",
+            'A' : "Invert", 'S': "Select Color", 'D': ("New Shape", _sho('D')), 'F': "Draw Weave"}),
         }
 del _sho
 _pinned_menu = {'Z': "Menu Top", 'X': "Back", 'C': "Command"}
 _menuaction_info = { # What the user has to do AFTER, not what it does
-        "Command": "Termin: 'ls' for a list of commands. Ctrl-C to exit (or Enter when prompt is empty, or ZZ)",
-        "New Point": "lclick to add a point", #TODO
-        "New Segment": "lclick on two points to draw a line between them",
-        "New Circle": "lclick on the center and any point on the perimeter to draw a circle",
-        "Draw Weave": "lclick on 3 points on (1 or) 2 shapes to add colorful strings",
-        "Select Color": "press key to choose color",
-        "Selection": "lclick -> select under cursor. rclick -> toggle selection",
-        "Transform": "lclick -> confirm (shape will change), rclick -> cancel", # TODO
-        "Cp-Transform": "lclick -> confirm (new copy will be created), rclick -> cancel", # TODO
-        "Move": "lclick -> confirm (shape will move), rclick -> cancel",
-        "Copy-Move": "lclick -> confirm (new copy will be created), rclick -> cancel",
+        "Command": "Termin: 'ls': list of commands. Ctrl-C: close (or Enter on empty prompt, or XX)",
+        "New Point": "LCLICK to add a point", 
+        "New Segment": "LCLICK on two points to draw a line between them",
+        "New Polyline": "LCLICK: add point OR (on start) connect and finish | RCLICK: finish",
+        "New Circle": "LCLICK on the center and any point on the perimeter to draw a circle",
+        "Draw Weave": "LCLICK on 3 points on (1 or) 2 shapes to add colorful strings",
+        "Select Color": "press key (QWERASDF) to choose color",
+        "Selection": "LCLICK: select under cursor | RCLICK: toggle select-state under cursor",
+        "Transform": "LCLICK: confirm (shape will change) | RCLICK: cancel",
+        "Cp-Transform": "LCLICK: confirm (new copy will be created) | RCLICK: cancel",
+        "Move": "LCLICK: confirm (shape will move) | RCLICK: cancel",
+        "Copy-Move": "LCLICK: confirm (new copy will be created) | RCLICK: cancel",
+        "Color Picker": "LCLICK : apply | RCLICK : close | QWERASDF : change color | WHEEL: change brightness",
         }
 
 def menu_hook(hook, context = g):
@@ -592,10 +674,12 @@ def menu_hook(hook, context = g):
         forward_request = None
         def set_hook(hook_fun, *a, **ka):
             nonlocal main_hook, forward_request
-            forward_request = None
-            if main_hook: main_hook.finish()
-            if hook_fun: main_hook = c.dispatch.add_hook(hook_fun, *a, *ka)
-            else: top_hook = None
+            if main_hook: main_hook.finish(); forward_request = None
+            #
+            if hook_fun:
+                main_hook = c.dispatch.add_hook(hook_fun, *a, *ka)
+                forward_request = getattr(main_hook, 'forward_request', None)
+            else: main_hook = None
         #
         def detached_hook(hook_fun, *a, **ka): # does its thing / overrides controls
             return c.dispatch.add_hook(hook_fun, *a, **ka)
@@ -612,22 +696,20 @@ def menu_hook(hook, context = g):
                 forward_request = tmp_hook.forward_request
                 tmp_hook.cleanup = do_chain(unset_request, tmp_hook.cleanup)
             #
-            if main_hook: 
-                main_hook.cleanup = do_chain(tmp_hook.finish, main_hook.cleanup)
+            if main_hook: main_hook.attach(tmp_hook)
             else: main_hook = tmp_hook
-            print('in bound hook:', forward_request)
         ###
         while (ev := hook.ev):
             key = alpha_scan(ev)
             if not key:
                 yield; continue
             #
-            print("got menu:", key) # debug
+            eprint("got menu:", key) # debug
+            if main_hook and main_hook.done: forward_request = None
             menu_action = c.menu.go(key)
             if menu_action in {"Back", "Menu Top", "Command"}:
                 try: post_info(_menuaction_info[menu_action])
                 except KeyError: pass
-                print('pinned')
                 match menu_action:
                     # Pinned
                     case "Menu Top":
@@ -638,7 +720,7 @@ def menu_hook(hook, context = g):
                         c.menu.up(1)
                     case "Command": detached_hook(miniter_hook, c)
             elif forward_request and forward_request(ev):
-                print('forward')
+                eprint('forward')
                 ev_dict = ev.__dict__
                 event.post(event.Event(_ACCEPT_FORWARD, **ev_dict))
             else:
@@ -647,8 +729,9 @@ def menu_hook(hook, context = g):
                 except KeyError: pass
                 match menu_action:
                     # Create Shapes
-                    case "New Point": pass # TODO
+                    case "New Point": set_hook(draw_points_hook, c)
                     case "New Segment": set_hook(draw_lines_hook, c)
+                    case "New Polyline": set_hook(draw_poly_lines_hook, c)
                     case "New Circle": set_hook(draw_circles_hook, c)
                     # Weave
                     case "Draw Weave": set_hook(create_weave_hook, c)
@@ -656,10 +739,11 @@ def menu_hook(hook, context = g):
                         inc0, inc1 = context.weave_incrs
                         context.weave_incrs = (-inc0, inc1)
                     case "Select Color": detached_hook(choose_color_hook, c)
+                    case "Color Picker": set_hook(color_picker_hook, c)
                     # Selection
                     case "Selection": set_hook(select_hook, c)
                     case "Unselect All": context.selected = []
-                    case "Unweave": unweave_selection(context = c)
+                    case "Unweave": unweave_inside_selection(context = c)
                     case "Remove": delete_selection(context = c)
                     case "Transform": bound_hook(transform_selection_hook, context = c)
                     case "Cp-Transform": bound_hook(copytransform_selection_hook, context = c)
@@ -671,3 +755,137 @@ def menu_hook(hook, context = g):
     #
     return iter()
 
+def color_picker_hook(hook, context = g):
+    # lclick apply, rclick exit, qwerasdf change color, mousewheel change brightness
+    # params -> color_picker_scroll_speed
+    hook.watched = { MOUSEWHEEL, MOUSEMOTION, MOUSEBUTTONDOWN, _ACCEPT_FORWARD }
+    hook.forward_request = lambda ev: (ev.type == KEYDOWN and alpha_scan(ev) in 'QWERASDF')
+    #
+    cx = context
+    color_picker, palette = cx.color_picker, cx.palette
+    save_color_key, save_show_palette = cx.color_key, cx.show_palette
+    cx.show_color_picker, cx.show_palette = True, True
+    def tmp_cleanup(): cx.show_color_picker = False; cx.show_palette = save_show_palette
+    hook.cleanup = tmp_cleanup
+    #
+    def iter():
+        def cleanup():
+            cx.show_color_picker = False
+            cx.color_key, cx.show_palette = save_color_key, save_show_palette
+            if color_key and save_color:
+                palette[color_key] = save_color
+        hook.cleanup = cleanup
+        #
+        color_key, save_color = cx.color_key, palette[cx.color_key]
+        cur_color = save_color
+        #
+        while (ev := hook.ev):
+            if ev.type == MOUSEWHEEL:
+                color_picker.brightness += params.brightness_scroll_speed * ev.y
+                color_picker.brightness = clamp(color_picker.brightness, 0, 1)
+                yield; continue
+            if ev.type == _ACCEPT_FORWARD:
+                tmp_key = alpha_scan(ev)
+                if tmp_key in palette:
+                    if color_key and save_color: palette[color_key] = save_color
+                    color_key = tmp_key
+                    save_color = palette[color_key]
+                yield; continue
+            #
+            #if not hasattr(ev, 'pos'): yield; continue
+            assert hasattr(ev, 'pos')
+            cur_color = color_picker.at_pixel(ev.pos, cur_color)
+            if not cur_color: yield; continue
+            #
+            if color_key: palette[color_key] = cur_color
+            #
+            if left_click(ev):
+                save_color = None
+                color_key = None
+            elif right_click(ev):
+                return
+            yield
+    return iter()
+
+# def create_weave_hook(hook, context = g):
+#     hook.watched = { MOUSEBUTTONDOWN, MOUSEMOTION }
+#     c = context
+#     def cleanup(): c.hints = []
+#     #
+#     def disambiguate_hook(hook, candidates, i_ref):
+#         post_info("Several possible shapes. scroll : disambiguate. lclick : confirm", context = c)
+#         hook.watched = {MOUSEWHEEL, MOUSEBUTTONDOWN, MOUSEMOTION}
+#         def cleanup(): c.hints = []
+#         hook.cleanup = cleanup
+#         c.hints = [candidates[i_ref.get % len(candidates)].s]
+#         def iter():
+#             while (ev := hook.ev):
+#                 if ev.type == MOUSEWHEEL:
+#                     i_ref.get += ev.y
+#                     i_ref.get %= len(candidates)
+#                     c.hints = [ candidates[i_ref.get].s ] 
+#                 elif left_click(ev):
+#                     event.post(ev)
+#                     return
+#                 yield
+#         return iter()
+#     #
+#     def iter():
+#         hangs = [None] * 3
+#         #
+#         def update_hints_hook(hook):
+#             hook.watched = { MOUSEMOTION }
+#             def iter():
+#                 while (e := hook.ev):
+#                     c.hints = [ Point(h.s.divs[h.i]) for h in hangs if (h != None) ]
+#                     under_cursor, m = snappy_get_point(hook.ev.pos, c)
+#                     if m: c.hints.append(Point(under_cursor))
+#                     if hangs[1] != None and m and m[0].s == hangs[1].s:
+#                         hint_hangs = hangs[:2] + [m[0]]
+#                         # c.hints.append(Weave(hint_hangs, c.weave_incrs))
+#                         c.hints.append(Weave.CreateFrom3(hint_hangs, c.weave_incrs))
+#                     yield
+#             return iter()
+#         #
+#         def get_hang():
+#             if not left_click(hook.ev): return 
+#             #
+#             _, matches = snappy_get_point(hook.ev.pos, c)
+#             if not matches: 
+#                 post_error("no shape under cursor", context = c)
+#                 return
+#             return matches
+#         #####
+#         hook.attach(c.dispatch.add_hook(update_hints_hook))
+#         while True:
+#             def assign_item(seq, i, assignment): # `seq[i] := assignment` is illegal
+#                 seq[i] = assignment
+#                 return seq[i]
+#             #
+#             for i in range(2):
+#                 while (matches := get_hang()) is None: yield
+#                 if len(matches) == 1:
+#                     hangs[i] = matches[0]
+#                 else:
+#                     i_hang = Rec(get = 0)
+#                     hook.attach(c.dispatch.add_hook(disambiguate_hook, matches, i_hang))
+#                     yield
+#                     hangs[i] = matches[i_hang.get]
+#                 yield
+#             #
+#             while True:
+#                 while (matches := get_hang()) is None: yield
+#                 try: hangs[2] = next(hg for hg in matches if hg.s == hangs[1].s)
+#                 except StopIteration: 
+#                     post_error("must belong to same shape", context = c)
+#                     continue
+#                 break
+#             #
+#             new_weave = Weave.CreateFrom3(hangs, c.weave_incrs)
+#             if hasattr(c, 'color_key') and hasattr(c, 'palette'):
+#                 new_weave.set_color(c.color_key, c.palette)
+#             c.weaves.append(new_weave)
+#             hangs, c.hints = [None] * 3, [] # reset
+#             yield
+#     return iter()
+#

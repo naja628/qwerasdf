@@ -1,21 +1,5 @@
-"details":
-	circle around problems??
-
-
-	disambiguate clicks/shapes (maybe only in weave)
-	interactive set div
-	freehand rotation
-	move the view / click and drag
-	maybe refactor hooks
-	still can't draw point (lol)
-	hint snappy points (drawing shapes and lines)
-	swap circle ends
-
-do now:
-	interactive color-picker
-	broken-lines
-
-want :
+want (v2 another time :P) :
+	hooks big refactor
 	zen view
 	pdf guide pages (with marks for nails)
 	use V for pinning terminal commands
@@ -23,7 +7,14 @@ want :
 	more shapes: interpolated curves, arcs, ellipses?
 	visual linear transforms?, register transforms to shapes etc
 	maybe more view options? ruler, grid etc
-	#
 	more termcommands : dump, point
 	commandline options? 
+
++ "details":
+	interactive_set_div, interactive_rotation
+	disambiguate thingy
+	finer weave selection
+	circle around problems?? 
+		(ie when drawing weaves choose the number of turns made)
+	swap circle ends (when drawing)
 

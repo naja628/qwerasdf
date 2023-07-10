@@ -1,6 +1,7 @@
 import numpy as np
 
 import sys
+
 def eprint(*a, **ka):
     ka['file'] = sys.stderr
     print(*a, **ka)
@@ -61,5 +62,10 @@ def returned(decorated):
 
 def do_chain(fun, *more):
     return lambda: [ fun() for fun in [fun, *more]][-1]
+
+def clamp(x, mini, maxi):
+    if x < mini: return mini
+    elif x > maxi: return maxi
+    else: return x
 
 

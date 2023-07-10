@@ -16,7 +16,7 @@ select_color = Color(64, 0, 192)
 
 start_palette = {
  'Q': Color(192, 32, 96),
- 'W': Color(64, 192, 16),
+ 'W': Color(11, 153, 20),
  'E': Color(64, 0, 192),
  'R': Color(192, 128, 0),
  #
@@ -31,6 +31,8 @@ text_color = Color(192, 192, 192)
 error_text_color = Color(128, 32, 32)
 term_color = Color(0, 128, 64)
 
+term_xx_close = True # typing at the end of the prompt will close the terminal
+
 start_ndivs = 60
 point_radius = 2 
 snap_radius = 7
@@ -39,4 +41,7 @@ eps = 0.0000001 # distance under which two points are considered "the same"
 zoom_factor = 1.1
 
 max_div = 2000
+
+brightness_scroll_speed = 0.025
+min_pick_saturation = 0.2
 
