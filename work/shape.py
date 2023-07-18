@@ -255,50 +255,57 @@ def create_shape_from_repr( repre ):
 ################ WEAVE #################
 # needs its own module? 
 class Weave:
-    def CreateFrom3(hangs, incrs = (1, 1), color_key = None, palette = {}): # STATIC
+#     def CreateFrom3(hangs, incrs = (1, 1), color_key = None, palette = {}): # STATIC
+#         assert len(hangs) == 3
+#         assert hangs[1].s == hangs[2].s
+#         assert incrs[1] != 0
+#         #
+#         n = (abs(hangs[2].i - hangs[1].i) + 1) // abs(incrs[1])
+#         if (hangs[2].i < hangs[1].i):
+#             inc0, inc1 = incrs
+#             incrs = -inc0, -inc1
+#         #
+#         return Weave(hangs[:2], n, incrs, color_key, palette)
+    #
+    def CreateFrom3(hangs, incrs = (1, 1), nloops = 0): # STATIC
         assert len(hangs) == 3
         assert hangs[1].s == hangs[2].s
         assert incrs[1] != 0
         #
-        n = (abs(hangs[2].i - hangs[1].i) + 1) // abs(incrs[1])
+        sh2 = hangs[1].s
+        if sh2.loopy:
+            if hangs[2].i < hangs[1].i:
+                hangs[2].i += len(sh2.divs)
+            hangs[2].i += nloops * len(sh2.divs)
+        #
+        n = (abs(hangs[2].i - hangs[1].i)) // abs(incrs[1]) + 1
         if (hangs[2].i < hangs[1].i):
             inc0, inc1 = incrs
             incrs = -inc0, -inc1
         #
-        return Weave(hangs[:2], n, incrs, color_key, palette)
+        return Weave(hangs[:2], n, incrs)
     #
-    def _CreateFrom3_bis(hangs, incrs = (1, 1), color_key = None, palette = {}): # STATIC
-        assert len(hangs) == 3
-        assert hangs[1].s == hangs[2].s
-        assert incrs[1] != 0
-        #
-        if hangs[1].s.loopy and nloops:
-            t
-        else:
-            n = (abs(hangs[2].i - hangs[1].i) + 1) // abs(incrs[1])
-        #
-        if (hangs[2].i < hangs[1].i):
-            inc0, inc1 = incrs
-            incrs = -inc0, -inc1
-        #
-        return Weave(hangs[:2], n, incrs, color_key, palette)
+    def BackWeave(forward):
+        n = forward.nwires - 1
+        if n <= 0:
+            return None
+        hgs = deepcopy(forward.hangpoints)
+        #hgs[0].i += hgs[0].s.get_div(hgs[0].i + forward.incrs[0])
+        hgs[0].i = (hgs[0].i + forward.incrs[0]) % len(hgs[0].s.divs)
+        return Weave(hgs, n, forward.incrs)
     #
-    def __init__(self, hangpoints, n, incrs = (1, 1), color_key = None, palette = {}):
+    def __init__(self, hangpoints, n, incrs = (1, 1)):
         assert incrs != (0, 0)
         self.hangpoints = hangpoints
         self.nwires = n
         self.incrs = incrs
-        self.color_key = color_key
-        self.palette = palette
-        if color_key: assert color_key in palette
     #
     def copy(self):
         [hg1, hg2] = self.hangpoints
         new_hangpoints = [Rec(s = hg1.s, i = hg1.i), Rec(s = hg2.s, i = hg2.i)]
-        return Weave(new_hangpoints, self.nwires, self.incrs, self.color_key, self.palette)
+        return Weave(new_hangpoints, self.nwires, self.incrs)
     #
-    def draw(self, screen, view, color = None):
-        color = color or self.color()
+    def draw(self, screen, view, color):
         def get_point(which, i):
             hg = self.hangpoints[which]
             return hg.s.get_div(hg.i + i * self.incrs[which])
@@ -314,14 +321,3 @@ class Weave:
         inc0, inc1 = self.incrs
         self.incrs = (-inc0, -inc1)
     #
-    def set_color(self, color_key, palette = None):
-        self.palette = palette or self.palette
-        self.color_key = color_key
-    #
-    def color(self):
-        try:
-            return self.palette[self.color_key]
-        except:
-            return Color(128, 0, 64) # default if fail
-    ###
-
