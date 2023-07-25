@@ -3,7 +3,6 @@ from copy import copy
 from pygame import *
 
 from shape import *
-from context import g
 from util import dist, Rec, do_chain, clamp, eprint
 import params
 import text

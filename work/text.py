@@ -1,6 +1,6 @@
 from pygame import *
+
 import params
-from context import g
 from util import Rec
 
 class TextArea():

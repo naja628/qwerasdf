@@ -37,7 +37,7 @@ term_color = Color(0, 160, 128)
 term_xx_close = True # typing 'xx' or 'XX' at the end of the prompt will close the terminal
 
 start_ndivs = 60
-snap_radius = 7
+snap_radius = 10
 
 eps = 0.0000001 # distance under which two points are considered "the same"
 zoom_factor = 1.1

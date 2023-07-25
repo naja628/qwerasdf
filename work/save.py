@@ -1,18 +1,18 @@
 import os
 from pygame import Color
 
-from context import g
 import params
 from shape import *
 from util import naive_scan, Rec
+from context import redraw_weaves
 
 class SaveError(BaseException): pass
 
-def save(filename, overwrite_ok = True, context = g):
-    def weave_data_line(we):
+def save(filename, context, overwrite_ok = True):
+    def weave_data_line(ckey, we):
         shape_id1 = context.shapes.index(we.hangpoints[0].s)
         shape_id2 = context.shapes.index(we.hangpoints[1].s)
-        line = f"{we.nwires} {we.incrs[0]} {we.incrs[1]} {we.color_key} "
+        line = f"{we.nwires} {we.incrs[0]} {we.incrs[1]} {ckey} "
         line += f"{shape_id1} {we.hangpoints[0].i} {shape_id2} {we.hangpoints[1].i}" 
         return line
     #
@@ -37,8 +37,8 @@ def save(filename, overwrite_ok = True, context = g):
                 p(f"{k} {color.r} {color.g} {color.b}")
             #
             p("WEAVEDATA")
-            for we in context.weaves:
-                p(weave_data_line(we))
+            for ckey, we in context.color_weave_pairs:
+                p(weave_data_line(ckey, we))
             #
     except (FileExistsError, OSError): raise
     except:
@@ -100,24 +100,26 @@ def load(filename):
                 except: 
                     raise ParseError(i + 1, line, section)
             ###
-            weaves = []
+            color_weave_pairs = []
             for i, line in enumerate(weave_lines):
                 try:
                     convs = [int] * 8; convs[3] = None
                     n, inc1, inc2, ckey, id1, i1, id2, i2 = naive_scan(line, *convs)
                     hangs = [ Rec(s = sh_dict[idx], i = ix)  for idx, ix in ((id1, i1), (id2, i2)) ] 
-                    weaves.append(Weave(hangs, n, (inc1, inc2), ckey, palette))
+                    color_weave_pairs.append((ckey, Weave(hangs, n, (inc1, inc2))))
                 except:
                     raise ParseError(i + 1, line, 'WEAVEDATA')
             ###
-            loaded_subcontext = Rec(shapes = list(sh_dict.values()), weaves = weaves, palette = palette)
+            loaded_subcontext = Rec(shapes = list(sh_dict.values()), color_weave_pairs = color_weave_pairs, palette = palette)
             return loaded_subcontext
     except ParseError: raise
     except: raise LoadError()
 
-def load_to_context(file, context = g):
-    if hasattr(context, 'hints'): context.hints = []
-    if hasattr(context, 'selected'): context.selected = []
+def load_to_context(file, context):
+    context.hints = []
+    context.selected = []
     #
     context.update(load(file))
+    redraw_weaves(context)
+
 

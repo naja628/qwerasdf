@@ -1,4 +1,5 @@
-from copy import deepcopy
+from copy import copy, deepcopy
+
 import numpy as np
 from numpy import sin, cos, pi
 from pygame import draw, Color
@@ -289,9 +290,15 @@ class Weave:
         n = forward.nwires - 1
         if n <= 0:
             return None
-        hgs = deepcopy(forward.hangpoints)
+        hgs = [copy(hg) for hg in forward.hangpoints]
         #hgs[0].i += hgs[0].s.get_div(hgs[0].i + forward.incrs[0])
-        hgs[0].i = (hgs[0].i + forward.incrs[0]) % len(hgs[0].s.divs)
+        sh0 = hgs[0].s
+        hgs[0].i = hgs[0].i + forward.incrs[0]
+        if hgs[0].i > len(sh0.divs):
+            if sh0.loopy:
+                hgs[0].s %= len(sh0.divs)
+            else:
+                return None
         return Weave(hgs, n, forward.incrs)
     #
     def __init__(self, hangpoints, n, incrs = (1, 1)):
