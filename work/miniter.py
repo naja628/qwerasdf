@@ -148,7 +148,7 @@ def set_div_cmd(n, *, _env):
 
 @miniter_command( ('weavity', 'wy'), "$CMD bound_increment free_increment")
 def set_weavity_cmd(inc0 = 1, inc1 = 1, *, _env):
-    "set the 'weavity' pair. Controls spacing of string when drawing weaves"
+    "set the 'weavity' pair. Controls spacing of strings when drawing weaves"
     #
     if inc1 == 0:
         raise CmdExn("2nd argument cannot be 0")
@@ -165,7 +165,7 @@ def fullscreen_cmd(*, _env):
 def resize_cmd(w = params.start_dimensions[0], h = params.start_dimensions[1], *, _env):
     "set window dimensions"
     #
-    if w < 300 or h < 300 or w > 9000 or h > 9000:
+    if w < 300 or h < 300 or w > 5000 or h > 5000:
         raise CmdExn("bad dimensions")
     _env.context.screen = display.set_mode((w, h))
     resize_context(_env.context, w)
@@ -228,7 +228,7 @@ def set_default_rotation_cmd(*a, _env):
     if len(a) != 1 and len(a) != 3: raise Exception()
     if len(a) == 3 and a[1] != '/': raise Exception()
     #
-    if len(a) == 3: new_rot = 2 * pi * (a[0] / a [2])
+    if len(a) == 3: new_rot = 2 * pi * (a[0] / a[2])
     elif type(a[0]) == int: new_rot = 2 * pi * a[0] / 360
     elif type(a[0]) == float: new_rot = a[0]
     else: raise Exception

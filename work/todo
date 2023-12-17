@@ -1,0 +1,29 @@
+"small" fixes:
+* in color-picker : scroll to adjust brigthness
+* remake tooltips
+* when drawing weaves: 
+ 	let scroll stay zoom, but midclick changes rotity
+ 	wb, wy: real-time effect (does wb exist yet)?
+* reput shortcuts in menu
+* recovery saves
+* rm weaves when changing div (until better idea) ?
+* only consider the last MOUSEMOTION every frame ?
+* still problem when changing the res param (in param.py)?
+
+NEXT:
+	* old transfo hooks, 
+	* merges
+	* automerge all before saving, on command, after transfo
+
+* rewind (autosaves)
+* fine transforms
+* snappy polar grid
+* pdf guide pages
+* arcs
+
+next:
+restructure the menu (same as old? + separate/ontop move-view)
+
+
+maybe don't draw circle-center on existing shapes
+

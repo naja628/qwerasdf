@@ -5,10 +5,14 @@ from numpy import sin, cos, pi
 from pygame import draw, Color
 
 import params
-from util import farr, dist, Rec
+from util import farr, dist, Rec, sqdist
+
 
 def near_zero(x):
     return -params.eps < x < params.eps
+
+def alomst_equal(x, y):
+    return sqdist(x, y) < eps ** 2
 
 def draw_point(screen, point, color = params.div_color):
     draw.circle(screen, color, point, params.point_radius)
@@ -86,6 +90,9 @@ class Shape:
     def transformed(self, matrix, center):
         return deepcopy(self).transform(matrix, center)
     #
+    def merge_overlapping(self, other):
+        raise NotImplementedError()
+    #
 #     def rotate(self, angle, center):
 #         rot = np.array([
 #             [np.cos(angle), -np.sin(angle)],
@@ -135,6 +142,32 @@ class Circle(Shape):
         det = a * d - b * c
         if det < 0: self.clockwise = not self.clockwise
         return Shape.transform(self, matrix, center)
+    #
+    def merge_overlapping(self, other, weaves):
+        if type(other) != Circle:
+            return False
+        if not alomst_equal(self.center, other.center):
+            return False
+        if len( self.divs ) != len( other.divs ):
+            return False
+        if not near_zero(sqdist(self.center, self.other) - sqdist(other.center, other.other)):
+            return False
+        #
+        for i, p in enumerate(self.divs):
+            if alomst_equal(p, other.other):
+                shift = i
+                break
+        else:
+            return False
+        #
+        for we in weaves:
+            for which in [0, 1]:
+                if we.hangpoints[which].s == other:
+                    we.hangpoints[which].s = self
+                    we.hangpoints[which].i -= shift
+                    if other.clockwise != self.clockwise:
+                        self.incrs[which] *= -1
+        return True
     ###
 
 class Point(Shape):
@@ -148,6 +181,10 @@ class Point(Shape):
     #
     def draw(self, screen, view, color = params.shape_color):
         draw_point(screen, view.rtop(self.p), color)
+    #
+#     def merge_overlapping(self, other, weaves):
+        #TODO
+        # maybe for points we merge self into other...
     ###
 
 class Line(Shape):
@@ -163,6 +200,9 @@ class Line(Shape):
         pstart, pend = view.rtop(self.start), view.rtop(self.end)
         draw.line(screen, color, pstart, pend)
         Shape.draw_divs(self, screen, view)
+    #
+#     def merge_overlapping(self, other, weaves):
+#         #TODO
     ###
 
 class PolyLine(Shape):
@@ -213,6 +253,9 @@ class PolyLine(Shape):
         ppoints = [view.rtop(rp) for rp in self.keypoints]
         draw.lines(screen, color, self.loopy, ppoints)
         Shape.draw_divs(self, screen, view)
+    # 
+#     def merge_overlapping():
+#         #TODO
 
 ###### SHAPE SERIALIZATION ###########
 
@@ -238,7 +281,7 @@ def is_subdict(sub, sup, values_must_match = True):
         if not k in sup: return False
         if values_must_match and sup[k] != v: return False
     return True
-#
+
 
 def subshape_to_prefix(subshape):
     candidates = _subtype_to_prefix_candidates[ type(subshape) ]
@@ -296,7 +339,7 @@ class Weave:
         hgs[0].i = hgs[0].i + forward.incrs[0]
         if hgs[0].i > len(sh0.divs):
             if sh0.loopy:
-                hgs[0].s %= len(sh0.divs)
+                hgs[0].i %= len(sh0.divs)
             else:
                 return None
         return Weave(hgs, n, forward.incrs)

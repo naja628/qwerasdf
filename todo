@@ -1,21 +1,60 @@
-want (v2 another time :P) :
-	hooks big refactor
-	zen view
-	pdf guide pages (with marks for nails)
-	use V for pinning terminal commands
-	autosaves (+ weird nested system? for rewind)
-	more shapes: interpolated curves, arcs, ellipses?
+if we get performance issues:
+	use squares instead of circles for nails/points
+	maybe give points their own layer too
+	only consider the last MOUSEMOTION every frame (maybe do anyway just out of principle)
+	when moving / zooming etc, draw 1 string out of n (see if needed via stress test), same for points?
+	
+performance
+* fix the rainbow thing: try: 1 -> compute whole thing with numpy, 2-> precompute fixed sizes
+
+sleekness / features
+* merge overlapping (at least when transforming)
+
+arcs (figure out best way to draw them... (3 points, 2 + center or fuite, ...)
+(simplest circle + other, lclick to orient)
+
+* alt weave
+* visual rotate, visual transform
+
+* some sort of grid : polar coordinates, snappy
+* REWIND + autosaves would also be very cool (nested?)
+
+* pdf guide pages (with marks for nails)
+* export images
+
+better system for redivs?
+* try to make changing the number of nails work well with existing weaves
+* allow rediv to be a ratio?
+* compute div numbers that work well with one another
+* several redivs at once?
+* set default div for shapes?
+
+Non-shit install process + Manual !!!!
+
+EXTRA:
+	set params via commandline
+
+	partial loads
+
+	pinning terminal commands, rethink menu?
+	drag rectangle selection
+
+	"set" the symetry globally (ie everything gets drawn n times)
+	more shapes: interpolated curves, ellipses?
+	more grids: cartesian, triangular?
 	visual linear transforms?, register transforms to shapes etc
-	maybe more view options? ruler, grid etc
+
 	more termcommands : dump, point
 	commandline options? 
 
-+ "details":
-	interactive_set_div, interactive_rotation
-	color picker pre-render thing
-	disambiguate thingy
+	make menu remappable?
+	measuring tools?
+	#
++ "details:
+	scaling?
+	interactive set_div
 	finer weave selection
-	circle around problems?? 
-		(ie when drawing weaves choose the number of turns made)
-	swap circle ends (when drawing)
+	terminal history
+	file autocomplete?
+
 

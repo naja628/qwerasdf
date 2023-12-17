@@ -12,7 +12,7 @@ _nested_menu = {
         'D': ("Create Shapes",
             {'A': "New Point", 'S': "New Segment", 'D': "New Circle"}),
         'F': ("Draw Weaves",
-            {'S': "Select Color"}),
+            {'S': "Select Color", 'W': "Color Picker"}),
         }
 
 _pinned_menu = {'Z': "Camera", 'X': "Menu Top", 'C': "Command"}
@@ -60,6 +60,7 @@ def menu_hook(hook, context):
             # Weaves
             case "Draw Weaves": set_hook(create_weaves_hook, context)
             case "Select Color": overhook(select_color_hook, context)
+            case "Color Picker": overhook(color_picker_hook, context)
     #
     hook.event_loop(inner)
 
@@ -76,7 +77,7 @@ def init_context(dimensions):
     cx.color_key = 'Q'
     cx.show_palette = True
     cx.color_picker = ColorPicker(dimensions[0], dimensions[0] // 8, (0, 0), params.min_pick_saturation) 
-    cx.show_picker = True
+    cx.show_picker = False
     #
     cx.color_weave_pairs = []
     cx.pending_weaves = []
@@ -111,7 +112,7 @@ def main():
         if event.get(QUIT):
             g.QUIT = True
         evs = event.get()
-        # TODO maybe do sever `event.get` calls: 
+        # TODO maybe do several `event.get` calls: 
         # 1: things we don't care about, 2: MOUSEMOTION, keep only last, 3: send latter + rest to `dispatch`
         # point: avoid computing `snappy_get_point` for every intermediate MOUSEMOTION
         g.dispatch.dispatch(evs)

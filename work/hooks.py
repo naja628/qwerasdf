@@ -354,6 +354,70 @@ def select_color_hook(hook, context):
         hook.finish()
     hook.event_loop(inner)
 
+def color_picker_hook(hook, context):
+    cx = context
+    def cleanup(): 
+        cx.show_palette = save_show_palette
+        cx.show_picker = False
+        cx.palette[cx.color_key] = save_color
+    setup_hook(hook, {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION, pg.KEYDOWN }, (cleanup, ))
+    hook.filter = lambda ev: not (ev.type == pg.KEYDOWN and alpha_scan(ev) not in cx.palette)
+    #
+    save_show_palette = cx.show_palette
+    cx.show_palette = True
+    cx.show_picker = True
+    save_color = cx.palette[cx.color_key]
+    #
+    def inner(ev):
+        nonlocal save_color
+        if ev.type == pg.KEYDOWN:
+            cx.palette[cx.color_key] = save_color
+            cx.color_key = alpha_scan(ev)
+            save_color = cx.palette[cx.color_key]
+        else:
+            cur_color = cx.color_picker.at_pixel(ev.pos)
+            match mouse_subtype(ev), cur_color:
+                case ms.RCLICK, _:
+                    hook.finish()
+                case _, None: pass
+                case ms.MOTION, color:
+                    cx.palette[cx.color_key] = color
+                case ms.LCLICK, color:
+                    cx.palette[cx.color_key] = color
+                    save_color = color
+        redraw_weaves(cx)
+    hook.event_loop(inner)
+
+## Transformations
+def copy_weaves_inside(dest_shapes, src_shapes, weave_superset):
+    new_weaves = []
+    for we in weave_superset:
+        [s1, s2] = [ hg.s for hg in we.hangpoints]
+        try: i1, i2 = src_shapes.index(s1), src_shapes.index(s2)
+        except: continue
+        #
+        new = we.copy()
+        new.hangpoints[0].s, new.hangpoints[1].s = dest_shapes[i1], dest_shapes[i2]
+        new_weaves.append(new)
+    return new_weaves
+
+def move_selection_hook(hook, context, want_copy = False):
+    setup_hook(hook, {pg.MOUSEMOTION, pg.MOUSEBUTTONDOWN}, (reset_hints, context))
+    start_pos, _ = snappy_get_point(mouse.get_pos(), cx) # want snappy? (i think yes but unsure)
+    cx = context
+    #
+    def inner(ev):
+        pos = ev.pos
+        match mouse_subtype(ev):
+            case ms.RCLICK:
+                hook.finish()
+            case ms.LCLICK:
+                if want_copy:
+                    new_shapes = [ sh.moved(pos - start_pos) for sh in cx.selected ]
+                    new_weaves = copy_weaves_inside(new_shapes, cx.selected, cx.weaves)
+
+
+
 ## Miniter
 def miniter_hook(hook, context, cmd = ''):
     setup_hook(hook, { pg.KEYDOWN }, (context.bottom_text.set_line, context.TERMLINE, '')  )

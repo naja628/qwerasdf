@@ -77,8 +77,9 @@ class ColorPicker:
         pix_array.close()
     #
     def _at_rel_pixel(self, pos, clamp = False):
+        width, height = self.surf.get_size()
+        x, y = pos
         if clamp:
-            x, y = pos
             pos = clamp(x, 0, width - 1), clamp(y, 0, height - 1)
         elif not (0 <= x < width and 0 <= y < height):
             return None
