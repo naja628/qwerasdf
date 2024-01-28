@@ -1,4 +1,5 @@
 from pygame import *
+from math import pi
 
 from color import draw_palette, ColorPicker
 from hooks import EvDispatch
@@ -8,7 +9,8 @@ from hooks import *
 _menu_layout = ['QWER', 'ASDF', 'ZXCV']
 _nested_menu = {
         'S': ("Selection", 
-            { 'E': "Unweave", 'R': "Remove" }),
+            { 'E': "Unweave", 'R': "Remove",
+                'A': "Transform", 'S': "Copy-Transform", 'D': "Move", 'F': "Copy-Move" }),
         'D': ("Create Shapes",
             {'A': "New Point", 'S': "New Segment", 'D': "New Circle"}),
         'F': ("Draw Weaves",
@@ -53,6 +55,10 @@ def menu_hook(hook, context):
             case "Selection": set_hook(select_hook, context)
             case "Remove": delete_selection(context)
             case "Unweave": unweave_inside_selection(context)
+            case "Move": overhook(move_selection_hook, context)
+            case "Copy-Move": overhook(move_selection_hook, context, want_copy = True)
+            case "Transform": overhook(transform_selection_hook, context)
+            case "Copy-Transform": overhook(transform_selection_hook, context, want_copy = True)
             # Shapes
             case "New Point": set_hook(create_points_hook, context)
             case "New Segment": set_hook(create_lines_hook, context)
@@ -96,6 +102,8 @@ def init_context(dimensions):
     cx.weave_layer = Surface(dimensions)
     cx.screen = display.set_mode(params.start_dimensions)
     display.set_caption('QWERASDF')
+    #
+    cx.default_rotation = 2 * pi / 6
     return cx
 
 def main():

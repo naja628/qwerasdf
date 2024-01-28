@@ -1,0 +1,18 @@
+# shape format: id: type ndivs x1 y1 ...
+# weave format: n inc1 inc2 color_key shape_id1 i1 shape_id2 i2
+# color format: key r g b
+SHAPEDATA
+0: ls 120 0.562 -1.104 1.614 -1.118 1.858 -0.728
+1: ls 120 0.562 -1.104 -0.49 -1.118 -0.734 -0.728
+COLORDATA
+Q 192 32 96
+W 11 153 20
+E 64 0 192
+R 192 128 0
+A 160 200 128
+S 0 200 100
+D 192 96 32
+F 100 0 200
+WEAVEDATA
+36 1 1 Q 0 0 0 84
+36 1 1 Q 1 0 1 84

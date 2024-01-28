@@ -90,8 +90,8 @@ class Shape:
     def transformed(self, matrix, center):
         return deepcopy(self).transform(matrix, center)
     #
-    def merge_overlapping(self, other):
-        raise NotImplementedError()
+    def merger(self, other):
+        return None
     #
 #     def rotate(self, angle, center):
 #         rot = np.array([
@@ -143,31 +143,30 @@ class Circle(Shape):
         if det < 0: self.clockwise = not self.clockwise
         return Shape.transform(self, matrix, center)
     #
-    def merge_overlapping(self, other, weaves):
-        if type(other) != Circle:
-            return False
-        if not alomst_equal(self.center, other.center):
-            return False
-        if len( self.divs ) != len( other.divs ):
-            return False
-        if not near_zero(sqdist(self.center, self.other) - sqdist(other.center, other.other)):
-            return False
+    def merger(self, src):
+        '''if `self` and `src` intuitively "overlap", 
+        retun f: i -> j st for i an index of div on `src` f(i) = j is the index of the
+        div on `self` at the same position.'''
+        n = len( self.divs)
+        if type(src) != Circle:
+            return None
+        if not alomst_equal(self.center, src.center):
+            return None
+        if n != len( src.divs ):
+            return None
+        if not near_zero(sqdist(self.center, self.src) - sqdist(src.center, src.other)):
+            return None
         #
-        for i, p in enumerate(self.divs):
-            if alomst_equal(p, other.other):
-                shift = i
-                break
+        phi = angle(self.other, src.other)
+        delta = 2 * math.pi / n
+        q, r = (phi + delta / 2) // delta, phi % delta # + delta / 2: rounding problems
+        if (not near_zero(r)):
+            return None
         else:
-            return False
+            def merger(i):
+                return (-q + (-1 if self.clockwise != other.clockwise else 1) * i) % n
+            return merger
         #
-        for we in weaves:
-            for which in [0, 1]:
-                if we.hangpoints[which].s == other:
-                    we.hangpoints[which].s = self
-                    we.hangpoints[which].i -= shift
-                    if other.clockwise != self.clockwise:
-                        self.incrs[which] *= -1
-        return True
     ###
 
 class Point(Shape):
@@ -182,9 +181,13 @@ class Point(Shape):
     def draw(self, screen, view, color = params.shape_color):
         draw_point(screen, view.rtop(self.p), color)
     #
-#     def merge_overlapping(self, other, weaves):
-        #TODO
-        # maybe for points we merge self into other...
+    def merger(self, src):
+        if (type(src) != Point):
+            return None
+        if (not alomst_equal(self.p, src.p)):
+            return None
+        return (lambda: 0)
+    #
     ###
 
 class Line(Shape):
@@ -201,8 +204,7 @@ class Line(Shape):
         draw.line(screen, color, pstart, pend)
         Shape.draw_divs(self, screen, view)
     #
-#     def merge_overlapping(self, other, weaves):
-#         #TODO
+    # TODO def merger
     ###
 
 class PolyLine(Shape):
@@ -254,8 +256,8 @@ class PolyLine(Shape):
         draw.lines(screen, color, self.loopy, ppoints)
         Shape.draw_divs(self, screen, view)
     # 
-#     def merge_overlapping():
-#         #TODO
+    # TODO def merger
+    ###
 
 ###### SHAPE SERIALIZATION ###########
 
@@ -299,18 +301,6 @@ def create_shape_from_repr( repre ):
 ################ WEAVE #################
 # needs its own module? 
 class Weave:
-#     def CreateFrom3(hangs, incrs = (1, 1), color_key = None, palette = {}): # STATIC
-#         assert len(hangs) == 3
-#         assert hangs[1].s == hangs[2].s
-#         assert incrs[1] != 0
-#         #
-#         n = (abs(hangs[2].i - hangs[1].i) + 1) // abs(incrs[1])
-#         if (hangs[2].i < hangs[1].i):
-#             inc0, inc1 = incrs
-#             incrs = -inc0, -inc1
-#         #
-#         return Weave(hangs[:2], n, incrs, color_key, palette)
-    #
     def CreateFrom3(hangs, incrs = (1, 1), nloops = 0): # STATIC
         assert len(hangs) == 3
         assert hangs[1].s == hangs[2].s
@@ -351,6 +341,7 @@ class Weave:
         self.incrs = incrs
     #
     def copy(self):
+        #needed be the "right" copy is "half-deep"
         [hg1, hg2] = self.hangpoints
         new_hangpoints = [Rec(s = hg1.s, i = hg1.i), Rec(s = hg2.s, i = hg2.i)]
         return Weave(new_hangpoints, self.nwires, self.incrs)

@@ -6,6 +6,7 @@ from view import View
 from menu import Menu
 from miniter import miniter_exec
 from context import *
+from util import expr
 
 ######### EVENT AND DISPATCH ##########
 class EvHook:
@@ -391,32 +392,101 @@ def color_picker_hook(hook, context):
 ## Transformations
 def copy_weaves_inside(dest_shapes, src_shapes, weave_superset):
     new_weaves = []
-    for we in weave_superset:
+    for ck, we in weave_superset:
         [s1, s2] = [ hg.s for hg in we.hangpoints]
         try: i1, i2 = src_shapes.index(s1), src_shapes.index(s2)
         except: continue
         #
         new = we.copy()
         new.hangpoints[0].s, new.hangpoints[1].s = dest_shapes[i1], dest_shapes[i2]
-        new_weaves.append(new)
+        new_weaves.append( (ck, new) )
     return new_weaves
 
 def move_selection_hook(hook, context, want_copy = False):
     setup_hook(hook, {pg.MOUSEMOTION, pg.MOUSEBUTTONDOWN}, (reset_hints, context))
-    start_pos, _ = snappy_get_point(mouse.get_pos(), cx) # want snappy? (i think yes but unsure)
     cx = context
+    start_pos, _ = snappy_get_point(cx, pg.mouse.get_pos()) # want snappy? (i think yes but unsure)
     #
     def inner(ev):
-        pos = ev.pos
+        pos, _ = snappy_get_point(cx, ev.pos);
         match mouse_subtype(ev):
             case ms.RCLICK:
                 hook.finish()
             case ms.LCLICK:
                 if want_copy:
                     new_shapes = [ sh.moved(pos - start_pos) for sh in cx.selected ]
-                    new_weaves = copy_weaves_inside(new_shapes, cx.selected, cx.weaves)
+                    new_weaves = copy_weaves_inside(
+                            new_shapes, cx.selected, cx.color_weave_pairs)
+                    #
+                    cx.shapes.extend(new_shapes)
+                    # TODO wrap maybe?
+                    cx.pending_weaves.extend(new_weaves)
+                    cx.selected = new_shapes
+                else:
+                    for sh in cx.selected:
+                        sh.move(pos - start_pos);
+                    redraw_weaves(cx)
+                hook.finish()
+            case ms.MOTION:
+                cx.hints = [ sh.moved(pos - start_pos) for sh in cx.selected ]
+    #
+    hook.event_loop(inner)
 
-
+def transform_selection_hook(hook, context, want_copy = False):
+    mirror_matrix = np.array([ [-1, 0], [0, 1] ])
+    def rot_matrix(angle):
+        return np.array([
+            [np.cos(angle), -np.sin(angle)],
+            [np.sin(angle),  np.cos(angle)]
+            ])
+    #
+    cx = context
+    setup_hook(
+            hook, 
+            {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION, pg.KEYDOWN}, 
+            (reset_hints, cx), ( lambda: expr(cx.menu.restore_display()), ) )
+    hook.filter = lambda ev: (ev.type != pg.KEYDOWN) or (alpha_scan(ev) in 'QWERASDF')
+    cx.menu.temporary_display('QWERASDF', {'S': "+Rotation", 'D': "-Rotation", 'F': "Mirror"})
+    def transformed_selection(matrix, center):
+        return [ sh.transformed(matrix, center) for sh in cx.selected ]
+    #
+    center, _ = snappy_get_point(cx, pg.mouse.get_pos())
+    rot_angle = 0
+    mirror = False
+    def inner(ev):
+        nonlocal rot_angle
+        nonlocal mirror
+        if ev.type == pg.KEYDOWN:
+            match alpha_scan(ev):
+                case 'S': rot_angle += cx.default_rotation
+                case 'D': rot_angle -= cx.default_rotation
+                case 'F': mirror = not mirror
+        else:
+            pos, _ = snappy_get_point(cx, ev.pos)
+            matrix = rot_matrix(rot_angle)
+            if mirror: matrix = matrix @ mirror_matrix
+            match mouse_subtype(ev):
+                case ms.RCLICK:
+                    hook.finish()
+                case ms.LCLICK:
+                    if want_copy:
+                        new_shapes = [ sh.transformed(matrix, center) for sh in cx.selected ]
+                        new_weaves = copy_weaves_inside(
+                                new_shapes, cx.selected, cx.color_weave_pairs)
+                        #
+                        cx.shapes.extend(new_shapes)
+                        # TODO maybe wrap?
+                        cx.pending_weaves.extend(new_weaves)
+                        cx.selected = new_shapes
+                    else:
+                        for sh in cx.selected:
+                            sh.transform(matrix, center);
+                        redraw_weaves(cx);
+                    hook.finish()
+                case ms.MOTION:
+                    cx.hints = [ sh.transformed(matrix, center) for sh in cx.selected ]
+    #
+    hook.event_loop(inner)
 
 ## Miniter
 def miniter_hook(hook, context, cmd = ''):
