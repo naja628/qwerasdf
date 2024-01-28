@@ -37,17 +37,16 @@ python3 run.py
 ## Use
 * The menu in the bottom area of the screen tells you keys you can press to do things
 	* when you press a key, the actions mouse-clicks, etc do will change contextually. 
-(for example, after `D: New Shape`, `D: New Circle`, left-click will place the center of the circle)
+(for example, after `D: New Shape`, `D: New Circle`, `left-click` will place the center of a new circle)
 	* hints about what you can do will be displayed at the bottom of the screen
 * Most of the time (ie except when the mouse-wheel is contextually being used for something else)
-you can zoom/use the view by scrolling.
-* When at the root of the menu (ie just after launch, or after pressing `Z`) you can right-click to move the view around
-(right-click again to release)
+you can zoom/unzoom the view by scrolling.
+* When at the root of the menu (ie just after launch, or after pressing `Z`) you can `right-click` to move the view around
+(`right-click` again to release).
 * You can enter Commad-Mode by pressing `C`, which allow you to run certain commands by typing them
 	* use `Enter` on an empty prompt or `Ctrl+C` to exit the Command-Mode
 	* `long_name/name/synonym` syntax with slashes indicates a command has several names
 	* `ls_cmd/ls` to display a list of all commands
 	* `usage/us <command_name>` to display a short message about what arguments a command expects
 	* `help/h <command_name>` to display a short message about what a command does
-
 
