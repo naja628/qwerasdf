@@ -4,7 +4,7 @@ from pygame import Color
 #############################
 start_dimensions = (800, 800)
 
-save_dir = './save'
+save_dir = './qw_save'
 recover_filename = 'RECOVER.qw'
 dotrc = os.path.expanduser('~/.qwerasdfrc')
 
@@ -34,7 +34,7 @@ text_color = Color(192, 192, 192)
 error_text_color = Color(128, 32, 32)
 term_color = Color(0, 160, 128)
 
-term_xx_close = True # typing 'xx' or 'XX' at the end of the prompt will close the terminal
+term_xx_close = True # typing 'xx' or 'XX' at the end of the prompt will close it
 
 start_ndivs = 60
 snap_radius = 7
