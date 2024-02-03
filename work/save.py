@@ -9,7 +9,7 @@ from context import redraw_weaves
 class SaveError(BaseException): pass
 
 def save(filename, context, overwrite_ok = True):
-    def weave_data_line(ckey, we):
+    def weave_data_line(we, ckey):
         shape_id1 = context.shapes.index(we.hangpoints[0].s)
         shape_id2 = context.shapes.index(we.hangpoints[1].s)
         line = f"{we.nwires} {we.incrs[0]} {we.incrs[1]} {ckey} "
@@ -37,13 +37,13 @@ def save(filename, context, overwrite_ok = True):
                 p(f"{k} {color.r} {color.g} {color.b}")
             #
             p("WEAVEDATA")
-            for ckey, we in context.color_weave_pairs:
-                p(weave_data_line(ckey, we))
+            for we in context.weaves:
+                p(weave_data_line(we, context.weave_colors[we]))
             #
     except (FileExistsError, OSError): raise
     except:
         os.remove(filename)
-        raise
+        raise # TODO ??
         raise SaveError()
     ###
 
@@ -100,17 +100,23 @@ def load(filename):
                 except: 
                     raise ParseError(i + 1, line, section)
             ###
-            color_weave_pairs = []
+            weaves, colors = [], {}
             for i, line in enumerate(weave_lines):
                 try:
                     convs = [int] * 8; convs[3] = None
                     n, inc1, inc2, ckey, id1, i1, id2, i2 = naive_scan(line, *convs)
                     hangs = [ Rec(s = sh_dict[idx], i = ix)  for idx, ix in ((id1, i1), (id2, i2)) ] 
-                    color_weave_pairs.append((ckey, Weave(hangs, n, (inc1, inc2))))
+                    we = Weave(hangs, n, (inc1, inc2))
+                    weaves.append(we)
+                    colors[we] = ckey
                 except:
                     raise ParseError(i + 1, line, 'WEAVEDATA')
             ###
-            loaded_subcontext = Rec(shapes = list(sh_dict.values()), color_weave_pairs = color_weave_pairs, palette = palette)
+            loaded_subcontext = Rec(
+                    shapes = list(sh_dict.values()), 
+                    weaves = weaves,
+                    weave_colors = colors,
+                    palette = palette)
             return loaded_subcontext
     except ParseError: raise
     except: raise LoadError()

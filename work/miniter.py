@@ -245,14 +245,14 @@ def translate_colors_cmd(src, dest, *, _env):
     "change the colors of the weaves inside the selection"
     cx = _env.context
     src, dest = src.upper(), dest.upper()
-    for i, (ckey, we) in enumerate(cx.color_weave_pairs):
+    for i, we in enumerate(cx.weaves):
         [s1, s2] = [hg.s for hg in we.hangpoints]
         if not (s1 in cx.selected and s2 in cx.selected):
             continue
         #
         try:
-            key_index = src.index(ckey)
-            cx.color_weave_pairs[i] = dest[key_index], we
+            key_index = src.index(cx.weave_colors[we])
+            cx.weave_colors[we] = dest[key_index]
         except: pass
     redraw_weaves(_env.context)
     ###
@@ -276,7 +276,8 @@ def new_design_cmd(save_or_bang, *, _env):
     cx.selected = []
     cx.shapes = []
     cx.hints = []
-    cx.color_weave_pairs = []
+    cx.weaves = []
+    cx.weave_colors = {}
     redraw_weaves(cx)
 
 @miniter_command(('menu',))
@@ -284,4 +285,10 @@ def show_menu_cmd(*, _env):
     "toggle menu display"
     _env.context.show_menu = not _env.context.show_menu
 
+
+@miniter_command(('debug', 'db'))
+def debug(*, _env):
+    "go into python debugger"
+    cx = _env.context
+    breakpoint()
 

@@ -6,7 +6,8 @@ start_dimensions = (800, 800)
 
 save_dir = './save'
 recover_filename = 'RECOVER.qw'
-dotrc = os.path.expanduser('~/.qwerasdfrc')
+#dotrc = os.path.expanduser('~/.qwerasdfrc')
+dotrc = '.qwerasdfrc'
 
 background = Color(0, 0, 0)
 # shape_color = Color(0, 128, 128)

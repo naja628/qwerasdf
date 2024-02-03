@@ -7,6 +7,7 @@ from menu import Menu
 from miniter import miniter_exec
 from context import *
 from util import expr
+from merge import merge_into # TODO restructure module
 
 ######### EVENT AND DISPATCH ##########
 class EvHook:
@@ -390,16 +391,20 @@ def color_picker_hook(hook, context):
     hook.event_loop(inner)
 
 ## Transformations
-def copy_weaves_inside(dest_shapes, src_shapes, weave_superset):
+def copy_weaves_inside(dest_shapes, src_shapes, weave_superset, context):
+    # context needed for colors
     new_weaves = []
-    for ck, we in weave_superset:
+    for we in weave_superset:
         [s1, s2] = [ hg.s for hg in we.hangpoints]
         try: i1, i2 = src_shapes.index(s1), src_shapes.index(s2)
         except: continue
         #
         new = we.copy()
         new.hangpoints[0].s, new.hangpoints[1].s = dest_shapes[i1], dest_shapes[i2]
-        new_weaves.append( (ck, new) )
+        if context:
+            create_weave(context, new, context.weave_colors[we])
+            #context.weave_colors[new] = context.weave_colors[we]
+        new_weaves.append( new )
     return new_weaves
 
 def move_selection_hook(hook, context, want_copy = False):
@@ -416,12 +421,13 @@ def move_selection_hook(hook, context, want_copy = False):
                 if want_copy:
                     new_shapes = [ sh.moved(pos - start_pos) for sh in cx.selected ]
                     new_weaves = copy_weaves_inside(
-                            new_shapes, cx.selected, cx.color_weave_pairs)
+                            new_shapes, cx.selected, cx.weaves, cx)
                     #
-                    cx.shapes.extend(new_shapes)
+                    create_shapes(cx, *new_shapes)
+                    #cx.shapes.extend(new_shapes)
+                    #cx.selected = new_shapes
                     # TODO wrap maybe?
                     cx.pending_weaves.extend(new_weaves)
-                    cx.selected = new_shapes
                 else:
                     for sh in cx.selected:
                         sh.move(pos - start_pos);
@@ -450,10 +456,10 @@ def transform_selection_hook(hook, context, want_copy = False):
     def transformed_selection(matrix, center):
         return [ sh.transformed(matrix, center) for sh in cx.selected ]
     #
-    center, _ = snappy_get_point(cx, pg.mouse.get_pos())
     rot_angle = 0
     mirror = False
     def inner(ev):
+        center, _ = snappy_get_point(cx, pg.mouse.get_pos())
         nonlocal rot_angle
         nonlocal mirror
         if ev.type == pg.KEYDOWN:
@@ -472,12 +478,14 @@ def transform_selection_hook(hook, context, want_copy = False):
                     if want_copy:
                         new_shapes = [ sh.transformed(matrix, center) for sh in cx.selected ]
                         new_weaves = copy_weaves_inside(
-                                new_shapes, cx.selected, cx.color_weave_pairs)
+                                new_shapes, cx.selected, cx.weaves, cx)
                         #
-                        cx.shapes.extend(new_shapes)
+                        _, cx.selected = merge_into(cx.shapes, new_shapes, cx.weaves)
+                        create_shapes(cx, *new_shapes)
+                        #cx.shapes.extend(new_shapes)
+                        #cx.selected = new_shapes
+                        #merge_into(cx.shapes, new_shapes, cx.weaves)
                         # TODO maybe wrap?
-                        cx.pending_weaves.extend(new_weaves)
-                        cx.selected = new_shapes
                     else:
                         for sh in cx.selected:
                             sh.transform(matrix, center);
@@ -545,11 +553,14 @@ def select_hook(hook, context):
 def delete_selection(context):
     cx = context
     keep_weaves = []
-    for (ckey, we) in cx.color_weave_pairs:
+    for we in cx.weaves:
         sh1, sh2 = (hg.s for hg in we.hangpoints)
         if sh1 not in cx.selected and sh2 not in cx.selected:
-            keep_weaves.append( (ckey, we) )
-    cx.color_weave_pairs = keep_weaves
+            keep_weaves.append(we)
+        else:
+            breakpoint()
+            del cx.weave_colors[we]
+    cx.weaves = keep_weaves
     redraw_weaves(cx)
     cx.shapes = [ sh for sh in cx.shapes if not sh in cx.selected ]
     cx.selected = []
@@ -557,10 +568,14 @@ def delete_selection(context):
 def unweave_inside_selection(context):
     cx = context
     keep_weaves = []
-    for (ckey, we) in cx.color_weave_pairs:
+    for we in cx.weaves:
         sh1, sh2 = (hg.s for hg in we.hangpoints)
-        if sh1 not in cx.selected or sh2 not in cx.selected:
-            keep_weaves.append( (ckey, we) )
-    cx.color_weave_pairs = keep_weaves
+        if sh1 not in cx.selected and sh2 not in cx.selected:
+            keep_weaves.append(we)
+#     for (ckey, we) in cx.color_weave_pairs:
+#         sh1, sh2 = (hg.s for hg in we.hangpoints)
+#         if sh1 not in cx.selected or sh2 not in cx.selected:
+#             keep_weaves.append( (ckey, we) )
+    cx.weaves = keep_weaves
     redraw_weaves(cx)
 

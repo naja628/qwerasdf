@@ -85,7 +85,9 @@ def init_context(dimensions):
     cx.color_picker = ColorPicker(dimensions[0], dimensions[0] // 8, (0, 0), params.min_pick_saturation) 
     cx.show_picker = False
     #
-    cx.color_weave_pairs = []
+    #cx.color_weave_pairs = []
+    cx.weaves = []
+    cx.weave_colors = {}
     cx.pending_weaves = []
     cx.redraw_weaves = True
     cx.weavity = (1, 1)
@@ -114,6 +116,13 @@ def main():
     g.dispatch.add_hook(menu_hook, g)
     g.dispatch.add_hook(click_move_hook, g)
     #
+    try:
+        with open(params.dotrc) as rc:
+            for line in rc:
+                if line.strip() == '' or line.strip()[0] == '#': continue
+                miniter_exec(line, g)
+    except: pass
+    #
     clock = time.Clock()
     g.QUIT = False
     while not g.QUIT:
@@ -129,13 +138,13 @@ def main():
         g.weave_layer.lock()
         if g.redraw_weaves:
             g.weave_layer.fill(params.background)
-            g.pending_weaves += g.color_weave_pairs
-            g.color_weave_pairs = []
+            g.pending_weaves += g.weaves
+            g.weaves = []
             g.redraw_weaves = False
-        for pair in g.pending_weaves:
-            ckey, we = pair
+        for we in g.pending_weaves:
+            ckey = g.weave_colors[we]
             we.draw(g.weave_layer, g.view, color = g.palette[ckey])
-            g.color_weave_pairs.append( (ckey, we) )
+            g.weaves.append(we)
         g.weave_layer.unlock()
         g.pending_weaves = []
         #g.screen.fill(params.background) # not needed?

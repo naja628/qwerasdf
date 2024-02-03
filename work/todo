@@ -1,17 +1,19 @@
-"small" fixes:
+## 'SMALL' FIXES
 * in color-picker : scroll to adjust brigthness
 * remake tooltips
 * reput shortcuts in menu
-* when drawing weaves: 
+* when drawing weaves: (REFACTOR)
  	let scroll stay zoom, but midclick changes rotity
  	wb, wy: real-time effect (does wb exist yet)?
 * recovery saves
-* still problem when changing the res param (in param.py)?
+* still problem (menu cut) when changing the res param (in param.py)?
+* ??: consider what happens when we load files mid action
+* rethink ! save logic? (try not to warn uselessly)
 
 * rm weaves when changing div (until better idea) ?
 * only consider the last MOUSEMOTION every frame ?
 
-NEXT:
+## NEXT:
 	* merges:
 		* each subshape has getmerger(other)
 			-> None if no overlap
@@ -20,16 +22,17 @@ NEXT:
 	* interactive transforms
 		symetry + vis, rotate + vis, recenter, put down, put copy, cancel, undo?
 
-* rewind (autosaves)
+next:
+restructure the menu (same as old? + separate/ontop move-view)
+
+## LATER (features):
 * fine transforms
+* rewind (autosaves)
 * snappy polar grid
 * pdf guide pages
 * arcs
 
-next:
-restructure the menu (same as old? + separate/ontop move-view)
 
-
+## DETAILS:
 maybe don't draw circle-center on existing shapes
-
 

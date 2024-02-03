@@ -52,8 +52,9 @@ def resize_context(context, new_width):
     context.color_picker.reset(new_width, new_width // 8, min_sat = params.min_pick_saturation)
 
 # WEAVES
-def create_weave(context, weave):
-    context.pending_weaves.append( (context.color_key, weave) )
+def create_weave(context, weave, color = None):
+    context.pending_weaves.append(weave)
+    context.weave_colors[weave] = (color or context.color_key)
 #
 def redraw_weaves(context):
     context.redraw_weaves = True

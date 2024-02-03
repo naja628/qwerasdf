@@ -7,12 +7,14 @@ from pygame import draw, Color
 import params
 from util import farr, dist, Rec, sqdist
 
+def angle(u, v):
+    # TODO
 
 def near_zero(x):
     return -params.eps < x < params.eps
 
 def alomst_equal(x, y):
-    return sqdist(x, y) < eps ** 2
+    return sqdist(x, y) < params.eps ** 2
 
 def draw_point(screen, point, color = params.div_color):
     draw.circle(screen, color, point, params.point_radius)
@@ -146,7 +148,9 @@ class Circle(Shape):
     def merger(self, src):
         '''if `self` and `src` intuitively "overlap", 
         retun f: i -> j st for i an index of div on `src` f(i) = j is the index of the
-        div on `self` at the same position.'''
+        div on `self` at the same position.
+        i/src -> j/self
+        '''
         n = len( self.divs)
         if type(src) != Circle:
             return None
@@ -154,7 +158,7 @@ class Circle(Shape):
             return None
         if n != len( src.divs ):
             return None
-        if not near_zero(sqdist(self.center, self.src) - sqdist(src.center, src.other)):
+        if not near_zero(sqdist(self.center, self.other) - sqdist(src.center, src.other)):
             return None
         #
         phi = angle(self.other, src.other)
