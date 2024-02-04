@@ -9,6 +9,7 @@
 * still problem (menu cut) when changing the res param (in param.py)?
 * ??: consider what happens when we load files mid action
 * rethink ! save logic? (try not to warn uselessly)
+* rename 'mirror' to 'flip'?
 
 * rm weaves when changing div (until better idea) ?
 * only consider the last MOUSEMOTION every frame ?
@@ -18,8 +19,19 @@
 		* each subshape has getmerger(other)
 			-> None if no overlap
 			-> f: i -> j with j on dest (ie self)
-	* automerge all before saving, on command, after transfo
+		TODO: implement for shapes other than circle
+				/ test line
+	* factor out 'steal_menu_key' (select_color, (copy_)transform, use for create_weave)
 	* interactive transforms
+		recenter (+ interactive center?), 
+		flip (mouse control axis rel to center)
+		rot (2 clicks)
+		put copy
+		effect
+		cancel
+
+		
+
 		symetry + vis, rotate + vis, recenter, put down, put copy, cancel, undo?
 
 next:

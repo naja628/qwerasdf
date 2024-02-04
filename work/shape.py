@@ -3,12 +3,10 @@ from copy import copy, deepcopy
 import numpy as np
 from numpy import sin, cos, pi
 from pygame import draw, Color
+from math import atan2
 
 import params
 from util import farr, dist, Rec, sqdist
-
-def angle(u, v):
-    # TODO
 
 def near_zero(x):
     return -params.eps < x < params.eps
@@ -68,13 +66,11 @@ class Shape:
             except IndexError: return None
     #
     def move(self, motion):
-        # breakpoint()
         self.keypoints += motion
         self.divs += motion
         return self
     #
     def moved(self, motion):
-        # breakpoint()
         return deepcopy(self).move(motion)
     #
     def transform(self, matrix, center):
@@ -85,14 +81,17 @@ class Shape:
             points += center 
             return points
         self.keypoints = aux(self.keypoints)
-        #self.divs = aux(self.divs)
         self.set_divs( len(self.divs) )
         return self
     #
     def transformed(self, matrix, center):
         return deepcopy(self).transform(matrix, center)
     #
-    def merger(self, other):
+    def merger(self, to):
+        '''if `self` and `to` intuitively "overlap", 
+        retun f: i -> j, from indices on `self` to `to`
+        else: return None
+        '''
         return None
     #
 #     def rotate(self, angle, center):
@@ -145,25 +144,23 @@ class Circle(Shape):
         if det < 0: self.clockwise = not self.clockwise
         return Shape.transform(self, matrix, center)
     #
-    def merger(self, src):
-        '''if `self` and `src` intuitively "overlap", 
-        retun f: i -> j st for i an index of div on `src` f(i) = j is the index of the
-        div on `self` at the same position.
-        i/src -> j/self
-        '''
+    def merger(self, to):
         n = len( self.divs)
-        if type(src) != Circle:
+        if type(to) != Circle:
             return None
-        if not alomst_equal(self.center, src.center):
+        if not alomst_equal(self.center, to.center):
             return None
-        if n != len( src.divs ):
+        if n != len( to.divs ):
             return None
-        if not near_zero(sqdist(self.center, self.other) - sqdist(src.center, src.other)):
+        if not near_zero(sqdist(self.center, self.other) - sqdist(to.center, to.other)):
             return None
         #
-        phi = angle(self.other, src.other)
-        delta = 2 * math.pi / n
-        q, r = (phi + delta / 2) // delta, phi % delta # + delta / 2: rounding problems
+        def angle(u, v):
+            t1, t2 = ( atan2(p[1], p[0]) for p in (u, v) )
+            return t2 - t1
+        phi = angle(self.other - self.center, to.other - to.center)
+        delta = 2 * pi / n
+        q, r = (phi + delta / 2) // delta, (phi + params.eps / 2) % delta # + delta / 2: rounding problems
         if (not near_zero(r)):
             return None
         else:
@@ -185,13 +182,12 @@ class Point(Shape):
     def draw(self, screen, view, color = params.shape_color):
         draw_point(screen, view.rtop(self.p), color)
     #
-    def merger(self, src):
-        if (type(src) != Point):
+    def merger(self, to):
+        if (type(to) != Point):
             return None
-        if (not alomst_equal(self.p, src.p)):
+        if (not alomst_equal(self.p, to.p)):
             return None
         return (lambda: 0)
-    #
     ###
 
 class Line(Shape):
@@ -208,7 +204,14 @@ class Line(Shape):
         draw.line(screen, color, pstart, pend)
         Shape.draw_divs(self, screen, view)
     #
-    # TODO def merger
+    def merger(self, to):
+        if ( type(to) != Line ) and ( len(self.divs) != len(to.divs) ):
+            return None
+        if ( alomst_equal(self.start, to.start) and alomst_equal(self.end, to.end) ):
+            return lambda i : i # same dir
+        if ( alomst_equal(self.start, to.end) and alomst_equal(self.end, to.start) ):
+            return lambda i : len(self.divs) - 1 - i # opposite dirs
+        ##
     ###
 
 class PolyLine(Shape):
@@ -260,7 +263,6 @@ class PolyLine(Shape):
         draw.lines(screen, color, self.loopy, ppoints)
         Shape.draw_divs(self, screen, view)
     # 
-    # TODO def merger
     ###
 
 ###### SHAPE SERIALIZATION ###########

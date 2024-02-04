@@ -54,8 +54,6 @@ class EvDispatch: # event dispatcher
         return hook
     #
     def add_hook(self, make_hook, *a, **ka):
-        #return self.track_hook( EvHook(make_hook, *a, **ka) )
-        # debug:
         hook = EvHook(make_hook, *a, **ka) 
         self.track_hook(hook)
         return hook
@@ -118,6 +116,14 @@ def setup_hook(hook, watched, *cleanup_commands):
                 fun(*a)
         hook.cleanup = cleanup
     #
+
+def steal_menu_keys(hook, menu, stolen, labels):
+    hook.watched.add(pg.KEYDOWN)
+    hook.filter = lambda ev: (ev.type != pg.KEYDOWN) or (alpha_scan(ev) in stolen)
+    #
+    menu.temporary_display(stolen, labels)
+    break_recursion = hook.cleanup
+    hook.cleanup = lambda: expr(menu.restore_display(), break_recursion()) 
 
 ## HOOKS
 def zoom_hook(hook, context, factor = params.zoom_factor):
@@ -343,12 +349,12 @@ def create_weaves_hook(hook, context):
     hook.event_loop(inner)
 
 def select_color_hook(hook, context):
-    setup_hook(hook, {pg.KEYDOWN} )
-    hook.filter = lambda ev: alpha_scan(ev) in context.palette
-    def cleanup(): context.show_palette = save_show_palette
-    hook.cleanup = cleanup
+    cx = context
+    def cleanup(): cx.show_palette = save_show_palette
+    setup_hook(hook, set(), (cleanup,) )
+    steal_menu_keys(hook, cx.menu, 'QWERASDF', {})
     #
-    save_show_palette = context.show_palette
+    save_show_palette = cx.show_palette
     context.show_palette = True
     #
     def inner(ev):
@@ -362,8 +368,11 @@ def color_picker_hook(hook, context):
         cx.show_palette = save_show_palette
         cx.show_picker = False
         cx.palette[cx.color_key] = save_color
-    setup_hook(hook, {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION, pg.KEYDOWN }, (cleanup, ))
-    hook.filter = lambda ev: not (ev.type == pg.KEYDOWN and alpha_scan(ev) not in cx.palette)
+#     setup_hook(hook, {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION, pg.KEYDOWN }, (cleanup, ))
+#     hook.filter = lambda ev: not (ev.type == pg.KEYDOWN and alpha_scan(ev) not in cx.palette)
+    
+    setup_hook(hook, {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, (cleanup, ))
+    steal_menu_keys(hook, cx.menu, 'QWERASDF', {})
     #
     save_show_palette = cx.show_palette
     cx.show_palette = True
@@ -403,7 +412,6 @@ def copy_weaves_inside(dest_shapes, src_shapes, weave_superset, context):
         new.hangpoints[0].s, new.hangpoints[1].s = dest_shapes[i1], dest_shapes[i2]
         if context:
             create_weave(context, new, context.weave_colors[we])
-            #context.weave_colors[new] = context.weave_colors[we]
         new_weaves.append( new )
     return new_weaves
 
@@ -423,11 +431,7 @@ def move_selection_hook(hook, context, want_copy = False):
                     new_weaves = copy_weaves_inside(
                             new_shapes, cx.selected, cx.weaves, cx)
                     #
-                    create_shapes(cx, *new_shapes)
-                    #cx.shapes.extend(new_shapes)
-                    #cx.selected = new_shapes
-                    # TODO wrap maybe?
-                    cx.pending_weaves.extend(new_weaves)
+                    cx.shapes, cx.selected = merge_into(cx.shapes, new_shapes, cx.weaves)
                 else:
                     for sh in cx.selected:
                         sh.move(pos - start_pos);
@@ -447,12 +451,8 @@ def transform_selection_hook(hook, context, want_copy = False):
             ])
     #
     cx = context
-    setup_hook(
-            hook, 
-            {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION, pg.KEYDOWN}, 
-            (reset_hints, cx), ( lambda: expr(cx.menu.restore_display()), ) )
-    hook.filter = lambda ev: (ev.type != pg.KEYDOWN) or (alpha_scan(ev) in 'QWERASDF')
-    cx.menu.temporary_display('QWERASDF', {'S': "+Rotation", 'D': "-Rotation", 'F': "Mirror"})
+    setup_hook( hook, {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, (reset_hints, cx) )
+    steal_menu_keys(hook, cx.menu, 'QWERASDF', {'S': "+Rotation", 'D': "-Rotation", 'F': "Mirror"})
     def transformed_selection(matrix, center):
         return [ sh.transformed(matrix, center) for sh in cx.selected ]
     #
@@ -480,12 +480,7 @@ def transform_selection_hook(hook, context, want_copy = False):
                         new_weaves = copy_weaves_inside(
                                 new_shapes, cx.selected, cx.weaves, cx)
                         #
-                        _, cx.selected = merge_into(cx.shapes, new_shapes, cx.weaves)
-                        create_shapes(cx, *new_shapes)
-                        #cx.shapes.extend(new_shapes)
-                        #cx.selected = new_shapes
-                        #merge_into(cx.shapes, new_shapes, cx.weaves)
-                        # TODO maybe wrap?
+                        cx.shapes, cx.selected = merge_into(cx.shapes, new_shapes, cx.weaves)
                     else:
                         for sh in cx.selected:
                             sh.transform(matrix, center);
@@ -558,7 +553,6 @@ def delete_selection(context):
         if sh1 not in cx.selected and sh2 not in cx.selected:
             keep_weaves.append(we)
         else:
-            breakpoint()
             del cx.weave_colors[we]
     cx.weaves = keep_weaves
     redraw_weaves(cx)
@@ -572,10 +566,6 @@ def unweave_inside_selection(context):
         sh1, sh2 = (hg.s for hg in we.hangpoints)
         if sh1 not in cx.selected and sh2 not in cx.selected:
             keep_weaves.append(we)
-#     for (ckey, we) in cx.color_weave_pairs:
-#         sh1, sh2 = (hg.s for hg in we.hangpoints)
-#         if sh1 not in cx.selected or sh2 not in cx.selected:
-#             keep_weaves.append( (ckey, we) )
     cx.weaves = keep_weaves
     redraw_weaves(cx)
 
