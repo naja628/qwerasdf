@@ -3,26 +3,17 @@
 * remake tooltips
 * reput shortcuts in menu
 * when drawing weaves: (REFACTOR)
- 	let scroll stay zoom, but midclick changes rotity
+	steal 2 keys for inverting weavity and rotity, rclick goes through all 4 states
  	wb, wy: real-time effect (does wb exist yet)?
-* recovery saves
-* still problem (menu cut) when changing the res param (in param.py)?
-* ??: consider what happens when we load files mid action
-* rethink ! save logic? (try not to warn uselessly)
 * rename 'mirror' to 'flip'?
-
 * rm weaves when changing div (until better idea) ?
-* only consider the last MOUSEMOTION every frame ?
+* be able to set default div by shape type
+* still problem (menu cut) when changing the res param (in param.py)?
 
-## NEXT:
-	* merges:
-		* each subshape has getmerger(other)
-			-> None if no overlap
-			-> f: i -> j with j on dest (ie self)
-		TODO: implement for shapes other than circle
-				/ test line
-	* factor out 'steal_menu_key' (select_color, (copy_)transform, use for create_weave)
+## CURRENT:
+	* finish hook refactor?
 	* interactive transforms
+		* subhook deco?
 		recenter (+ interactive center?), 
 		flip (mouse control axis rel to center)
 		rot (2 clicks)
@@ -30,21 +21,18 @@
 		effect
 		cancel
 
-		
-
-		symetry + vis, rotate + vis, recenter, put down, put copy, cancel, undo?
-
-next:
-restructure the menu (same as old? + separate/ontop move-view)
-
 ## LATER (features):
-* fine transforms
 * rewind (autosaves)
-* snappy polar grid
+
 * pdf guide pages
+* snappy polar grid
 * arcs
+* refactor terminal + text? autocomplete
+* manual
 
-
-## DETAILS:
-maybe don't draw circle-center on existing shapes
-
+## "DETAILS":
+* recovery saves
+* rethink ! save logic? (try not to warn uselessly)
+* only consider the last MOUSEMOTION every frame ?
+* maybe don't draw circle-center on existing shapes
+* be able to set params

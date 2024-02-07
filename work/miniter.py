@@ -212,6 +212,7 @@ def load_cmd(save, load, *, _env):
         if (save_path(load) == save_path(params.recover_filename)):
             os.remove(save_path(load))
             post_info(f"recovery succesful: '{params.recover_filename}' has been deleted", _env.context)
+        _env.context.menu.go_path('')
     except ParseError as e: raise CmdExn(str(e))
     except LoadError: raise CmdExn(f"Error loading {load}")
 
@@ -278,6 +279,7 @@ def new_design_cmd(save_or_bang, *, _env):
     cx.hints = []
     cx.weaves = []
     cx.weave_colors = {}
+    cx.menu.go_path('')
     redraw_weaves(cx)
 
 @miniter_command(('menu',))

@@ -1,9 +1,10 @@
-if we get performance issues:
+## PERFORMANCE:
 	use squares instead of circles for nails/points
 	maybe give points their own layer too
 	only consider the last MOUSEMOTION every frame (maybe do anyway just out of principle)
 	when moving / zooming etc, draw 1 string out of n (see if needed via stress test), same for points?
 	
+## FEATURES:
 arcs (figure out best way to draw them... (3 points, 2 + center or fuite, ...)
 (simplest circle + other, lclick to orient)
 
@@ -23,34 +24,26 @@ better system for redivs?
 Non-shit install process (at least requirement.txt + Makefile) + Manual !!!!
 Videa tutorial? (lol)
 
-STILL RELEVANT?:
+## STILL RELEVANT?:
 * alt weave
 * visual rotate, visual transform
 
-EXTRA:
+## EXTRA:
+	scaling transforms?
 	redesign commandline 
 		(autocomplete commands, + maybe more, arg "types"?, multiline out)
 		macros?
+		select, transform, create, delete?
+		pinning terminal commands, rethink menu?
+		set params via commandline
+		history
+
 	track save file in realtime?
-
-	set params via commandline
-
 	partial loads / imports
-
-	pinning terminal commands, rethink menu?
-	drag rectangle selection
-
-	"set" the symetry globally (ie everything gets drawn n times)
-	more shapes: interpolated curves, ellipses?
-	more grids: cartesian, triangular?
-	visual linear transforms?, register transforms to shapes etc
-
-	more termcommands : dump, point
 	commandline options? 
 
-	make menu remappable?
-	measuring tools?
-	#
+	drag rectangle selection
+####
 + "details:
 	scaling?
 	interactive set_div
@@ -58,4 +51,12 @@ EXTRA:
 	terminal history
 	file autocomplete?
 
+	"set" the symetry globally (ie everything gets drawn n times)
+	more shapes: interpolated curves, ellipses?
+	more grids: cartesian, triangular?
+	visual linear transforms?, register transforms to shapes etc
 
+	more termcommands : dump, point
+
+	make menu remappable?
+	measuring tools?

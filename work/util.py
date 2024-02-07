@@ -4,7 +4,7 @@ from math import sqrt
 import sys
 
 def expr(*a, **ka): ## usage example: lambda: expr(do_thing())
-    return True
+    return a[-1] if a else None
 
 def eprint(*a, **ka):
     ka['file'] = sys.stderr
