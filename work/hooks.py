@@ -578,10 +578,31 @@ def copy_weaves_inside(dest_shapes, src_shapes, weave_superset, context):
         new_weaves.append( new )
     return new_weaves
 
+def copy_weaves_into(dest_shapes, src_shapes, weave_superset, context):
+    # context needed for colors
+    new_weaves = []
+    def find_list(l, item):
+        try: return l.index(item)
+        except: return -1
+    for we in weave_superset:
+        [s1, s2] = [ hg.s for hg in we.hangpoints]
+        i1, i2 = find_list(src_shapes, s1), find_list(src_shapes, s2)
+        if (i1, i2) == (-1, -1): continue
+        #
+        new = we.copy()
+        if i1 >= 0: new.hangpoints[0].s = dest_shapes[i1]
+        if i2 >= 0: new.hangpoints[1].s = dest_shapes[i2]
+        if context:
+            create_weave(context, new, context.weave_colors[we])
+        new_weaves.append( new )
+    return new_weaves
+
 def move_selection_hook(hook, context, want_copy = False):
     setup_hook(hook, {pg.MOUSEMOTION, pg.MOUSEBUTTONDOWN}, (reset_hints, context))
     cx = context
     start_pos, _ = snappy_get_point(cx, pg.mouse.get_pos()) # want snappy? (i think yes but unsure)
+    steal_menu_keys(hook, cx.menu, 'QWRASDF', {}) # Just to suppress, keep E = Unweave only
+    hook.watched = {pg.MOUSEMOTION, pg.MOUSEBUTTONDOWN}
     #
     def inner(ev):
         pos, _ = snappy_get_point(cx, ev.pos);
@@ -591,10 +612,9 @@ def move_selection_hook(hook, context, want_copy = False):
             case ms.LCLICK:
                 if want_copy:
                     new_shapes = [ sh.moved(pos - start_pos) for sh in cx.selected ]
-                    new_weaves = copy_weaves_inside(
-                            new_shapes, cx.selected, cx.weaves, cx)
+                    new_weaves = copy_weaves_inside( new_shapes, cx.selected, cx.weaves, cx)
                     #
-                    cx.shapes, cx.selected = merge_into(cx.shapes, new_shapes, cx.weaves)
+                    cx.shapes, cx.selected = merge_into(cx.shapes, new_shapes, new_weaves)
                 else:
                     for sh in cx.selected:
                         sh.move(pos - start_pos);
@@ -615,7 +635,7 @@ def transform_selection_hook(hook, context, want_copy = False):
     #
     cx = context
     setup_hook( hook, {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, (reset_hints, cx) )
-    steal_menu_keys(hook, cx.menu, 'QWERASDF', {'S': "+Rotation", 'D': "-Rotation", 'F': "Mirror"})
+    steal_menu_keys(hook, cx.menu, 'QWERASDF', {'S': "+Rotation", 'D': "-Rotation", 'F': "Flip"})
     def transformed_selection(matrix, center):
         return [ sh.transformed(matrix, center) for sh in cx.selected ]
     #
@@ -642,8 +662,7 @@ def transform_selection_hook(hook, context, want_copy = False):
                         new_shapes = [ sh.transformed(matrix, center) for sh in cx.selected ]
                         new_weaves = copy_weaves_inside(
                                 new_shapes, cx.selected, cx.weaves, cx)
-                        #
-                        cx.shapes, cx.selected = merge_into(cx.shapes, new_shapes, cx.weaves)
+                        cx.shapes, cx.selected = merge_into(cx.shapes, new_shapes, new_weaves)
                     else:
                         for sh in cx.selected:
                             sh.transform(matrix, center);
@@ -670,42 +689,76 @@ def interactive_transform_hook(hook, context):
     def evloop(ev):
         nonlocal center
         if mouse_subtype(ev) == ms.RCLICK: center = _evpos(cx, ev)
-        if pendingT: cx.hints = pending + [ pendingT(_evpos(cx, ev), sh) for sh in pending ]
+        #
+        reset_hints(cx)
+        if pending != cx.selected: cx.hints = [*pending]
+        if pendingT: cx.hints += [ pendingT(_evpos(cx, ev), sh) for sh in pending ]
+        else: cx.hints.append( Point(_evpos(cx, ev)) )
     hook.event_loop(evloop)
-    steal_menu_keys(hook, cx.menu, 'QWERASDF', {'F': "flip"})
+    submenu = {  
+            'Q': "put down", 'W': "put copy",           'R': "close",
+            'A': "still",    'S': "rotate", 'D': "move", 'F': "flip", }
+    steal_menu_keys(hook, cx.menu, 'QWERASDF', submenu)
     #
     center, _ = snappy_get_point(cx, pg.mouse.get_pos())
     pending, pendingT = cx.selected, None
     #
-    ev = yield
-    def key_or_mousetype(ev):
-        type = mouse_subtype(ev)
-        return type if type != pg.KEYDOWN else alpha_scan(ev)
+    def action(ev): 
+        try: return submenu[alpha_scan(ev)]
+        except: return ''
     while True:
-        match key_or_mousetype(ev):
-            case 'F':
+        # q put down w       e        r finish     
+        # a put copy s move  d rot    f flip 
+        ev = yield
+        match action(ev):
+            case "close": return
+            case "move":
+                start, _ = snappy_get_point(cx, pg.mouse.get_pos())
+                pendingT = lambda end, sh: sh.moved(end - start)
+            case "flip":
                 def do_flip(on_axis, sh):
                     try: 
                         [c, s] = unit(on_axis - center)
+                        # cos 2t = cos t ^ 2 - sin t ^ 2 | sin 2t = 2.sin t.cos t
                         matrix = rot(c ** 2 - s ** 2, 2 * c * s) @ hflip
                     except ZeroDivisionError:
                         matrix = np.identity(2)
                     return sh.transformed(matrix, center)
                 pendingT = do_flip
-                print('set pending')
-                ev = yield
-                if mouse_subtype(ev) == ms.LCLICK:
-                    pending = [ pendingT(_evpos(cx, ev), sh) for sh in pending ]
-                else: continue
-            case 'R': hook.finish()
-#                     case 'D':
-#                         ev = yield
-#                         if mouse_subtype(ev) != ms.LCLICK: continue
-#                         start = _evpos(ev)
-#                         pos_matrix = lambda pos: rot(start, pos)
-        ev = yield
-    #
-
+            case "rotate":
+                start, _ = snappy_get_point(cx, pg.mouse.get_pos())
+                if almost_equal(start, center):
+                    post_error("can't start on center", context)
+                    continue
+                def do_rot(to, sh):
+                    try: 
+                        [c1, s1] = unit(start - center)
+                        [c2, s2] = unit(to - center)
+                        # sin b - a = sin b cos a - sin a cos b
+                        # cos b - a = cos a cos b + sin a sin b
+                        matrix = rot(c1 * c2 + s1 * s2, s2 * c1 - s1 * c2)
+                    except ZeroDivisionError:
+                        matrix = np.identity(2)
+                    return sh.transformed(matrix, center)
+                pendingT = do_rot
+            case "still": 
+                pendingT = None
+            case _:
+                if pendingT:
+                    pos, _ = snappy_get_point(cx, pg.mouse.get_pos())
+                    pending = [ pendingT(pos, sh) for sh in pending ]
+                    pendingT = None
+        match action(ev):
+            case "put copy": 
+                new_weaves = copy_weaves_inside(pending, cx.selected, cx.weaves, cx)
+                cx.shapes, cx.selected = merge_into(cx.shapes, pending, new_weaves)
+                pending = cx.selected
+            case "put down": 
+                new_weaves = copy_weaves_into(pending, cx.selected, cx.weaves, cx)
+                delete_selection(cx)
+                cx.shapes, cx.selected = merge_into(cx.shapes, pending, new_weaves)
+                return
+        evloop(Rec(type = pg.MOUSEMOTION, pos = pg.mouse.get_pos()))
 
 #     # rclick * 2: catch + release center
 #     # keys for: 
@@ -858,29 +911,4 @@ def select_hook(hook, context):
                 set_hints(context, *shapes)
     #
     hook.event_loop(inner)
-
-# Selection actions
-def delete_selection(context):
-    cx = context
-    keep_weaves = []
-    for we in cx.weaves:
-        sh1, sh2 = (hg.s for hg in we.hangpoints)
-        if sh1 not in cx.selected and sh2 not in cx.selected:
-            keep_weaves.append(we)
-        else:
-            del cx.weave_colors[we]
-    cx.weaves = keep_weaves
-    redraw_weaves(cx)
-    cx.shapes = [ sh for sh in cx.shapes if not sh in cx.selected ]
-    cx.selected = []
-
-def unweave_inside_selection(context):
-    cx = context
-    keep_weaves = []
-    for we in cx.weaves:
-        sh1, sh2 = (hg.s for hg in we.hangpoints)
-        if sh1 not in cx.selected and sh2 not in cx.selected:
-            keep_weaves.append(we)
-    cx.weaves = keep_weaves
-    redraw_weaves(cx)
 

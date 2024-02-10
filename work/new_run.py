@@ -5,16 +5,35 @@ from color import draw_palette, ColorPicker
 from hooks import EvDispatch
 from text import TextArea
 from hooks import *
+from context import delete_selection, unweave_inside_selection
+from menu import Menu
 
+_sho = Menu.Shortcut
 _menu_layout = ['QWER', 'ASDF', 'ZXCV']
 _nested_menu = {
         'S': ("Selection", 
-            { 'W': "Visual", 'E': "Unweave", 'R': "Remove",
-              'A': "Transform", 'S': "Copy-Transform", 'D': "Move", 'F': "Copy-Move" }),
+            {   'W': "Visual", 'E': "Unweave", 'R': "Remove",
+                'A': "Transform", 'S': "Copy-Transform", 'D': "Move", 'F': "Copy-Move" }),
         'D': ("Create Shapes",
-            {'A': "New Point", 'S': "New Segment", 'D': "New Circle"}),
+            {'A': "New Point", 'S': "New Segment", 'D': "New Circle", 'F': ("Draw Weaves", _sho('F'))}),
         'F': ("Draw Weaves",
-            {'S': "Select Color", 'W': "Color Picker"}),
+            {   'W': "Color Picker",
+                'S': "Select Color", 'D': ("Create Shape", _sho('D')), 'F': ("Draw Weaves", _sho('F'))}),
+        }
+_menuaction_info = { # What the user has to do AFTER, not what it does
+        "Command": "Commandline. 'ls' -> list available commands | CTRL-C -> close",
+        "New Point": "LCLICK: place",
+        "New Segment": "LCLICK, LCLICK: place endpoints",
+        #"New Polyline": "LCLICK: add point OR (on start) connect and finish | RCLICK: finish",
+        "New Circle": "LCLICK, LCLICK: place center, then point on perim | RCLICK: invert placement order",
+        "Draw Weaves": "LCLICK on 1st shape then LCLICK * 2 on 2nd shape. | RCLICK: \"no, the other way\"",
+        "Select Color": "QWERASDF (keyboard) -> pick color",
+        "Selection": "LCLICK -> select under cursor | RCLICK -> toggle-selected under cursor",
+        "Transform": "LCLICK -> confirm (shape will change) | RCLICK -> cancel",
+        "Cp-Transform": "LCLICK -> confirm (new copy will be created) | RCLICK -> cancel",
+        "Move": "LCLICK -> confirm (shape will move) | RCLICK -> cancel",
+        "Copy-Move": "LCLICK -> confirm (new copy will be created) | RCLICK -> cancel",
+        "Color Picker": "LCLICK -> apply | RCLICK -> close | QWERASDF -> change color | WHEEL -> change brightness",
         }
 
 _pinned_menu = {'Z': "Camera", 'X': "Menu Top", 'C': "Command"}
@@ -43,6 +62,8 @@ def menu_hook(hook, context):
             set_hook(None)
         key = alpha_scan(ev)
         menu_item = menu.go(key)
+        try: post_info( _menuaction_info[menu_item], context)
+        except KeyError: pass
         match menu_item:
             # Pinned
             case "Camera":
@@ -68,6 +89,7 @@ def menu_hook(hook, context):
             case "Draw Weaves": set_hook(create_weaves_hook, context)
             case "Select Color": overhook(select_color_hook, context)
             case "Color Picker": overhook(color_picker_hook, context)
+            case _: set_hook(None)
     #
     hook.event_loop(inner)
 

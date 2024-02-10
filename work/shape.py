@@ -11,7 +11,7 @@ from util import farr, dist, Rec, sqdist
 def near_zero(x):
     return -params.eps < x < params.eps
 
-def alomst_equal(x, y):
+def almost_equal(x, y):
     return sqdist(x, y) < params.eps ** 2
 
 def draw_point(screen, point, color = params.div_color):
@@ -148,7 +148,7 @@ class Circle(Shape):
         n = len( self.divs)
         if type(to) != Circle:
             return None
-        if not alomst_equal(self.center, to.center):
+        if not almost_equal(self.center, to.center):
             return None
         if n != len( to.divs ):
             return None
@@ -165,9 +165,9 @@ class Circle(Shape):
             return None
         else:
             def merger(i):
-                return (-q + (-1 if self.clockwise != other.clockwise else 1) * i) % n
+                return int(-q + (-1 if self.clockwise != to.clockwise else 1) * i) % n
             return merger
-        #
+    #
     ###
 
 class Point(Shape):
@@ -185,9 +185,9 @@ class Point(Shape):
     def merger(self, to):
         if (type(to) != Point):
             return None
-        if (not alomst_equal(self.p, to.p)):
+        if (not almost_equal(self.p, to.p)):
             return None
-        return (lambda: 0)
+        return (lambda i: 0)
     ###
 
 class Line(Shape):
@@ -207,9 +207,9 @@ class Line(Shape):
     def merger(self, to):
         if ( type(to) != Line ) and ( len(self.divs) != len(to.divs) ):
             return None
-        if ( alomst_equal(self.start, to.start) and alomst_equal(self.end, to.end) ):
+        if ( almost_equal(self.start, to.start) and almost_equal(self.end, to.end) ):
             return lambda i : i # same dir
-        if ( alomst_equal(self.start, to.end) and alomst_equal(self.end, to.start) ):
+        if ( almost_equal(self.start, to.end) and almost_equal(self.end, to.start) ):
             return lambda i : len(self.divs) - 1 - i # opposite dirs
         ##
     ###

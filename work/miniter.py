@@ -143,6 +143,7 @@ def set_div_cmd(n, *, _env):
     #
     if not ( 0 < n <= params.max_div) :
         raise CmdExn(f"number must be between 1 and {params.max_div}")
+    unweave_into_selection(_env.context)
     for sh in _env.context.selected:
         sh.set_divs(n)
 

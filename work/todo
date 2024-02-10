@@ -1,28 +1,17 @@
 ## 'SMALL' FIXES
 * in color-picker : scroll to adjust brigthness
-* remake tooltips
-* reput shortcuts in menu
 * when drawing weaves: (REFACTOR)
 	steal 2 keys for inverting weavity and rotity, rclick goes through all 4 states
  	wb, wy: real-time effect (does wb exist yet)?
-* rename 'mirror' to 'flip'?
-* rm weaves when changing div (until better idea) ?
-* be able to set default div by shape type
-* still problem (menu cut) when changing the res param (in param.py)?
 
-## CURRENT:
-	* finish hook refactor?
-	* interactive transforms
-		* subhook deco?
-		recenter (+ interactive center?), 
-		flip (mouse control axis rel to center)
-		rot (2 clicks)
-		put copy
-		effect
-		cancel
+* be able to set default div by shape type ( maybe do when we do the params thing)
+* remake tooltips (mostly done)
+* re-add polylines
+
 
 ## LATER (features):
 * rewind (autosaves)
+* finish hooks refactor
 
 * pdf guide pages
 * snappy polar grid
@@ -36,3 +25,4 @@
 * only consider the last MOUSEMOTION every frame ?
 * maybe don't draw circle-center on existing shapes
 * be able to set params
+* 'menu_translate'

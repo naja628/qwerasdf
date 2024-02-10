@@ -80,5 +80,33 @@ def post_error(msg, context):
     context.bottom_text.set_line(context.ERRLINE, f"Error: {msg}", params.error_text_color)
 
 def post_info(msg, context):
-    context.bottom_text.set_line(context.INFOLINE, f"Error: {msg}", params.text_color)
+    context.bottom_text.set_line(context.INFOLINE, f"Info: {msg}", params.text_color)
+
+# Selection actions
+def unweave_inside_selection(context):
+    cx = context
+    keep_weaves = []
+    for we in cx.weaves:
+        sh1, sh2 = (hg.s for hg in we.hangpoints)
+        if sh1 not in cx.selected and sh2 not in cx.selected:
+            keep_weaves.append(we)
+    cx.weaves = keep_weaves
+    redraw_weaves(cx)
+
+def unweave_into_selection(context):
+    cx = context
+    keep_weaves = []
+    for we in cx.weaves:
+        sh1, sh2 = (hg.s for hg in we.hangpoints)
+        if sh1 not in cx.selected and sh2 not in cx.selected:
+            keep_weaves.append(we)
+        else:
+            del cx.weave_colors[we]
+    cx.weaves = keep_weaves
+    redraw_weaves(cx)
+
+def delete_selection(context):
+    unweave_into_selection(context)
+    context.shapes = [ sh for sh in context.shapes if not sh in context.selected ]
+    context.selected = []
 
