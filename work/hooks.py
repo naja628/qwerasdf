@@ -6,7 +6,7 @@ from view import View
 from menu import Menu
 from miniter import miniter_exec
 from context import *
-from util import expr, param_decorator
+from util import expr, param_decorator, clamp
 from merge import merge_into # TODO restructure module
 
 ######### EVENT AND DISPATCH ##########
@@ -77,8 +77,7 @@ class EvDispatch: # event dispatcher
         return hook
     #
     def all_watched(self):
-        #return self.callstacks.keys()
-        return set(self.callstacks.keys()) # causes bugs? (TODO)
+        return set(self.callstacks.keys())
     #
     def dispatch(self, events):
         for ev in events:
@@ -96,7 +95,7 @@ class EvDispatch: # event dispatcher
                         break
             else: 
                 del self.callstacks[ev.type]
-            #
+        #
     ###
 
 # Hook type decorators
@@ -104,10 +103,9 @@ class EvDispatch: # event dispatcher
 def loop_hook(f, watched, cleanup = None, setup = None):
     def hook_maker(hook, *a, **ka):
         setup_hook(hook, watched)
-        if cleanup:
-            hook.cleanup = lambda: cleanup(*a, **ka)
-        #
+        if cleanup: hook.cleanup = lambda: cleanup(*a, **ka)
         state = setup and setup(hook, *a, **ka)
+        #
         def inner(ev):
             if state: f(hook, ev, *a, _state = state, **ka) 
             else: f(hook, ev, *a, **ka)
@@ -117,15 +115,14 @@ def loop_hook(f, watched, cleanup = None, setup = None):
 @param_decorator
 def iter_hook(f, watched, filter = lambda ev: True, cleanup = None):
     def hook_maker(hook, *a, **ka):
-        if cleanup:
-            hook.cleanup = lambda: cleanup(*a, **ka)
+        if cleanup: hook.cleanup = lambda: cleanup(*a, **ka)
         setup_hook(hook, watched)
         hook.event_iter( f(hook, *a, **ka), filter)
     return hook_maker
 
 ## Pygame event related utils
 
-# TODO probably OS dependent
+# TODO probably OS dependent (Works on windows and Linux so far so ?)
 MS_LEFT, MS_MID, MS_RIGHT = 1, 2, 3
 
 ms = Rec()
@@ -145,8 +142,7 @@ def mouse_subtype(ev):
 def alpha_scan(event):
     # hopefully the magic 4 isn't OS/Hardware dependent
     # pygame doesn't seem to provide constants for `scancode`s (only `key`s)
-    # I seem to recall SDL did? so maybe I missed something
-    # TODO
+    # I seem to recall SDL did? so maybe I missed something TODO
     if not 4 <= event.scancode < 4 + 26:
         return '' 
     return chr(ord('A') + event.scancode - 4)
@@ -161,24 +157,6 @@ def setup_hook(hook, watched, *cleanup_commands):
                 fun(*a)
         hook.cleanup = cleanup
     #
-
-# TODO current edit
-# @param_decorator
-# def sub_hook(f, hook, watched, *cleanup_commands, filter):
-#     def decorated(subhook):
-#         setup_hook(subhook, watched, *cleanup_commands)
-#         hook.filter = filter
-#         def inner(ev):
-#             f(subhook, ev)
-#         subhook.event_loop(inner)
-#     hook.attach(hook.dispatch.add_hook(decorated))
-# 
-# def iterev(f):
-#     gen = f()
-#     def wrapped(ev):
-#         gen.next()
-#         gen.send(ev)
-#     return wrapped
 
 def steal_menu_keys(hook, menu, stolen, labels):
     hook.watched.add(pg.KEYDOWN)
@@ -499,6 +477,83 @@ def create_weaves_hook(hook, context):
     #
     hook.event_loop(inner)
 
+
+@iter_hook( { pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION },
+            filter = lambda ev: mouse_subtype(ev) == ms.LCLICK,
+            cleanup = lambda context: reset_hints(context))
+def create_weaves_hook(hook, context):
+    cx = context
+    steal_menu_keys(hook, cx.menu, 'AS', {'A': "invert dir", 'S': "invert spin"})
+    dirctrl = Rec(code = 2, spin = 1, dir = 0) # maintain code = 2 * spin + dir, masks style
+    subloop = None # will be set to lambda that sets proper hints
+    def evloop(ev):
+        match mouse_subtype(ev):
+            case pg.KEYDOWN:
+                key = alpha_scan(ev)
+                if key == 'A': dirctrl.dir = not dirctrl.dir
+                if key == 'S': dirctrl.spin = not dirctrl.spin
+                dirctrl.code = dirctrl.spin * 2 + dirctrl.dir
+            case ms.RCLICK:
+                code = (dirctrl.code + 1) % 4
+                dirctrl.update(code = code, spin = code // 2, dir = code % 2)
+        if subloop: subloop(ev)
+    hook.event_loop(evloop)
+    #
+    def filter_cdt(hangs, shapes):
+        return [hg for hg in hangs if hg.s in shapes]
+    def get_hang():
+        nonlocal subloop
+        candidates = []
+        while (not candidates):
+            ev = yield
+            _, candidates = snappy_get_point(cx, ev.pos)
+            if not candidates: post_error("no shape under cursor", cx)
+        while True:
+            match candidates, filter_cdt(candidates, cx.selected):
+                case ([ hg ], _) | (_, [ hg ]): return hg
+                case [], []: assert False
+                case (cdt, []) | (_, cdt) :
+                    post_error("several shapes match. LCLICK -> disambiguate", cx)
+                    # highlight shape
+                    def disambiguated(ev):
+                        _, cdt2 = snappy_get_point(cx, ev.pos)
+                        try: 
+                            [ hg ] = filter_cdt(cdt, [hg.s for hg in cdt2])
+                            return hg
+                        except: return None
+                    save_loop = subloop
+                    subloop = lambda ev: (hg := disambiguated(ev)) and set_hints(cx, hg.s)
+                    while True:
+                        ev = yield
+                        if ret := disambiguated(ev): break
+                        else: continue
+                    subloop = save_loop
+                    return ret
+    #
+    while True:
+        subloop = lambda ev: set_hints(cx, Point(_evpos(cx, ev)))
+        hg1 = yield from get_hang()
+        hg2 = yield from get_hang()
+        def weaves_at_pos(pos):
+            _, candidates = snappy_get_point(cx, pos)
+            try: [ hg3 ] = [ hg for hg in candidates if hg.s == hg2.s ]
+            except: return ()
+            #
+            incrs = cx.weavity[0] * (-1 if dirctrl.dir else 1), cx.weavity[1]
+            nloops = dirctrl.spin - 1
+            we = Weave.CreateFrom3([hg1, hg2, hg3], incrs, nloops)
+            #
+            if cx.weaveback and (bwe := Weave.BackWeave(we)): return we, bwe 
+            else: return (we, )
+        subloop = lambda ev: set_hints(cx, *weaves_at_pos(ev.pos))
+        wes = None
+        while not wes:
+            ev = yield
+            wes = weaves_at_pos(ev.pos)
+        [create_weave(cx, we) for we in wes]
+        reset_hints(cx)
+    ###
+
 def select_color_hook(hook, context):
     cx = context
     def cleanup(): cx.show_palette = save_show_palette
@@ -531,9 +586,6 @@ def color_picker_hook(hook, context):
         cx.show_palette = save_show_palette
         cx.show_picker = False
         cx.palette[cx.color_key] = save_color
-#     setup_hook(hook, {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION, pg.KEYDOWN }, (cleanup, ))
-#     hook.filter = lambda ev: not (ev.type == pg.KEYDOWN and alpha_scan(ev) not in cx.palette)
-    
     setup_hook(hook, {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, (cleanup, ))
     steal_menu_keys(hook, cx.menu, 'QWERASDF', {})
     #
@@ -543,7 +595,6 @@ def color_picker_hook(hook, context):
     save_color = cx.palette[cx.color_key]
     #
     def inner(ev):
-        nonlocal save_color
         if ev.type == pg.KEYDOWN:
             cx.palette[cx.color_key] = save_color
             cx.color_key = alpha_scan(ev)
@@ -561,6 +612,42 @@ def color_picker_hook(hook, context):
                     save_color = color
         redraw_weaves(cx)
     hook.event_loop(inner)
+
+def _color_picker_setup(hook, context):
+    save_show_palette = context.show_palette
+    state = Rec(save_color = context.palette[context.color_key], lum = 0.7)
+    #
+    def cleanup(): 
+        context.show_palette = save_show_palette
+        context.show_picker = False
+        context.palette[context.color_key] = state.save_color
+    hook.cleanup = cleanup
+    steal_menu_keys(hook, context.menu, 'QWERASDF', {})
+    #
+    context.show_palette = True
+    context.show_picker = True
+    return state
+@loop_hook({pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION, pg.MOUSEWHEEL}, setup = _color_picker_setup)
+def color_picker_hook(hook, ev, context, *, _state):
+    cx = context
+    if ev.type == pg.MOUSEWHEEL:
+        _state.lum += params.brightness_scroll_speed * ev.y
+        _state.lum = clamp(_state.lum, 0, 1)
+    try: cur_color = Color(0,0,0).lerp(cx.color_picker.at_pixel(ev.pos), _state.lum)
+    except: cur_color = None
+    match mouse_subtype(ev), cur_color:
+        case ms.RCLICK, _: hook.finish()
+        case pg.KEYDOWN, _:
+            cx.palette[cx.color_key] = _state.save_color
+            cx.color_key = alpha_scan(ev)
+            _state.save_color = cx.palette[cx.color_key]
+        case _, None: pass
+        case ms.LCLICK, color:
+            cx.palette[cx.color_key] = color
+            _state.save_color = color
+        case _, color:
+            cx.palette[cx.color_key] = color
+    redraw_weaves(cx)
 
 ## Transformations
 def copy_weaves_inside(dest_shapes, src_shapes, weave_superset, context):
@@ -857,7 +944,6 @@ def interactive_transform_hook(hook, context):
 #             cx.hints = [sh.transformed(pending_matrix, center) for sh in current_shapes ]
 # 
 # 
-
 
 ## Miniter
 def miniter_hook(hook, context, cmd = ''):

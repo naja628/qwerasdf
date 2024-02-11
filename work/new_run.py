@@ -17,8 +17,8 @@ _nested_menu = {
         'D': ("Create Shapes",
             {'A': "New Point", 'S': "New Segment", 'D': "New Circle", 'F': ("Draw Weaves", _sho('F'))}),
         'F': ("Draw Weaves",
-            {   'W': "Color Picker",
-                'S': "Select Color", 'D': ("Create Shape", _sho('D')), 'F': ("Draw Weaves", _sho('F'))}),
+            {   'W': "Color Picker", 'E': "Select Color",
+                                     'D': ("Create Shape", _sho('D')), 'F': ("Draw Weaves", _sho('F'))}),
         }
 _menuaction_info = { # What the user has to do AFTER, not what it does
         "Command": "Commandline. 'ls' -> list available commands | CTRL-C -> close",
@@ -29,11 +29,12 @@ _menuaction_info = { # What the user has to do AFTER, not what it does
         "Draw Weaves": "LCLICK on 1st shape then LCLICK * 2 on 2nd shape. | RCLICK: \"no, the other way\"",
         "Select Color": "QWERASDF (keyboard) -> pick color",
         "Selection": "LCLICK -> select under cursor | RCLICK -> toggle-selected under cursor",
-        "Transform": "LCLICK -> confirm (shape will change) | RCLICK -> cancel",
-        "Cp-Transform": "LCLICK -> confirm (new copy will be created) | RCLICK -> cancel",
         "Move": "LCLICK -> confirm (shape will move) | RCLICK -> cancel",
         "Copy-Move": "LCLICK -> confirm (new copy will be created) | RCLICK -> cancel",
-        "Color Picker": "LCLICK -> apply | RCLICK -> close | QWERASDF -> change color | WHEEL -> change brightness",
+        "Transform": "LCLICK -> confirm (shape will change) | RCLICK -> cancel",
+        "Cp-Transform": "LCLICK -> confirm (new copy will be created) | RCLICK -> cancel",
+        "Visual": "LCLICK -> next change | RCLICK -> place transform center",
+        "Color Picker": "LCLICK -> apply | RCLICK -> close | QWERASDF -> change affected color | WHEEL -> adjust brightness",
         }
 
 _pinned_menu = {'Z': "Camera", 'X': "Menu Top", 'C': "Command"}

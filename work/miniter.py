@@ -147,13 +147,18 @@ def set_div_cmd(n, *, _env):
     for sh in _env.context.selected:
         sh.set_divs(n)
 
-@miniter_command( ('weavity', 'wy'), "$CMD bound_increment free_increment")
+@miniter_command( ('weavity', 'wy'), "$CMD bound_increment loose_increment")
 def set_weavity_cmd(inc0 = 1, inc1 = 1, *, _env):
     "set the 'weavity' pair. Controls spacing of strings when drawing weaves"
     #
     if inc1 == 0:
         raise CmdExn("2nd argument cannot be 0")
     _env.context.weavity = (inc0, inc1)
+
+@miniter_command( ('weaveback', 'wb') )
+def toggle_weaveback(*, _env):
+    "toggle weaveback"
+    _env.context.weaveback = not _env.context.weaveback
 
 @miniter_command( ('fullscreen', 'fu') )
 def fullscreen_cmd(*, _env):

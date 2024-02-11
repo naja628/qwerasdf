@@ -1,22 +1,24 @@
 ## 'SMALL' FIXES
-* in color-picker : scroll to adjust brigthness
-* when drawing weaves: (REFACTOR)
-	steal 2 keys for inverting weavity and rotity, rclick goes through all 4 states
- 	wb, wy: real-time effect (does wb exist yet)?
-
 * be able to set default div by shape type ( maybe do when we do the params thing)
 * remake tooltips (mostly done)
 * re-add polylines
 
+## NOTES
+* for rewind either 'reset_hook' in menu (+ use 'reset_hook' for loading too?)
+			 or don't pin it (would allow a pinned commands under V)
+* at the same time: do ! logic thing, + import + recover since these have to do with saves too
+* when recover needed, cleanup session things
+
 
 ## LATER (features):
 * rewind (autosaves)
-* finish hooks refactor
+* finish hooks refactor ( at least select_hook )
 
 * pdf guide pages
 * snappy polar grid
-* arcs
-* refactor terminal + text? autocomplete
+* arcs, re-add poly
+* refactor terminal + text? autocomplete, history, types?
+* export images
 * manual
 
 ## "DETAILS":

@@ -50,15 +50,15 @@ def rainbow_array(width, height, lum, min_sat = 0, max_sat = 1):
             dtype = int)
 
 class ColorPicker:
-    def __init__(self, width, height, corner = (0, 0), min_sat = 0, lum = 0.6):
+    def __init__(self, width, height, corner = (0, 0), min_sat = 0, display_lum = 0.6):
         self.corner = corner
-        self.lum = lum
-        self.reset(width, height, corner, min_sat, lum)
+        self.display_lum = display_lum
+        self.reset(width, height, corner, min_sat, display_lum)
     #
-    def reset(self, width, height, corner = (0, 0), min_sat = 0, lum = 0.6):
+    def reset(self, width, height, corner = (0, 0), min_sat = 0, display_lum = 0.6):
         self.corner = corner or self.corner
-        self.lum = lum or self.lum
-        self.array = rainbow_array(width, height, lum, min_sat, 1.0)
+        self.display_lum = display_lum
+        self.array = rainbow_array(width, height, display_lum, min_sat, 1.0)
         self.set_surf(width, height)
         self.render()
         return self
@@ -76,19 +76,20 @@ class ColorPicker:
                 pix_array[x, y] = Color(self.array[x, y])
         pix_array.close()
     #
-    def _at_rel_pixel(self, pos, clamp = False):
+    def _at_rel_pixel(self, pos, lum = None, clamp = False):
+        lum = lum or self.display_lum
         width, height = self.surf.get_size()
         x, y = pos
         if clamp:
             pos = clamp(x, 0, width - 1), clamp(y, 0, height - 1)
         elif not (0 <= x < width and 0 <= y < height):
             return None
-        return Color(self.array[x, y])
+        return Color(self.array[x, y] * (1 / lum))
     #
-    def at_pixel(self, pos, clamp = False, corner = None):
+    def at_pixel(self, pos, clamp = False, corner = None, lum = None):
         corner = corner or self.corner
         relpos = pos[0] - corner[0], pos[1] - corner[1]
-        return self._at_rel_pixel(relpos)
+        return self._at_rel_pixel(relpos, clamp = clamp)
     ###
 
 # class ColorPicker:

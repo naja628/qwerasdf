@@ -4,24 +4,6 @@ from util import Rec, sqdist
 import params
 from pygame import Surface
 
-# def snappy_get_point(context, pos):
-#     cx = context # shorter to write
-#     rrad = cx.view.ptord(params.snap_radius)
-#     shortest = rrad + params.eps
-#     point = cx.view.ptor(pos)
-#     candidates = []
-#     for s in cx.shapes:
-#         for i, div in enumerate(s.divs):
-#             if (d := dist(div, cx.view.ptor(pos))) < min(rrad, shortest):
-#                 shortest = d
-#                 point = div
-#             if dist(point, div) < params.eps:
-#                 candidates.append(Rec(s = s, i = i))
-#     # filter candidates
-#     candidates = [ cd for cd in candidates 
-#             if dist(cd.s.divs[cd.i], point) < params.eps ]
-#     return point, candidates
-
 def snappy_get_point(context, pos):
     cx = context
     sq_rrad = cx.view.ptord(params.snap_radius) ** 2
