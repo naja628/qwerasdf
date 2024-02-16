@@ -164,6 +164,7 @@ class Circle(Shape):
         if (not near_zero(r)):
             return None
         else:
+            print('circle merger')
             def merger(i):
                 return int(-q + (-1 if self.clockwise != to.clockwise else 1) * i) % n
             return merger
@@ -208,8 +209,10 @@ class Line(Shape):
         if ( type(to) != Line ) and ( len(self.divs) != len(to.divs) ):
             return None
         if ( almost_equal(self.start, to.start) and almost_equal(self.end, to.end) ):
+            print('line merger +')
             return lambda i : i # same dir
         if ( almost_equal(self.start, to.end) and almost_equal(self.end, to.start) ):
+            print('line merger -')
             return lambda i : len(self.divs) - 1 - i # opposite dirs
         ##
     ###

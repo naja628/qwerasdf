@@ -3,49 +3,9 @@ from pygame import Color
 
 import params
 from shape import *
-from util import naive_scan, Rec
-from context import redraw_weaves
+from util import naive_scan, Rec, sprint, clamp
 
 class SaveError(BaseException): pass
-
-def save(filename, context, overwrite_ok = True):
-    def weave_data_line(we, ckey):
-        shape_id1 = context.shapes.index(we.hangpoints[0].s)
-        shape_id2 = context.shapes.index(we.hangpoints[1].s)
-        line = f"{we.nwires} {we.incrs[0]} {we.incrs[1]} {ckey} "
-        line += f"{shape_id1} {we.hangpoints[0].i} {shape_id2} {we.hangpoints[1].i}" 
-        return line
-    #
-    open_flags = 'w' if overwrite_ok else 'x'
-    #
-    try:
-        with open(filename, open_flags) as f:
-            def p(*args, **kwargs):
-                kwargs['file'] = f
-                print(*args, **kwargs)
-            #
-            p("# shape format: id: type ndivs x1 y1 ...")
-            p("# weave format: n inc1 inc2 color_key shape_id1 i1 shape_id2 i2")
-            p("# color format: key r g b")
-            #
-            p("SHAPEDATA")
-            for (i, s) in enumerate(context.shapes):
-                p(f"{i}:", repr(s))
-            #
-            p("COLORDATA")
-            for k, color in context.palette.items():
-                p(f"{k} {color.r} {color.g} {color.b}")
-            #
-            p("WEAVEDATA")
-            for we in context.weaves:
-                p(weave_data_line(we, context.weave_colors[we]))
-            #
-    except (FileExistsError, OSError): raise
-    except:
-        os.remove(filename)
-        raise # TODO ??
-        raise SaveError()
-    ###
 
 def save_path(file):
     # note: `file` can be nested
@@ -54,6 +14,198 @@ def save_path(file):
     prefixed = os.path.join(params.save_dir, file)
     os.makedirs(os.path.dirname(prefixed), exist_ok = True)
     return prefixed
+
+def save_buffer(context, extra = set()): 
+    def weave_data_line(we, ckey):
+        shape_id1 = context.shapes.index(we.hangpoints[0].s)
+        shape_id2 = context.shapes.index(we.hangpoints[1].s)
+        line = f"{we.nwires} {we.incrs[0]} {we.incrs[1]} {ckey} "
+        line += f"{shape_id1} {we.hangpoints[0].i} {shape_id2} {we.hangpoints[1].i}" 
+        return line
+    #
+    lines = []
+    def p(*a, **ka):
+        lines.append(sprint(*a, **ka))
+    #
+    p("SHAPEDATA")
+    for (i, s) in enumerate(context.shapes):
+        p(f"{i}:", repr(s))
+    #
+    p("COLORDATA")
+    for k, color in context.palette.items():
+        p(f"{k} {color.r} {color.g} {color.b}")
+    #
+    p("WEAVEDATA")
+    for we in context.weaves:
+        p(weave_data_line(we, context.weave_colors[we]))
+    #
+    if extra:
+        p("EXTRADATA")
+        for k in extra:
+            line = f"{k}="
+            try:
+                match k: # only supported k = session for now
+                    case session:
+                        line += context.autosaver.root
+                p(line)
+            except: pass # just ignore problematic lines
+    #
+    return ''.join(lines)
+
+_save_header = ''.join([
+    "# shape format: id: type ndivs x1 y1 ...\n",
+    "# weave format: n inc1 inc2 color_key shape_id1 i1 shape_id2 i2\n",
+    "# color format: key r g b\n",
+])
+def write_save(filename, buffer, overwrite_ok = True, header = False):
+    open_mode = 'w' if overwrite_ok else 'x'
+    try:
+        os.makedirs(os.path.dirname(filename), exist_ok = True)
+        with open(filename, open_mode) as f:
+            buffer = _save_header + buffer if header else buffer
+            f.write(buffer)
+    except (FileExistsError, OSError): raise
+    except:
+        os.remove(filename)
+        raise
+
+def save(filename, context, overwrite_ok = True, header = True, extra = {'session'}):
+    buffer = save_buffer(context, extra)
+    write_save(filename, buffer, overwrite_ok, header)
+
+# ## NOW
+# * rotor nesting
+# * determine previous save (rewind(n))
+# * when changes go back to 0
+# * for the hook only load in the main loop
+# + detail: if several instances in same cwd problem
+# 
+# ## NOTES
+# * for rewind either 'reset_hook' in menu (+ use 'reset_hook' for loading too?)
+# 			 or don't pin it (would allow a pinned commands under V)
+# * at the same time: do ! logic thing, + import + recover since these have to do with saves too
+# * when recover needed, cleanup session things
+# 
+class Autosaver: # autosaves system
+    class DirectoryBusyError(BaseException): pass
+    #
+    def __init__(self, root, pulse = 10):
+        try: 
+            os.makedirs(root, exist_ok = True)
+            with open(os.path.join(root, '.busy'), 'x'): pass # touch '.busy'
+        except FileExistsError: 
+            raise Autosaver.DirectoryBusyError()
+        #
+        self.last_back, self.last_buffer = 0, ''
+        self.root = root
+        #
+        self.pulse = pulse
+#         self.rotorctl = [(4, 2)] * 3 + [4] # hardcode something reasonable somewhere
+        self.rotorctl = params.autosave_rotorctl
+        try:
+            with open(os.path.join(self.root, '.rotor')) as rotorfile:
+                self.rotor = [int(w) for w in next(rotorfile).split()]
+        except:
+            self.rotor = [0] 
+        #
+        self.back = 0
+        self.nsaves = 0
+        try:
+            dir = self.root
+            while True:
+                self.nsaves += len([ f for f in os.listdir(dir) 
+                    if (f[0] != '.' and os.path.isfile(os.path.join(dir, f))) ])
+                dir = os.path.join(dir, 'older')
+        except FileNotFoundError:
+            pass
+    #
+    def finish(self):
+        with open(os.path.join(self.root, '.rotor'), 'w') as rotor:
+            rotor.write(' '.join([str(i) for i in self.rotor]) + '\n')
+        #
+        try: os.remove(os.path.join(self.root, '.busy'))
+        except: pass
+    #
+    def savepoint(self, context):
+        def archive(k, destdir, src): # k start at 0
+            if not (k < len(self.rotorctl)): return
+            if not (k < len(self.rotor)):
+                # TODO actually find file with a + if exists
+                self.rotor.append(0)
+            #
+            isave = self.rotor[k]
+            try: n, d = self.rotorctl[k]
+            except: n, d = self.rotorctl[k], None
+            #
+            dest = os.path.join(destdir, str(isave))
+            if not os.path.isfile(dest):
+                self.nsaves += 1
+            elif d and isave % d == 0:
+#             if d and isave % d == 0 and os.path.isfile(dest):
+                    archive(k + 1, os.path.join(destdir, 'older'), dest)
+            #print(f"archiving '{src}' to '{dest}'")
+            os.makedirs(destdir, exist_ok = True)
+            os.rename(src, dest)
+            self.rotor[k] = (isave + 1) % n
+        ###
+        if self.last_back != self.back:
+            savename = self.current_file()
+            with open(savename) as load:
+                self.last_buffer = load.read()
+            self.last_back = self.back
+        #
+        buffer = save_buffer(context)
+        if self.last_buffer == buffer:
+            return
+        self.last_buffer = buffer
+        savename = os.path.join(self.root, 'tmp')
+        write_save(savename, buffer)
+        archive(0, self.root, savename)
+        #print(f'wrote {savename}')
+        # TODO current one has a '+', rename prev one
+        self.back = 0
+    #
+    def rewind(self, n = 1):
+        if self.nsaves == 0: return
+        self.back = clamp(self.back + n, 0, self.nsaves - 1) # number *back* in time
+        print(f'rewinding to {self.back = }. ({self.nsaves = })')
+    #
+    def unwind(self, n = 1):
+        self.rewind(-n)
+    #
+    def current_file(self):
+        if self.nsaves == 0: return
+        #
+        back, reldir = self.back, ''
+        for k in range(len(self.rotorctl) - 1):
+            try: n, _ = self.rotorctl[k]
+            except: n = self.rotorctl[k]
+            if back < n: 
+                break
+            #
+            reldir = os.path.join(reldir, 'older')
+            back -= n
+            k += 1
+        isave = (self.rotor[k] - (back + 1)) % n
+        savename = os.path.join(self.root, reldir, str(isave))
+        return savename
+# 
+# 
+#             isave = self.rotor[k]
+#             n, d = self.rotorctl[k]
+#             if isave % d:
+#                 dest = self.root / 'older' / str(self.rotor[k + 1])
+# 
+# 
+# 
+#         buffer = save_buffer(context)
+#         if (buffer == self.last_buffer):
+#             return 
+#         else:
+#             write_path = ...
+#             if path.is_file(): 
+#                 self.archive(
+# 
 
 class LoadError(BaseException): pass
 class ParseError(BaseException):
@@ -65,7 +217,6 @@ class ParseError(BaseException):
     #
     def format(self):
         msg = f"In section {self.section}" if self.section else "Missing Section Header"
-        #msg = f"In section " + self.section if section else "Missing Section Header"
         fstr = f"ParseError on line {self.i}: {msg}\n"
         fstr += f"{self.i} | {self.line}\n"
         return fstr
@@ -78,6 +229,7 @@ def load(filename):
             sh_dict = {}
             palette = {}
             weave_lines = []
+            extra = {}
             for i, line in enumerate(f):
                 try:
                     # ignore empty and comments
@@ -96,6 +248,9 @@ def load(filename):
                             palette[key] = Color(r, g, b)
                         case 'WEAVEDATA':
                             weave_lines.append(line)
+                        case 'EXTRADATA':
+                            [k, v] = line.strip().split('=')
+                            extra[k] = v
                         case _: raise Exception()
                 except: 
                     raise ParseError(i + 1, line, section)
@@ -117,15 +272,10 @@ def load(filename):
                     weaves = weaves,
                     weave_colors = colors,
                     palette = palette)
-            return loaded_subcontext
+            return loaded_subcontext, extra
     except ParseError: raise
     except: raise LoadError()
 
-def load_to_context(file, context):
-    context.hints = []
-    context.selected = []
-    #
-    context.update(load(file))
-    redraw_weaves(context)
-
-
+## for custom events (probably in hooks
+# AUTOSAVE = pg.event.custom_type() 
+# pg.time.set_timer(AUTOSAVE, 10 * 1000)

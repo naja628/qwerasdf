@@ -1,4 +1,6 @@
 import numpy as np
+import params
+from util import clamp
 
 def farr(seq):
     return np.array([float(x_i) for x_i in seq])
@@ -32,9 +34,18 @@ class View:
         return int(rd * self.ppu)
     #
     def rzoom(self, rcenter, factor):
+        self.ppu *= factor
+#         if self.ppu > params.max_ppu:
+#             self.ppu = params.max_ppu
+#             return
+#         if self.ppu < params.min_ppu:
+#             self.ppu = params.min_ppu
+#             return
+        if not (params.min_ppu <= self.ppu <= params.max_ppu):
+            self.ppu = clamp(self.ppu, params.min_ppu, params.max_ppu)
+            return
         d = self.corner - rcenter
         self.corner = rcenter + (1 / factor) * d
-        self.ppu *= factor
     #
     def zoom(self, pcenter, factor):
         self.rzoom(self.ptor(pcenter), factor)

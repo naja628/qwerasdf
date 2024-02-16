@@ -8,6 +8,7 @@ from miniter import miniter_exec
 from context import *
 from util import expr, param_decorator, clamp
 from merge import merge_into # TODO restructure module
+import save
 
 ######### EVENT AND DISPATCH ##########
 class EvHook:
@@ -140,10 +141,7 @@ def mouse_subtype(ev):
     return ev.type # if not a mouse subtype return raw pygame type
         
 def alpha_scan(event):
-    # hopefully the magic 4 isn't OS/Hardware dependent
-    # pygame doesn't seem to provide constants for `scancode`s (only `key`s)
-    # I seem to recall SDL did? so maybe I missed something TODO
-    if not 4 <= event.scancode < 4 + 26:
+    if not pg.KSCAN_A <= event.scancode < pg.KSCAN_A + 26:
         return '' 
     return chr(ord('A') + event.scancode - 4)
 
@@ -160,11 +158,15 @@ def setup_hook(hook, watched, *cleanup_commands):
 
 def steal_menu_keys(hook, menu, stolen, labels):
     hook.watched.add(pg.KEYDOWN)
-    hook.filter = lambda ev: (ev.type != pg.KEYDOWN) or (alpha_scan(ev) in stolen)
+    def filter(ev):
+        return (ev.type != pg.KEYDOWN) or ((key := alpha_scan(ev)) and key in stolen)
+    hook.filter = filter
     #
+    sv_stolen, sv_labels = menu.temp_show_mask, menu.temp_show
     menu.temporary_display(stolen, labels)
     break_recursion = hook.cleanup
-    hook.cleanup = lambda: [menu.restore_display(), break_recursion and break_recursion()]
+    hook.cleanup = lambda: [menu.temporary_display(sv_stolen, sv_labels), 
+                            break_recursion and break_recursion()]
 
 ## HOOKS
 # def zoom_hook(hook, context, factor = params.zoom_factor):
@@ -176,7 +178,32 @@ def steal_menu_keys(hook, menu, stolen, labels):
 #     #
 #     hook.event_loop(inner)
 # 
+_AUTOSAVE = pg.event.custom_type()
 
+## Rewind
+def _autosave_setup(hook, context):
+    pg.time.set_timer(_AUTOSAVE, params.autosave_pulse * 1000)
+@loop_hook(  {_AUTOSAVE}, 
+             cleanup = lambda: pg.time.set_timer(_AUTOSAVE, 0),
+             setup = _autosave_setup )
+def autosave_hook(hook, ev, context):
+    if context.autosaver: context.autosaver.savepoint(context)
+
+LOOP = pg.event.custom_type()  # TODO where should this be declared for cleaner?
+@loop_hook({pg.MOUSEBUTTONDOWN, pg.MOUSEWHEEL, LOOP})
+def rewind_hook(hook, ev, context):
+    type = mouse_subtype(ev)
+    if not context.autosaver:
+        hook.finsish()
+    elif type == ms.WHEEL:
+        context.autosaver.rewind(-ev.y)
+    elif type == LOOP:
+        load_me = context.autosaver.current_file()
+        if load_me: load_to_context(context, load_me)
+    elif type == ms.LCLICK or type == ms.RCLICK:
+        hook.finish()
+
+## CAMERA CONTROL
 @loop_hook({pg.MOUSEWHEEL})
 def zoom_hook(hook, ev, context, factor = params.zoom_factor):
     context.view.zoom(pg.mouse.get_pos(), factor ** ev.y)
@@ -247,7 +274,7 @@ def change_view_hook(hook, context):
     #
     ev = yield # Terminate on first event (ie LCLICK = done)
 
-# Create shapes
+# CREATE SHAPES
 def create_points_hook(hook, context):
     setup_hook(hook, {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, (reset_hints, context) )
     #
@@ -364,119 +391,119 @@ def create_circles_hook(hook, context):
                 Point(point1 if center_first else _evpos(context, ev)))
         reset_hints(context)
 
-## Weave
-def create_weaves_hook(hook, context):
-    # Utils:
-    def point_at_hang(hg):
-        return hg.s.get_div(hg.i)
-    #
-    def hang_on_shape(candidates, shape):
-        for hg in candidates:
-            if hg.s == shape: return hg
-        else: return None
-    #
-    # Setup
-    setup_hook(hook, { pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION }, (reset_hints, context))
-    state = Rec(hangs = [], incrs = context.weavity, nloops = 0)
-    def update_hints(cur_pos, candidates):
-        hints = [ Point(point_at_hang(hg)) for hg in state.hangs ]
-        if candidates:
-            hints += [ Point(cur_pos) ]
-        if len(state.hangs) > 1 and (hg := hang_on_shape(candidates, state.hangs[1].s)):
-            we = Weave.CreateFrom3(state.hangs + [hg], state.incrs, state.nloops)
-            hints.append(we)
-            if context.weaveback:
-                back_weave = Weave.BackWeave(we)
-                if back_weave: hints.append(back_weave)
-        set_hints(context, *hints)
-    #
-    # Subhooks:
-    def prefilter(candidates):
-        in_selected = [ cd for cd in candidates if cd.s in context.selected ]
-        if len(in_selected) == 1: return in_selected
-        else: return candidates
-    #
-    def disambiguate_hook(hook, candidates):
-        # post_info ...
-        setup_hook(hook, { pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION }, (reset_hints, context))
-        reset_hints(context)
-        #
-        def inner(ev):
-            cur_pos, under_cursor = snappy_get_point(context, ev.pos)
-            shapes = [hg.s for hg in under_cursor]
-            inter = [ hg for hg in candidates if hg.s in shapes ]
-            match mouse_subtype(ev), inter:
-                case ms.MOTION, [hg]:
-                    set_hints(context, hg.s)
-                case ms.MOTION, _:
-                    reset_hints(context)
-                case ms.LCLICK, [hg]:
-                    update_hints(point_at_hang(hg), [])
-                    #
-                    iter_pass.disambiguated = hg
-                    hook.finish()
-                    next(state.iter)
-        #
-        hook.event_loop(inner)
-    #
-    def turn_around_hook(hook):
-        # post_info ...
-        setup_hook(hook, { pg.MOUSEBUTTONDOWN, pg.MOUSEWHEEL } )
-        hook.filter = lambda ev: mouse_subtype(ev) in { ms.MCLICK, ms.WHEEL }
-        def inner(ev):
-            match mouse_subtype(ev):
-                case ms.WHEEL:
-                    state.nloops += ev.y
-                case ms.MCLICK:
-                    state.nloops = 0 if state.nloops != 0 else -1
-        hook.event_loop(inner)
-    # Iter: keeping track of where we are is way easier than matching the 
-    # (complex) current state
-    iter_pass = Rec()
-    def set_hangs_iter():
-        subhook = None
-        for i in range(2): # get first 2 hangs
-            while not (cdt := prefilter(iter_pass.candidates)) : yield
-            if len(cdt) == 1: state.hangs.append(cdt[0])
-            else: 
-                hook.attach(context.dispatch.add_hook(disambiguate_hook, cdt)); yield
-                state.hangs.append(iter_pass.disambiguated)
-            if i == 1 and state.hangs[1].s.loopy: 
-                subhook = context.dispatch.add_hook(turn_around_hook)
-                hook.attach(subhook)
-            yield
-        #
-        while not (last_hang := hang_on_shape(iter_pass.candidates, state.hangs[1].s)): # get last hang
-            # post_error("no shape in common")
-            yield
-        # create weave
-        state.hangs.append(last_hang)
-        we = Weave.CreateFrom3(state.hangs, state.incrs, state.nloops)
-        create_weave(context, we)
-        if context.weaveback:
-            back_weave = Weave.BackWeave(we)
-            if back_weave: create_weave(context, back_weave)
-        # reset
-        if subhook: subhook.finish(); subhook = None
-        reset_hints(context)
-        state.hangs, state.incrs, state.nloops = [], context.weavity, 0
-    #
-    state.iter = set_hangs_iter()
-    def inner(ev):
-        cur_pos, candidates = snappy_get_point(context, ev.pos)
-        if mouse_subtype(ev) == ms.LCLICK:
-            iter_pass.candidates = candidates
-            try: next(state.iter)
-            except StopIteration:
-                state.iter = set_hangs_iter()
-                next(state.iter)
-        elif mouse_subtype(ev) == ms.RCLICK:
-            inc0, inc1 = state.incrs
-            state.incrs = -inc0, inc1
-        update_hints(cur_pos, candidates)
-    #
-    hook.event_loop(inner)
-
+## WEAVE
+# def create_weaves_hook(hook, context):
+#     # Utils:
+#     def point_at_hang(hg):
+#         return hg.s.get_div(hg.i)
+#     #
+#     def hang_on_shape(candidates, shape):
+#         for hg in candidates:
+#             if hg.s == shape: return hg
+#         else: return None
+#     #
+#     # Setup
+#     setup_hook(hook, { pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION }, (reset_hints, context))
+#     state = Rec(hangs = [], incrs = context.weavity, nloops = 0)
+#     def update_hints(cur_pos, candidates):
+#         hints = [ Point(point_at_hang(hg)) for hg in state.hangs ]
+#         if candidates:
+#             hints += [ Point(cur_pos) ]
+#         if len(state.hangs) > 1 and (hg := hang_on_shape(candidates, state.hangs[1].s)):
+#             we = Weave.CreateFrom3(state.hangs + [hg], state.incrs, state.nloops)
+#             hints.append(we)
+#             if context.weaveback:
+#                 back_weave = Weave.BackWeave(we)
+#                 if back_weave: hints.append(back_weave)
+#         set_hints(context, *hints)
+#     #
+#     # Subhooks:
+#     def prefilter(candidates):
+#         in_selected = [ cd for cd in candidates if cd.s in context.selected ]
+#         if len(in_selected) == 1: return in_selected
+#         else: return candidates
+#     #
+#     def disambiguate_hook(hook, candidates):
+#         # post_info ...
+#         setup_hook(hook, { pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION }, (reset_hints, context))
+#         reset_hints(context)
+#         #
+#         def inner(ev):
+#             cur_pos, under_cursor = snappy_get_point(context, ev.pos)
+#             shapes = [hg.s for hg in under_cursor]
+#             inter = [ hg for hg in candidates if hg.s in shapes ]
+#             match mouse_subtype(ev), inter:
+#                 case ms.MOTION, [hg]:
+#                     set_hints(context, hg.s)
+#                 case ms.MOTION, _:
+#                     reset_hints(context)
+#                 case ms.LCLICK, [hg]:
+#                     update_hints(point_at_hang(hg), [])
+#                     #
+#                     iter_pass.disambiguated = hg
+#                     hook.finish()
+#                     next(state.iter)
+#         #
+#         hook.event_loop(inner)
+#     #
+#     def turn_around_hook(hook):
+#         # post_info ...
+#         setup_hook(hook, { pg.MOUSEBUTTONDOWN, pg.MOUSEWHEEL } )
+#         hook.filter = lambda ev: mouse_subtype(ev) in { ms.MCLICK, ms.WHEEL }
+#         def inner(ev):
+#             match mouse_subtype(ev):
+#                 case ms.WHEEL:
+#                     state.nloops += ev.y
+#                 case ms.MCLICK:
+#                     state.nloops = 0 if state.nloops != 0 else -1
+#         hook.event_loop(inner)
+#     # Iter: keeping track of where we are is way easier than matching the 
+#     # (complex) current state
+#     iter_pass = Rec()
+#     def set_hangs_iter():
+#         subhook = None
+#         for i in range(2): # get first 2 hangs
+#             while not (cdt := prefilter(iter_pass.candidates)) : yield
+#             if len(cdt) == 1: state.hangs.append(cdt[0])
+#             else: 
+#                 hook.attach(context.dispatch.add_hook(disambiguate_hook, cdt)); yield
+#                 state.hangs.append(iter_pass.disambiguated)
+#             if i == 1 and state.hangs[1].s.loopy: 
+#                 subhook = context.dispatch.add_hook(turn_around_hook)
+#                 hook.attach(subhook)
+#             yield
+#         #
+#         while not (last_hang := hang_on_shape(iter_pass.candidates, state.hangs[1].s)): # get last hang
+#             # post_error("no shape in common")
+#             yield
+#         # create weave
+#         state.hangs.append(last_hang)
+#         we = Weave.CreateFrom3(state.hangs, state.incrs, state.nloops)
+#         create_weave(context, we)
+#         if context.weaveback:
+#             back_weave = Weave.BackWeave(we)
+#             if back_weave: create_weave(context, back_weave)
+#         # reset
+#         if subhook: subhook.finish(); subhook = None
+#         reset_hints(context)
+#         state.hangs, state.incrs, state.nloops = [], context.weavity, 0
+#     #
+#     state.iter = set_hangs_iter()
+#     def inner(ev):
+#         cur_pos, candidates = snappy_get_point(context, ev.pos)
+#         if mouse_subtype(ev) == ms.LCLICK:
+#             iter_pass.candidates = candidates
+#             try: next(state.iter)
+#             except StopIteration:
+#                 state.iter = set_hangs_iter()
+#                 next(state.iter)
+#         elif mouse_subtype(ev) == ms.RCLICK:
+#             inc0, inc1 = state.incrs
+#             state.incrs = -inc0, inc1
+#         update_hints(cur_pos, candidates)
+#     #
+#     hook.event_loop(inner)
+# 
 
 @iter_hook( { pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION },
             filter = lambda ev: mouse_subtype(ev) == ms.LCLICK,
@@ -496,7 +523,9 @@ def create_weaves_hook(hook, context):
             case ms.RCLICK:
                 code = (dirctrl.code + 1) % 4
                 dirctrl.update(code = code, spin = code // 2, dir = code % 2)
-        if subloop: subloop(ev)
+        if subloop: 
+            try: subloop(ev)
+            except: pass
     hook.event_loop(evloop)
     #
     def filter_cdt(hangs, shapes):
@@ -554,20 +583,20 @@ def create_weaves_hook(hook, context):
         reset_hints(cx)
     ###
 
-def select_color_hook(hook, context):
-    cx = context
-    def cleanup(): cx.show_palette = save_show_palette
-    setup_hook(hook, set(), (cleanup,) )
-    steal_menu_keys(hook, cx.menu, 'QWERASDF', {})
-    #
-    save_show_palette = cx.show_palette
-    context.show_palette = True
-    #
-    def inner(ev):
-        context.color_key = alpha_scan(ev)
-        hook.finish()
-    hook.event_loop(inner)
-
+# def select_color_hook(hook, context):
+#     cx = context
+#     def cleanup(): cx.show_palette = save_show_palette
+#     setup_hook(hook, set(), (cleanup,) )
+#     steal_menu_keys(hook, cx.menu, 'QWERASDF', {})
+#     #
+#     save_show_palette = cx.show_palette
+#     context.show_palette = True
+#     #
+#     def inner(ev):
+#         context.color_key = alpha_scan(ev)
+#         hook.finish()
+#     hook.event_loop(inner)
+# 
 @iter_hook(set(), filter = lambda ev: alpha_scan(ev) in 'QWERASDF')
 def select_color_hook(hook, context):
     save_show_palette = context.show_palette
@@ -580,38 +609,39 @@ def select_color_hook(hook, context):
     ev = yield
     context.color_key = alpha_scan(ev)
 
-def color_picker_hook(hook, context):
-    cx = context
-    def cleanup(): 
-        cx.show_palette = save_show_palette
-        cx.show_picker = False
-        cx.palette[cx.color_key] = save_color
-    setup_hook(hook, {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, (cleanup, ))
-    steal_menu_keys(hook, cx.menu, 'QWERASDF', {})
-    #
-    save_show_palette = cx.show_palette
-    cx.show_palette = True
-    cx.show_picker = True
-    save_color = cx.palette[cx.color_key]
-    #
-    def inner(ev):
-        if ev.type == pg.KEYDOWN:
-            cx.palette[cx.color_key] = save_color
-            cx.color_key = alpha_scan(ev)
-            save_color = cx.palette[cx.color_key]
-        else:
-            cur_color = cx.color_picker.at_pixel(ev.pos)
-            match mouse_subtype(ev), cur_color:
-                case ms.RCLICK, _:
-                    hook.finish()
-                case _, None: pass
-                case ms.MOTION, color:
-                    cx.palette[cx.color_key] = color
-                case ms.LCLICK, color:
-                    cx.palette[cx.color_key] = color
-                    save_color = color
-        redraw_weaves(cx)
-    hook.event_loop(inner)
+# def color_picker_hook(hook, context):
+#     cx = context
+#     def cleanup(): 
+#         cx.show_palette = save_show_palette
+#         cx.show_picker = False
+#         cx.palette[cx.color_key] = save_color
+#     setup_hook(hook, {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, (cleanup, ))
+#     steal_menu_keys(hook, cx.menu, ''.join.cx.palette.keys(), {})
+#     #
+#     save_show_palette = cx.show_palette
+#     cx.show_palette = True
+#     cx.show_picker = True
+#     save_color = cx.palette[cx.color_key]
+#     #
+#     def inner(ev):
+#         if ev.type == pg.KEYDOWN:
+#             cx.palette[cx.color_key] = save_color
+#             cx.color_key = alpha_scan(ev)
+#             save_color = cx.palette[cx.color_key]
+#         else:
+#             cur_color = cx.color_picker.at_pixel(ev.pos)
+#             match mouse_subtype(ev), cur_color:
+#                 case ms.RCLICK, _:
+#                     hook.finish()
+#                 case _, None: pass
+#                 case ms.MOTION, color:
+#                     cx.palette[cx.color_key] = color
+#                 case ms.LCLICK, color:
+#                     cx.palette[cx.color_key] = color
+#                     save_color = color
+#         redraw_weaves(cx)
+#     hook.event_loop(inner)
+# 
 
 def _color_picker_setup(hook, context):
     save_show_palette = context.show_palette
@@ -622,12 +652,13 @@ def _color_picker_setup(hook, context):
         context.show_picker = False
         context.palette[context.color_key] = state.save_color
     hook.cleanup = cleanup
-    steal_menu_keys(hook, context.menu, 'QWERASDF', {})
+    steal_menu_keys(hook, context.menu, context.palette.keys(), {})
     #
     context.show_palette = True
     context.show_picker = True
     return state
-@loop_hook({pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION, pg.MOUSEWHEEL}, setup = _color_picker_setup)
+@loop_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION, pg.MOUSEWHEEL, _AUTOSAVE}, # suppress autosaves
+            setup = _color_picker_setup)
 def color_picker_hook(hook, ev, context, *, _state):
     cx = context
     if ev.type == pg.MOUSEWHEEL:
@@ -638,6 +669,7 @@ def color_picker_hook(hook, ev, context, *, _state):
     match mouse_subtype(ev), cur_color:
         case ms.RCLICK, _: hook.finish()
         case pg.KEYDOWN, _:
+            print(f'got key. {ev = }')
             cx.palette[cx.color_key] = _state.save_color
             cx.color_key = alpha_scan(ev)
             _state.save_color = cx.palette[cx.color_key]
@@ -649,7 +681,7 @@ def color_picker_hook(hook, ev, context, *, _state):
             cx.palette[cx.color_key] = color
     redraw_weaves(cx)
 
-## Transformations
+## TRANSFORMATIONS
 def copy_weaves_inside(dest_shapes, src_shapes, weave_superset, context):
     # context needed for colors
     new_weaves = []
@@ -689,9 +721,9 @@ def move_selection_hook(hook, context, want_copy = False):
     cx = context
     start_pos, _ = snappy_get_point(cx, pg.mouse.get_pos()) # want snappy? (i think yes but unsure)
     steal_menu_keys(hook, cx.menu, 'QWRASDF', {}) # Just to suppress, keep E = Unweave only
-    hook.watched = {pg.MOUSEMOTION, pg.MOUSEBUTTONDOWN}
     #
     def inner(ev):
+        if (ev.type == pg.KEYDOWN): return
         pos, _ = snappy_get_point(cx, ev.pos);
         match mouse_subtype(ev):
             case ms.RCLICK:
@@ -704,7 +736,8 @@ def move_selection_hook(hook, context, want_copy = False):
                     cx.shapes, cx.selected = merge_into(cx.shapes, new_shapes, new_weaves)
                 else:
                     for sh in cx.selected:
-                        sh.move(pos - start_pos);
+                        sh.move(pos - start_pos)
+                    merge_into(cx.shapes, cx.selected, cx.weaves)
                 redraw_weaves(cx)
                 hook.finish()
             case ms.MOTION:
@@ -753,6 +786,7 @@ def transform_selection_hook(hook, context, want_copy = False):
                     else:
                         for sh in cx.selected:
                             sh.transform(matrix, center);
+                        merge_into(cx.shapes, cx.selected, cx.weaves)
                     redraw_weaves(cx);
                     hook.finish()
                 case ms.MOTION:
@@ -945,7 +979,7 @@ def interactive_transform_hook(hook, context):
 # 
 # 
 
-## Miniter
+## MINITER
 def miniter_hook(hook, context, cmd = ''):
     setup_hook(hook, { pg.KEYDOWN }, (context.bottom_text.set_line, context.TERMLINE, '')  )
     def set_line(cmd):
@@ -979,7 +1013,7 @@ def miniter_hook(hook, context, cmd = ''):
     #
     hook.event_loop(inner)
 
-## Selection
+## SELECTION
 def select_hook(hook, context):
     setup_hook(hook, { pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION }, (reset_hints, context))
     #

@@ -1,8 +1,10 @@
 import numpy as np
+import os
 
 from util import Rec, sqdist
 import params
 from pygame import Surface
+from save import Autosaver, load
 
 def snappy_get_point(context, pos):
     cx = context
@@ -24,7 +26,7 @@ def snappy_get_point(context, pos):
     #filter candidates, they need to be equal to actual found
     candidates = [ cd for cd in candidates 
             if sqdist(cd.s.divs[cd.i], snappoint) < params.eps ** 2]
-    return snappoint, candidates
+    return np.copy(snappoint), candidates
 
 def resize_context(context, new_width):
     context.weave_layer = Surface(context.screen.get_size())
@@ -70,7 +72,7 @@ def unweave_inside_selection(context):
     keep_weaves = []
     for we in cx.weaves:
         sh1, sh2 = (hg.s for hg in we.hangpoints)
-        if sh1 not in cx.selected and sh2 not in cx.selected:
+        if sh1 not in cx.selected or sh2 not in cx.selected:
             keep_weaves.append(we)
     cx.weaves = keep_weaves
     redraw_weaves(cx)
@@ -91,4 +93,44 @@ def delete_selection(context):
     unweave_into_selection(context)
     context.shapes = [ sh for sh in context.shapes if not sh in context.selected ]
     context.selected = []
+
+def reload_session(context, session_name):
+    cx = context
+    if session_name == 'OFF':
+        if cx.autosaver: cx.autosaver.finish()
+        cx.autosaver = None
+        return
+    #
+    new_saver = Autosaver(os.path.join(params.autosave_dir, session_name),
+                          pulse = params.autosave_pulse)
+    if cx.autosaver: cx.autosaver.finish()
+    cx.autosaver = new_saver
+    if session_name == 'OFF':
+        cx.autosaver.finish()
+        cx.autosaver = None
+        return
+
+def load_to_context(context, file, load_extra = set()):
+    context.hints = []
+    context.selected = []
+    loaded, extra = load(file)
+    #
+    context.update(loaded)
+    for k, v in extra.items():
+        if not k in load_extra:
+            continue
+        match k: # only k = session supported now
+            case 'session': 
+                reload_session(context, v)
+    #
+    redraw_weaves(context)
+
+def import_to_context(context, file):
+    loaded, _ = load(file)
+    context.shapes += loaded.shapes
+    context.selected = loaded.shapes
+    context.weaves += loaded.weaves
+    context.weave_colors.update(loaded.weave_colors)
+    #
+    redraw_weaves(context)
 

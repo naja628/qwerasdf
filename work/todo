@@ -1,31 +1,42 @@
+## NOW
+* importing files
+* fix ! logic in command
+* merge_all
 
-## 'SMALL' FIXES
+-- checkpoint tonight --
+
+# Easy Details
+* look for rc first in cwd, then in user home
 * be able to set default div by shape type ( maybe do when we do the params thing)
-* remake tooltips (mostly done)
-* re-add polylines
-
-## NOTES
-* for rewind either 'reset_hook' in menu (+ use 'reset_hook' for loading too?)
-			 or don't pin it (would allow a pinned commands under V)
-* at the same time: do ! logic thing, + import + recover since these have to do with saves too
-* when recover needed, cleanup session things
-
+* ls_save
+* x quit
 
 ## LATER (features):
-* rewind (autosaves)
 * finish hooks refactor ( at least select_hook )
+* arcs, re-add poly 
 
-* pdf guide pages
-* snappy polar grid
-* arcs, re-add poly
+-- checkpoint 2 --
+
+* pdf guide pages 
+
+* pinning commands under V 
+-- checkpoint sunday --
+
+* manual 
+* 'menu_translate' (easy but PITA)
+
+Extra
+* snappy polar grid, 
+	(snappy_get_points should accepts extras, also use divs of intermediate from `interactive_transform` in extras)
 * refactor terminal + text? autocomplete, history, types?
 * export images
-* manual
 
 ## "DETAILS":
-* recovery saves
-* rethink ! save logic? (try not to warn uselessly)
+	# Really Do
+* be able to set params + show/hide some types of thing
+* remake tooltips (mostly done (VISUAL)). Keep up to date
+	# Eh
 * only consider the last MOUSEMOTION every frame ?
-* maybe don't draw circle-center on existing shapes
-* be able to set params
-* 'menu_translate'
+* maybe don't draw circle-center on existing shapes, merge points into shapes?
+
+* command line args: commands, session, open, norc

@@ -13,9 +13,11 @@ def merge_into(dest, src, weaves):
                     attached = [we for we in weaves if we.hangpoints[which].s == sh]
                     for we in attached:
                         hg = we.hangpoints[which]
+                        #
+                        we.incrs = we.incrs[not which], f(hg.i + we.incrs[which]) - f(hg.i)
+                        if not which: we.incrs = we.incrs[1], we.incrs[0]
+                        #
                         hg.s, hg.i = target, f(hg.i)
-                        we.incrs = we.incrs[not which], f(hg.i + we.incrs[1]) - f(hg.i)
-                        if which: we.incrs = we.incrs[0], we.incrs[1]
                 #
                 touched.append(target)
                 break

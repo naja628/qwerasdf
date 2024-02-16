@@ -53,6 +53,7 @@ def term_exec(cmd, cmd_map, usage_map, context):
     except CmdExn as e: 
         post_error(str(e), context); return e.exit_code
     except BaseException as e:
+        # TODO what's going on here again??
         try:
             eprint('debug info: term caught', type(e), e) # debug
             usage_msg = usage_map[cmd_map[cmd]].replace('$CMD', cmd)
@@ -214,13 +215,23 @@ def load_cmd(save, load, *, _env):
             raise CmdExn(f"{save} exists. maybe you meant 'lo ! {save}'")
     #
     try:
-        load_to_context(save_path(load), _env.context)
-        if (save_path(load) == save_path(params.recover_filename)):
-            os.remove(save_path(load))
-            post_info(f"recovery succesful: '{params.recover_filename}' has been deleted", _env.context)
+        load_to_context(_env.context, save_path(load), load_extra = {'session'})
         _env.context.menu.go_path('')
     except ParseError as e: raise CmdExn(str(e))
     except LoadError: raise CmdExn(f"Error loading {load}")
+
+@miniter_command(('import', 'imp'), "$CMD import_file ")
+def import_comd(file, *, _env):
+    try:
+        import_to_context(_env.context, save_path(file))
+    except ParseError as e: raise CmdExn(str(e))
+    except LoadError: raise CmdExn(f"Error loading {file}")
+
+@miniter_command(('recover',) )
+def recover_cmd(*, _env):
+    load_cmd('!', params.recover_filename, _env = _env)
+    os.remove(save_path(params.recover_filename))
+    post_info(f"recovery succesful: '{params.recover_filename}' has been deleted", _env.context)
 
 @miniter_command(('clear', 'cl'))
 def clear_cmd(*, _env):
@@ -293,6 +304,13 @@ def show_menu_cmd(*, _env):
     "toggle menu display"
     _env.context.show_menu = not _env.context.show_menu
 
+
+@miniter_command(('session', 'se'), "$CMD session_name | $CMD OFF")
+def connect_session(session_name, *,  _env):
+    try:
+        reload_session(_env.context, session_name)
+    except Autosaver.DirectoryBusyError:
+        post_error("already in use.", cx)
 
 @miniter_command(('debug', 'db'))
 def debug(*, _env):

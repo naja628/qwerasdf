@@ -1,16 +1,20 @@
 from pygame import *
 from math import pi
+from os import path
 
+from util import eprint
 from color import draw_palette, ColorPicker
 from hooks import EvDispatch
 from text import TextArea
 from hooks import *
 from context import delete_selection, unweave_inside_selection
 from menu import Menu
+from save import Autosaver, save_path, save
 
 _sho = Menu.Shortcut
 _menu_layout = ['QWER', 'ASDF', 'ZXCV']
 _nested_menu = {
+        'A': "Rewind",
         'S': ("Selection", 
             {   'W': "Visual", 'E': "Unweave", 'R': "Remove",
                 'A': "Transform", 'S': "Copy-Transform", 'D': "Move", 'F': "Copy-Move" }),
@@ -20,7 +24,11 @@ _nested_menu = {
             {   'W': "Color Picker", 'E': "Select Color",
                                      'D': ("Create Shape", _sho('D')), 'F': ("Draw Weaves", _sho('F'))}),
         }
+_pinned_menu = {'Z': "Camera", 'X': "Menu Top", 'C': "Command"}
+
 _menuaction_info = { # What the user has to do AFTER, not what it does
+        "Rewind": "WHEEL -> Rewind | CLICK -> done",
+        "Camera": "WHEEL -> zoom | RCLICK, RCLICK: grab, then release canvas | LCLICK -> Done",
         "Command": "Commandline. 'ls' -> list available commands | CTRL-C -> close",
         "New Point": "LCLICK: place",
         "New Segment": "LCLICK, LCLICK: place endpoints",
@@ -37,10 +45,9 @@ _menuaction_info = { # What the user has to do AFTER, not what it does
         "Color Picker": "LCLICK -> apply | RCLICK -> close | QWERASDF -> change affected color | WHEEL -> adjust brightness",
         }
 
-_pinned_menu = {'Z': "Camera", 'X': "Menu Top", 'C': "Command"}
 
 def menu_hook(hook, context):
-    setup_hook(hook, {KEYDOWN}) # no cleanup for no
+    setup_hook(hook, {KEYDOWN})
     #
     menu = context.menu
     state = Rec(main_hook = None)
@@ -61,6 +68,7 @@ def menu_hook(hook, context):
         if ev.key == K_SPACE:
             menu.go_path("")
             set_hook(None)
+            return
         key = alpha_scan(ev)
         menu_item = menu.go(key)
         try: post_info( _menuaction_info[menu_item], context)
@@ -73,6 +81,8 @@ def menu_hook(hook, context):
                 menu.go_path("")
                 set_hook(None)
             case "Command": overhook(miniter_hook, context)
+            # Rewind
+            case "Rewind": set_hook(rewind_hook, context)
             # Selection
             case "Selection": set_hook(select_hook, context)
             case "Remove": delete_selection(context)
@@ -90,7 +100,7 @@ def menu_hook(hook, context):
             case "Draw Weaves": set_hook(create_weaves_hook, context)
             case "Select Color": overhook(select_color_hook, context)
             case "Color Picker": overhook(color_picker_hook, context)
-            case _: set_hook(None)
+            case _: set_hook(None) # Necessary? Good?
     #
     hook.event_loop(inner)
 
@@ -130,15 +140,29 @@ def init_context(dimensions):
     display.set_caption('QWERASDF')
     #
     cx.default_rotation = 2 * pi / 6
+    #
+    try:
+        cx.autosaver = Autosaver(path.join(params.autosave_dir, 'default'), 
+                                 pulse = params.autosave_pulse)
+    except Autosaver.DirectoryBusyError:
+        post_error(
+                "`default` session in use. Won't be able to undo." 
+                "Use `session <name>` to connect to another session", 
+                cx)
+        cx.autosaver = None
     return cx
+
+def del_context(context):
+    if context.autosaver: context.autosaver.finish()
 
 def main():
     init() #pygame
     g = init_context(params.start_dimensions)
     #
     g.dispatch.add_hook(zoom_hook, g)
-    g.dispatch.add_hook(menu_hook, g)
+    g.dispatch.add_hook(autosave_hook, g)
     g.dispatch.add_hook(click_move_hook, g)
+    g.dispatch.add_hook(menu_hook, g)
     #
     try:
         with open(params.dotrc) as rc:
@@ -149,56 +173,66 @@ def main():
     #
     clock = time.Clock()
     g.QUIT = False
-    while not g.QUIT:
-        if event.get(QUIT):
-            g.QUIT = True
-        evs = event.get()
-        # TODO maybe do several `event.get` calls: 
-        # 1: things we don't care about, 2: MOUSEMOTION, keep only last, 3: send latter + rest to `dispatch`
-        # point: avoid computing `snappy_get_point` for every intermediate MOUSEMOTION
-        g.dispatch.dispatch(evs)
-        #
-        # Draw Weaves :
-        g.weave_layer.lock()
-        if g.redraw_weaves:
-            g.weave_layer.fill(params.background)
-            g.pending_weaves += g.weaves
-            g.weaves = []
-            g.redraw_weaves = False
-        for we in g.pending_weaves:
-            ckey = g.weave_colors[we]
-            we.draw(g.weave_layer, g.view, color = g.palette[ckey])
-            g.weaves.append(we)
-        g.weave_layer.unlock()
-        g.pending_weaves = []
-        #g.screen.fill(params.background) # not needed?
-        g.screen.blit(g.weave_layer, (0, 0))
-        #
-        # Draw Rest: (on top)
-        g.screen.lock()
-        # for we in g.weaves: we.draw(g.screen, g.view)
-        for sh in g.shapes: sh.draw(g.screen, g.view, params.shape_color)
-        for sel in g.selected: sel.draw(g.screen, g.view, color = params.select_color)
-        for hi in g.hints: hi.draw(g.screen, g.view, color = params.hint_color)
-        g.screen.unlock()
-        #
-        # bottom "widgets"
-        bottom_elements = []
-        if g.show_palette: bottom_elements.append(draw_palette(g.palette, g.color_key))
-        if g.show_menu: bottom_elements.append(g.menu.render(g.menubox))
-        bottom_elements.append(g.bottom_text.render())
-        #
-        elt_y = g.screen.get_size()[1]
-        for elt in reversed(bottom_elements):
-            elt_y -= elt.get_size()[1]
-            g.screen.blit(elt, (0, elt_y))
-        #
-        if g.show_picker:
-            picker_surf = g.color_picker.get_surf()
-            g.screen.blit(picker_surf, g.color_picker.corner)
-        display.flip()
-        clock.tick(60);
-    quit() # from pygame
+    if path.isfile(path.join(params.save_dir, params.recover_filename)):
+        post_info("Recovery save found. Try `recover` command", g)
+    try:
+        while not g.QUIT:
+            if event.get(QUIT):
+                g.QUIT = True
+            evs = event.get()
+            # TODO maybe do several `event.get` calls: 
+            # 1: things we don't care about, 2: MOUSEMOTION, keep only last, 3: send latter + rest to `dispatch`
+            # point: avoid computing `snappy_get_point` for every intermediate MOUSEMOTION
+            g.dispatch.dispatch(evs)
+            g.dispatch.dispatch([event.Event(LOOP)])
+            #
+            # Draw Weaves :
+            g.weave_layer.lock()
+            if g.redraw_weaves:
+                g.weave_layer.fill(params.background)
+                g.pending_weaves += g.weaves
+                g.weaves = []
+                g.redraw_weaves = False
+            for we in g.pending_weaves:
+                ckey = g.weave_colors[we]
+                we.draw(g.weave_layer, g.view, color = g.palette[ckey])
+                g.weaves.append(we)
+            g.weave_layer.unlock()
+            g.pending_weaves = []
+            #g.screen.fill(params.background) # not needed?
+            g.screen.blit(g.weave_layer, (0, 0))
+            #
+            # Draw Rest: (on top)
+            g.screen.lock()
+            # for we in g.weaves: we.draw(g.screen, g.view)
+            for sh in g.shapes: sh.draw(g.screen, g.view, params.shape_color)
+            for sel in g.selected: sel.draw(g.screen, g.view, color = params.select_color)
+            for hi in g.hints: hi.draw(g.screen, g.view, color = params.hint_color)
+            g.screen.unlock()
+            #
+            # bottom "widgets"
+            bottom_elements = []
+            if g.show_palette: bottom_elements.append(draw_palette(g.palette, g.color_key))
+            if g.show_menu: bottom_elements.append(g.menu.render(g.menubox))
+            bottom_elements.append(g.bottom_text.render())
+            #
+            elt_y = g.screen.get_size()[1]
+            for elt in reversed(bottom_elements):
+                elt_y -= elt.get_size()[1]
+                g.screen.blit(elt, (0, elt_y))
+            #
+            if g.show_picker:
+                picker_surf = g.color_picker.get_surf()
+                g.screen.blit(picker_surf, g.color_picker.corner)
+            display.flip()
+            clock.tick(60);
+    except:
+        save(save_path(params.recover_filename), g, overwrite_ok = True)
+        eprint('Unexpected Fatal Error. Recovery save succesful')
+        raise
+    finally:
+        del_context(g)
+        quit() # from pygame
 
 main()
 exit()
