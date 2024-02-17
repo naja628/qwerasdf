@@ -681,6 +681,21 @@ def color_picker_hook(hook, ev, context, *, _state):
             cx.palette[cx.color_key] = color
     redraw_weaves(cx)
 
+## SELECTION
+@loop_hook({ pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION }, lambda context: reset_hints(context))
+def select_hook(hook, ev, context):
+        cur_pos, matches = snappy_get_point(context, ev.pos)
+        shapes = [ m.s for m in matches ]
+        match mouse_subtype(ev):
+            case ms.LCLICK:
+                context.selected = shapes
+            case ms.RCLICK:
+                keep = [sh for sh in context.selected if not sh in shapes]
+                add = [sh for sh in shapes if not sh in context.selected]
+                context.selected = keep + add
+            case ms.MOTION:
+                set_hints(context, *shapes)
+
 ## TRANSFORMATIONS
 def copy_weaves_inside(dest_shapes, src_shapes, weave_superset, context):
     # context needed for colors
@@ -1010,25 +1025,6 @@ def miniter_hook(hook, context, cmd = ''):
             #
         if hook.active():
             set_line(state.cmd)
-    #
-    hook.event_loop(inner)
-
-## SELECTION
-def select_hook(hook, context):
-    setup_hook(hook, { pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION }, (reset_hints, context))
-    #
-    def inner(ev):
-        cur_pos, matches = snappy_get_point(context, ev.pos)
-        shapes = [ m.s for m in matches ]
-        match mouse_subtype(ev):
-            case ms.LCLICK:
-                context.selected = shapes
-            case ms.RCLICK:
-                keep = [sh for sh in context.selected if not sh in shapes]
-                add = [sh for sh in shapes if not sh in context.selected]
-                context.selected = keep + add
-            case ms.MOTION:
-                set_hints(context, *shapes)
     #
     hook.event_loop(inner)
 

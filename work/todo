@@ -1,19 +1,12 @@
-## NOW
-* importing files
-* fix ! logic in command
-* merge_all
-
--- checkpoint tonight --
-
 # Easy Details
 * look for rc first in cwd, then in user home
-* be able to set default div by shape type ( maybe do when we do the params thing)
 * ls_save
-* x quit
 
 ## LATER (features):
-* finish hooks refactor ( at least select_hook )
+* be able to set default div by shape type ( maybe do when we do the params thing)
+* merge_all
 * arcs, re-add poly 
+* scale
 
 -- checkpoint 2 --
 
@@ -35,7 +28,9 @@ Extra
 	# Really Do
 * be able to set params + show/hide some types of thing
 * remake tooltips (mostly done (VISUAL)). Keep up to date
+* flipping: point controls image not axis
 	# Eh
+* fix ! logic in command
 * only consider the last MOUSEMOTION every frame ?
 * maybe don't draw circle-center on existing shapes, merge points into shapes?
 

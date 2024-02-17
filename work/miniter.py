@@ -5,6 +5,7 @@ import params
 from util import Rec, param_decorator, eprint
 from save import *
 from context import *
+import printpoints 
 
 # set by `miniter_command` decorator
 miniter_aliases_map = {} # cmd funs to aliases (ie command names)
@@ -311,6 +312,14 @@ def connect_session(session_name, *,  _env):
         reload_session(_env.context, session_name)
     except Autosaver.DirectoryBusyError:
         post_error("already in use.", cx)
+
+
+@miniter_command(('outline', 'exout'), "$CMD width margin")
+def export_outline_cmd(width, margin, *, _env):
+    points = np.concatenate([sh.divs for sh in _env.context.shapes])
+    ps_buffer = printpoints.generate(points, width, margin)
+    with open('out.ps', 'w') as out:
+        out.write(ps_buffer)
 
 @miniter_command(('debug', 'db'))
 def debug(*, _env):
