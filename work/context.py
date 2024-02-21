@@ -31,8 +31,9 @@ def snappy_get_point(context, pos):
 def resize_context(context, new_width):
     context.weave_layer = Surface(context.screen.get_size())
     redraw_weaves(context)
-    context.bottom_text.set_surface(new_width)
-    context.menubox.set_surface(new_width)
+#     context.bottom_text.set_surface(new_width)
+#     context.menubox.set_surface(new_width)
+    context.text.set_width(new_width)
     context.color_picker.reset(new_width, new_width // 8, min_sat = params.min_pick_saturation)
 
 # WEAVES
@@ -60,11 +61,17 @@ def reset_hints(context):
     context.hints = []
 
 # TEXT
-def post_error(msg, context):
-    context.bottom_text.set_line(context.ERRLINE, f"Error: {msg}", params.error_text_color)
-
+# def post_error(msg, context):
+#     context.bottom_text.set_line(context.ERRLINE, f"Error: {msg}", params.error_text_color)
+# 
+# def post_info(msg, context):
+#     context.bottom_text.set_line(context.INFOLINE, f"Info: {msg}", params.text_color)
+# 
 def post_info(msg, context):
-    context.bottom_text.set_line(context.INFOLINE, f"Info: {msg}", params.text_color)
+    context.text.write_section('info', [ 'Info: ' + msg ])
+
+def post_error(msg, context):
+    context.text.write_section('error', [ 'Error: ' + msg ])
 
 # Selection actions
 def unweave_inside_selection(context):

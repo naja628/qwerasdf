@@ -2,7 +2,7 @@ from copy import copy, deepcopy
 
 import numpy as np
 from numpy import sin, cos, pi
-from pygame import draw, Color
+from pygame import draw, Color, Rect
 from math import atan2
 
 import params
@@ -94,19 +94,15 @@ class Shape:
         '''
         return None
     #
-#     def rotate(self, angle, center):
-#         rot = np.array([
-#             [np.cos(angle), -np.sin(angle)],
-#             [np.sin(angle),  np.cos(angle)]
-#             ])
-#         self.transform(angle, center)
-#     #
-#     def mirror(self, center):
-#         S = np.array([ [-1, 0], [0, 1] ])
-#         self.transform(S, center)
-#     #
-#     def scale(self, ratio, center):
-#         self.transform(ratio * np.identity(2), center)
+    def _naive_merger(self, to):
+        if ( type(to) != type(self) ) or ( len(self.divs) != len(to.divs) ):
+            return None
+        kp1, kp2 = self.keypoints, to.keypoints
+        if all([ almost_equal(a, b) for a, b in zip(kp1, kp2) ]):
+            return lambda i : i # same dir
+        if all([ almost_equal(a, b) for a, b in zip(kp1, reversed(kp2)) ]):
+            return lambda i : len(self.divs) - 1 - i # opposite dirs
+        ##
     ####
 
 class Circle(Shape):
@@ -120,15 +116,12 @@ class Circle(Shape):
         try:
             r = dist(self.center, self.other)
             if near_zero(r): raise ZeroDivisionError
-            [cos0, sin0] = (self.other - self.center) / r
-            ### Mmmmmmmhhh trig identities :P
-            def at_angle(Dtheta):
-                cos_theta = cos0 * cos(Dtheta) - sin0 * sin(Dtheta)
-                sin_theta = sin0 * cos(Dtheta) + cos0 * sin(Dtheta)
-                return self.center + r * np.array([cos_theta, sin_theta])
+            [x, y] = (self.other - self.center) / r
+            start_angle = atan2(y, x)
             rot_dir = -1 if self.clockwise else 1
-            ts = np.linspace(0.0, 2 * pi * rot_dir, ndivs, False)
-            self.divs = np.array([at_angle(t) for t in ts])
+            ts = np.linspace(start_angle, start_angle + 2 * pi * rot_dir, ndivs, False)
+            xs, ys = np.cos(ts), np.sin(ts)
+            self.divs = self.center + r * np.array([xs, ys]).transpose()
         except ZeroDivisionError:
             self.divs = np.array([self.center] * ndivs)
     #
@@ -171,6 +164,70 @@ class Circle(Shape):
     #
     ###
 
+class Arc(Shape):
+    _KEYPOINT_NAMES = ('center', 'start', 'end')
+    def __init__(self, center, start, end, ndivs = 30, clockwise = False):
+        center, start, end = (farr(p) for p in (center, start, end))
+        self.loopy = False
+        rs, re = dist(center, start), dist(center, end)
+        if near_zero(rs) or near_zero(re):
+            start = end = center
+        else: # make start - center and end - center be the same size
+            rel = end - center
+            end = center + rel * rs / re
+        if clockwise:
+            start, end = end, start
+        Shape.__init__(self, center, start, end, ndivs = ndivs)
+        #
+    def set_divs(self, ndivs):
+        if almost_equal(self.center, self.start):
+            self.divs = np.array( ndivs * [self.center] )
+            return
+        #
+        t1, t2 = (atan2(p[1], p[0])
+                  for p in (self.start - self.center, self.end - self.center))
+        t1, t2 = t1, t1 + ((t2 - t1) % (2*np.pi)) # ensure ordering
+        rr = dist(self.center, self.start)
+        #
+        dts = np.linspace(t1, t2, ndivs)
+        xs, ys = np.cos(dts), np.sin(dts)
+        self.divs = self.center + rr * np.array([xs, ys]).transpose()
+# 
+#         divs = np.concatenate((np.cos(dts), np.sin(dts))).reshape((2, -1)).transpose()
+#         self.divs = self.center + rr * divs
+    #
+    def draw(self, screen, view, color = params.shape_color):
+        if almost_equal(self.center, self.start):
+            Shape.draw_divs(self, screen, view)
+            return
+        #
+        rr = dist(self.center, self.start)
+        centerp, rp = view.rtop(self.center), view.rtopd(rr)
+        left, top = centerp[0] - rp, centerp[1] - rp
+        bound = Rect(left, top, 2 * rp, 2 * rp)
+        #
+        t1, t2 = (atan2(p[1], p[0])
+                  for p in (self.start - self.center, self.end - self.center))
+        t1, t2 = t1, t1 + ((t2 - t1) % (2*np.pi)) # ensure ordering
+        #
+        draw.arc(screen, color, bound, t1, t2)
+        Shape.draw_divs(self, screen, view)
+    #
+    def transform(self, matrix, center):
+        [[a, b], [c, d]] = matrix
+        det = a * d - b * c
+        if det < 0: 
+            self.start, self.end = (np.copy(p) for p in (self.end, self.start))
+        return Shape.transform(self, matrix, center)
+    #
+    def merger(self, to):
+        if ( type(to) != Arc ) or ( len(self.divs) != len(to.divs) ):
+            return None
+        if all([ almost_equal(p, q) for p, q in zip(self.keypoints, to.keypoints) ]):
+            return lambda i : i # same dir always (determined by order)
+        ##
+    #
+
 class Point(Shape):
     _KEYPOINT_NAMES = ('p')
     def __init__(self, p, ndivs = 1): # `ndivs` is a dummy
@@ -206,14 +263,15 @@ class Line(Shape):
         Shape.draw_divs(self, screen, view)
     #
     def merger(self, to):
-        if ( type(to) != Line ) and ( len(self.divs) != len(to.divs) ):
-            return None
-        if ( almost_equal(self.start, to.start) and almost_equal(self.end, to.end) ):
-            print('line merger +')
-            return lambda i : i # same dir
-        if ( almost_equal(self.start, to.end) and almost_equal(self.end, to.start) ):
-            print('line merger -')
-            return lambda i : len(self.divs) - 1 - i # opposite dirs
+#         if ( type(to) != Line ) or ( len(self.divs) != len(to.divs) ):
+#             return None
+#         if ( almost_equal(self.start, to.start) and almost_equal(self.end, to.end) ):
+#             print('line merger +')
+#             return lambda i : i # same dir
+#         if ( almost_equal(self.start, to.end) and almost_equal(self.end, to.start) ):
+#             print('line merger -')
+#             return lambda i : len(self.divs) - 1 - i # opposite dirs
+        return self._naive_merger(to)
         ##
     ###
 
@@ -266,6 +324,13 @@ class PolyLine(Shape):
         draw.lines(screen, color, self.loopy, ppoints)
         Shape.draw_divs(self, screen, view)
     # 
+    def merger(self, to):
+        # Doesn't handle rotations of keypoints
+        if (type(to) != Poly) or not self.loopy == to.loopy:
+            return None
+        if (len(self.keypoints) != len(other.keypoints)):
+            return None
+        return self._naive_merger(to)
     ###
 
 ###### SHAPE SERIALIZATION ###########
@@ -277,6 +342,7 @@ _prefix_to_initializer = {
         'ls' : (PolyLine, {'loopy': False}),
         'po' : (PolyLine, {'loopy': True}),
         'p' : (Point, {}),
+        'ar': (Arc, {}),
         }
 
 def subshape_prefix_to_initializer(prefix):

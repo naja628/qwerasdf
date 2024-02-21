@@ -1,5 +1,6 @@
 from pygame import display, FULLSCREEN
 from numpy import pi
+import os
 
 import params
 from util import Rec, param_decorator, eprint
@@ -96,7 +97,7 @@ def help_cmd(cmd_name, *, _env):
     #
     post_info(f"{_slash_aliases(cmd_name)}: {miniter_command_map[cmd_name].__doc__}", _env.context)
 
-@miniter_command(('ls_cmd', 'ls'))
+@miniter_command(('ls-cmd', 'ls'))
 def list_cmd(*, _env):
     "list available commands"
     #
@@ -110,7 +111,7 @@ def usage_cmd(cmd_name, *, _env):
     usage_str = miniter_usage_map[miniter_command_map[cmd_name]]
     post_info(usage_str.replace('$CMD', cmd_names), _env.context)
 
-@miniter_command(('set_color', 'co'), "$CMD key OR $CMD key r g b OR $CMD hex")
+@miniter_command(('set-color', 'co'), "$CMD key OR $CMD key r g b OR $CMD hex")
 def set_color_cmd(*args, _env):
     "key only: select draw color. else: change color designated by key"
     #
@@ -205,6 +206,14 @@ def save_cmd(*a, _env):
     except FileExistsError:
         raise CmdExn(f"'{file}' exists. to allow overwrites, use: {_env.cmd} ! {file}")
 
+@miniter_command(('ls-save', 'lsav'))
+def ls_saves_cmd(*, _env):
+    "show list of existing saves in default save directory"
+    def no_ext(f):
+        i = f.rfind('.')
+        return f[:i] if i > 0 else f
+    post_info(', '.join([no_ext(f) for f in os.listdir(params.save_dir)]), _env.context) 
+
 @miniter_command(('load', 'lo'), "$CMD save_to load_from OR $CMD ! load_from")
 def load_cmd(save, load, *, _env):
     "save then load. use ! instead of save-name to skip saving"
@@ -237,11 +246,11 @@ def recover_cmd(*, _env):
 @miniter_command(('clear', 'cl'))
 def clear_cmd(*, _env):
     "clears info/error area"
-    for line in _env.context.ERRLINE, _env.context.INFOLINE:
-        _env.context.bottom_text.set_line(line, '')
+    for section in {'info', 'error'}:
+        _env.context.text.write_section(section, [])
     ##
 
-@miniter_command(('set_rotation', 'rot'), "$CMD new_angle OR $CMD p / q  (p qth of a turn)")
+@miniter_command(('set-rotation', 'rot'), "$CMD new_angle OR $CMD p / q  (p qth of a turn)")
 def set_default_rotation_cmd(*a, _env):
     "set the size of the rotation when transforming shapes"
     if len(a) != 1 and len(a) != 3: raise Exception()
@@ -254,12 +263,12 @@ def set_default_rotation_cmd(*a, _env):
     _env.context.default_rotation = new_rot
 #
 
-@miniter_command(('select_all', 'sel*'))
+@miniter_command(('select-all', 'sel*'))
 def select_all_cmd(*, _env):
     "select all shapes"
     _env.context.selected = _env.context.shapes[:]
 
-@miniter_command(('translate_colors', 'trans'), "$CMD from to  (eg $CMD qw az)")
+@miniter_command(('translate-colors', 'trans'), "$CMD from to  (eg $CMD qw az)")
 def translate_colors_cmd(src, dest, *, _env):
     "change the colors of the weaves inside the selection"
     cx = _env.context
@@ -304,24 +313,27 @@ def new_design_cmd(save_or_bang, *, _env):
 def show_menu_cmd(*, _env):
     "toggle menu display"
     _env.context.show_menu = not _env.context.show_menu
-
+    _env.context.text.write_section('menu', [])
 
 @miniter_command(('session', 'se'), "$CMD session_name | $CMD OFF")
 def connect_session(session_name, *,  _env):
+    "use session <session_name> for autosaves. OFF: turn off autosaving/rewinding"
     try:
         reload_session(_env.context, session_name)
     except Autosaver.DirectoryBusyError:
         post_error("already in use.", cx)
 
-
-@miniter_command(('outline', 'exout'), "$CMD width margin")
-def export_outline_cmd(width, margin, *, _env):
+@miniter_command(('outline', 'out'), "$CMD width margin [paper-format]")
+def export_outline_cmd(width, margin, paper = 'a4', *, _env):
+    "generate printable outline with size 'width' (+ 'margin') cm"
+    us_letter = (paper.lower() == 'us-letter')
     points = np.concatenate([sh.divs for sh in _env.context.shapes])
-    ps_buffer = printpoints.generate(points, width, margin)
+    ps_buffer = printpoints.generate(points, width, margin, us_letter)
     with open('out.ps', 'w') as out:
         out.write(ps_buffer)
+    post_info("outline written to 'out.ps'", _env.context)
 
-@miniter_command(('debug', 'db'))
+@miniter_command(('_debug', '_db'))
 def debug(*, _env):
     "go into python debugger"
     cx = _env.context

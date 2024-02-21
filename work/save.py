@@ -4,6 +4,7 @@ from pygame import Color
 import params
 from shape import *
 from util import naive_scan, Rec, sprint, clamp
+from merge import merge_weaves
 
 class SaveError(BaseException): pass
 
@@ -23,6 +24,7 @@ def save_buffer(context, extra = set()):
         line += f"{shape_id1} {we.hangpoints[0].i} {shape_id2} {we.hangpoints[1].i}" 
         return line
     #
+    context.weaves = merge_weaves(context.weaves + context.pending_weaves)
     lines = []
     def p(*a, **ka):
         lines.append(sprint(*a, **ka))

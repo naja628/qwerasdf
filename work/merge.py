@@ -27,3 +27,18 @@ def merge_into(dest, src, weaves):
     dest += to_append
     return dest, to_append + touched
     ##
+
+def merge_weaves(weaves):
+    def decomp(we):
+        incrs, nwires = we.incrs, we.nwires
+        [(i1, s1), (i2, s2)] = [ (hg.i, hg.s) for hg in we.hangpoints]
+        return incrs, nwires, i1, s1, i2, s2
+    #
+    uniques = []
+    for i, we in enumerate(weaves):
+        def same(we2):
+            return decomp(we) == decomp(we2)
+        first_eq = next(filter(same, weaves[i+1:]), None)
+        if not first_eq: uniques.append(we)
+    return uniques
+

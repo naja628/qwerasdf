@@ -1,16 +1,35 @@
-# Easy Details
+# Now
+* set at least some params / have a conf
+
+# Min for v2
+* set default div by shape type
 * look for rc first in cwd, then in user home
-* ls_save
+
+* rework interactive transforms
+
+* manual
+* proper install process, put on PiPy ?
+
++ Ideally
+* polar grid
+
+* fix ! logic in commands
+* menu_translate
+* smth with saves/load (eg lo shows options, `find` command, and accept unifished save names for load?)
+* command line args: commands, session, open, norc, continue (load last auto save)
+* pinned commands
+* view show/hide options
+
+(Extra extra)
+* refactor terminal,
+* export images
+* sync with save file
+
+## Easy Details
+* look for rc first in cwd, then in user home
+* ls_save ( or in load)
 
 ## LATER (features):
-* be able to set default div by shape type ( maybe do when we do the params thing)
-* merge_all
-* arcs, re-add poly 
-* scale
-
--- checkpoint 2 --
-
-* pdf guide pages 
 
 * pinning commands under V 
 -- checkpoint sunday --
@@ -28,7 +47,6 @@ Extra
 	# Really Do
 * be able to set params + show/hide some types of thing
 * remake tooltips (mostly done (VISUAL)). Keep up to date
-* flipping: point controls image not axis
 	# Eh
 * fix ! logic in command
 * only consider the last MOUSEMOTION every frame ?

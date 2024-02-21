@@ -19,7 +19,8 @@ _nested_menu = {
             {   'W': "Visual", 'E': "Unweave", 'R': "Remove",
                 'A': "Transform", 'S': "Copy-Transform", 'D': "Move", 'F': "Copy-Move" }),
         'D': ("Create Shapes",
-            {'A': "New Point", 'S': "New Segment", 'D': "New Circle", 'F': ("Draw Weaves", _sho('F'))}),
+            {   'Q': "New Point", 'W': "New Polyline",
+                'A': "New Arc",   'S': "New Segment", 'D': "New Circle", 'F': ("Draw Weaves", _sho('F'))}),
         'F': ("Draw Weaves",
             {   'W': "Color Picker", 'E': "Select Color",
                                      'D': ("Create Shape", _sho('D')), 'F': ("Draw Weaves", _sho('F'))}),
@@ -27,12 +28,13 @@ _nested_menu = {
 _pinned_menu = {'Z': "Camera", 'X': "Menu Top", 'C': "Command"}
 
 _menuaction_info = { # What the user has to do AFTER, not what it does
+        "New Arc": "LCLICK * 3: place center, start, end | RCLICK: invert rotation",
         "Rewind": "WHEEL -> Rewind | CLICK -> done",
         "Camera": "WHEEL -> zoom | RCLICK, RCLICK: grab, then release canvas | LCLICK -> Done",
         "Command": "Commandline. 'ls' -> list available commands | CTRL-C -> close",
         "New Point": "LCLICK: place",
         "New Segment": "LCLICK, LCLICK: place endpoints",
-        #"New Polyline": "LCLICK: add point OR (on start) connect and finish | RCLICK: finish",
+        "New Polyline": "LCLICK: add point / (if on start) connect and finish | RCLICK: finish without connecting",
         "New Circle": "LCLICK, LCLICK: place center, then point on perim | RCLICK: invert placement order",
         "Draw Weaves": "LCLICK on 1st shape then LCLICK * 2 on 2nd shape. | RCLICK: \"no, the other way\"",
         "Select Color": "QWERASDF (keyboard) -> pick color",
@@ -96,6 +98,8 @@ def menu_hook(hook, context):
             case "New Point": set_hook(create_points_hook, context)
             case "New Segment": set_hook(create_lines_hook, context)
             case "New Circle": set_hook(create_circles_hook, context)
+            case "New Arc": set_hook(create_arcs_hook, context)
+            case "New Polyline": set_hook(create_poly_hook, context)
             # Weaves
             case "Draw Weaves": set_hook(create_weaves_hook, context)
             case "Select Color": overhook(select_color_hook, context)
@@ -129,10 +133,18 @@ def init_context(dimensions):
     #
     cx.menu = Menu(_nested_menu, _pinned_menu, _menu_layout)
     #
-    cx.menubox = TextArea(dimensions[0], numlines = 3)
+#     cx.menubox = TextArea(dimensions[0], numlines = 3)
     cx.show_menu = True
-    cx.bottom_text = TextArea(dimensions[0], numlines = 3)
-    cx.TERMLINE, cx.ERRLINE, cx.INFOLINE = 0, 1, 2 # line numbers, maybe move to `params`?
+#     cx.bottom_text = TextArea(dimensions[0], numlines = 3)
+#     cx.TERMLINE, cx.ERRLINE, cx.INFOLINE = 0, 1, 2 # line numbers, maybe move to `params`?
+    sections = {
+            'error': ((0,1), params.error_text_color, True),
+            'info': ((0, 3), params.text_color, True),
+            'term': ((0, 1), params.term_color, False),
+            'menu': ((0, 3), params.text_color, False),
+            }
+    cx.text = TextArea(params.font_size, params.start_dimensions[0], params.background)
+    cx.text.set_sections_abcw(sections)
     #
     cx.view = View()
     cx.weave_layer = Surface(dimensions)
@@ -213,8 +225,8 @@ def main():
             # bottom "widgets"
             bottom_elements = []
             if g.show_palette: bottom_elements.append(draw_palette(g.palette, g.color_key))
-            if g.show_menu: bottom_elements.append(g.menu.render(g.menubox))
-            bottom_elements.append(g.bottom_text.render())
+            if g.show_menu: g.menu.render(g.text)
+            bottom_elements.append(g.text.render())
             #
             elt_y = g.screen.get_size()[1]
             for elt in reversed(bottom_elements):

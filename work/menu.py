@@ -59,11 +59,12 @@ class Menu:
     def restore_display(self):
         self.temporary_display('', {})
     #
-    def render(self, textbox, first_line = 0):
+    def render(self, textbox):
         menu_layout = self.layout
         #
-        label_size = 12
+        label_size = 15
         #
+        lines = []
         for (i, row) in enumerate(menu_layout):
             line = "|"
             for key in row:
@@ -79,7 +80,8 @@ class Menu:
                 else:
                     line += ' ' * (len(" X: ") + label_size)
                 line += ' |'
-            textbox.set_line(first_line + i, line)
+            lines.append(line)
+        textbox.write_section('menu', lines)
         return textbox.render()
     ###
 
