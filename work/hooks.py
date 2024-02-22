@@ -239,25 +239,6 @@ def create_points_hook(hook, ev, context):
         case ms.MOTION: set_hints(context, point)
         case ms.LCLICK: create_shapes(context, point)
 
-def create_lines_hook(hook, context):
-    setup_hook(hook, {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, (reset_hints, context) )
-    #
-    state = Rec(start = None)
-    def inner(ev):
-        cur_pos, _ = snappy_get_point(context, ev.pos)
-        match mouse_subtype(ev), state.start:
-            case ms.LCLICK, None: 
-                state.start = cur_pos
-            case ms.LCLICK, start: 
-                create_shapes(context, Line(start, cur_pos) )
-                state.start = None; reset_hints(context) # reset
-            case ms.MOTION, None:
-                set_hints(context,  Point(cur_pos) )
-            case ms.MOTION, start:
-                set_hints(context,  Line(start, cur_pos) )
-    #
-    hook.event_loop(inner)
-
 @iter_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, 
             filter = lambda ev: mouse_subtype(ev) == ms.LCLICK,
             cleanup = lambda context: reset_hints(context) )
@@ -273,36 +254,6 @@ def create_lines_hook(hook, context):
         ev = yield
         create_shapes(context, Line(start, _evpos(context, ev)))
         reset_hints(context)
-
-# def create_circles_hook(hook, context):
-#     setup_hook(hook, { pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION }, (reset_hints, context) )
-#     #
-#     state = Rec(point1 = None, center_first = True)
-#     def inner(ev):
-#         def reset():
-#             reset_hints(context)
-#             state.point1 = None
-#         #
-#         cur_pos, _ = snappy_get_point(context, ev.pos)
-#         match mouse_subtype(ev), state.point1, state.center_first:
-#             case ms.LCLICK, None, _: 
-#                 state.point1 = cur_pos
-#             case ms.LCLICK, center, True: 
-#                 create_shapes(context, Point(center), Circle(center, cur_pos) )
-#                 reset()
-#             case ms.LCLICK, perim, False: 
-#                 create_shapes( context, Point(cur_pos), Circle(cur_pos, perim) )
-#                 reset()
-#             case ms.MOTION, None, _: 
-#                 set_hints(context, Point(cur_pos) )
-#             case ms.MOTION, center, True: 
-#                 set_hints(context, Point(center), Circle(center, cur_pos) )
-#             case ms.MOTION, perim, False: 
-#                 set_hints(context, Point(cur_pos), Circle(cur_pos, perim) )
-#             case ms.RCLICK, _, _: 
-#                 state.center_first = not state.center_first
-#     #
-#     hook.event_loop(inner)
 
 @iter_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, 
             filter = lambda ev: mouse_subtype(ev) == ms.LCLICK,
@@ -371,12 +322,11 @@ def create_poly_hook(hook, context):
     while True:
         ev = yield
         pos = _evpos(context, ev)
-        # TODO implemented extra snap thing instead?
+        # TODO implement extra snap thing instead?
         if points and sqdist(pos, points[0]) < context.view.ptord(params.snap_radius) ** 2:
             pos = points[0]
         match mouse_subtype(ev):
             case ms.LCLICK:
-                # TODO implemented extra snap thing
                 if points and (pos == points[0]).all():
                     create_shapes(context, PolyLine(*points, loopy = True))
                     reset()
@@ -389,119 +339,7 @@ def create_poly_hook(hook, context):
                 set_hints(context, PolyLine(*points, pos, loopy = False))
     ###
 
-## WEAVE
-# def create_weaves_hook(hook, context):
-#     # Utils:
-#     def point_at_hang(hg):
-#         return hg.s.get_div(hg.i)
-#     #
-#     def hang_on_shape(candidates, shape):
-#         for hg in candidates:
-#             if hg.s == shape: return hg
-#         else: return None
-#     #
-#     # Setup
-#     setup_hook(hook, { pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION }, (reset_hints, context))
-#     state = Rec(hangs = [], incrs = context.weavity, nloops = 0)
-#     def update_hints(cur_pos, candidates):
-#         hints = [ Point(point_at_hang(hg)) for hg in state.hangs ]
-#         if candidates:
-#             hints += [ Point(cur_pos) ]
-#         if len(state.hangs) > 1 and (hg := hang_on_shape(candidates, state.hangs[1].s)):
-#             we = Weave.CreateFrom3(state.hangs + [hg], state.incrs, state.nloops)
-#             hints.append(we)
-#             if context.weaveback:
-#                 back_weave = Weave.BackWeave(we)
-#                 if back_weave: hints.append(back_weave)
-#         set_hints(context, *hints)
-#     #
-#     # Subhooks:
-#     def prefilter(candidates):
-#         in_selected = [ cd for cd in candidates if cd.s in context.selected ]
-#         if len(in_selected) == 1: return in_selected
-#         else: return candidates
-#     #
-#     def disambiguate_hook(hook, candidates):
-#         # post_info ...
-#         setup_hook(hook, { pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION }, (reset_hints, context))
-#         reset_hints(context)
-#         #
-#         def inner(ev):
-#             cur_pos, under_cursor = snappy_get_point(context, ev.pos)
-#             shapes = [hg.s for hg in under_cursor]
-#             inter = [ hg for hg in candidates if hg.s in shapes ]
-#             match mouse_subtype(ev), inter:
-#                 case ms.MOTION, [hg]:
-#                     set_hints(context, hg.s)
-#                 case ms.MOTION, _:
-#                     reset_hints(context)
-#                 case ms.LCLICK, [hg]:
-#                     update_hints(point_at_hang(hg), [])
-#                     #
-#                     iter_pass.disambiguated = hg
-#                     hook.finish()
-#                     next(state.iter)
-#         #
-#         hook.event_loop(inner)
-#     #
-#     def turn_around_hook(hook):
-#         # post_info ...
-#         setup_hook(hook, { pg.MOUSEBUTTONDOWN, pg.MOUSEWHEEL } )
-#         hook.filter = lambda ev: mouse_subtype(ev) in { ms.MCLICK, ms.WHEEL }
-#         def inner(ev):
-#             match mouse_subtype(ev):
-#                 case ms.WHEEL:
-#                     state.nloops += ev.y
-#                 case ms.MCLICK:
-#                     state.nloops = 0 if state.nloops != 0 else -1
-#         hook.event_loop(inner)
-#     # Iter: keeping track of where we are is way easier than matching the 
-#     # (complex) current state
-#     iter_pass = Rec()
-#     def set_hangs_iter():
-#         subhook = None
-#         for i in range(2): # get first 2 hangs
-#             while not (cdt := prefilter(iter_pass.candidates)) : yield
-#             if len(cdt) == 1: state.hangs.append(cdt[0])
-#             else: 
-#                 hook.attach(context.dispatch.add_hook(disambiguate_hook, cdt)); yield
-#                 state.hangs.append(iter_pass.disambiguated)
-#             if i == 1 and state.hangs[1].s.loopy: 
-#                 subhook = context.dispatch.add_hook(turn_around_hook)
-#                 hook.attach(subhook)
-#             yield
-#         #
-#         while not (last_hang := hang_on_shape(iter_pass.candidates, state.hangs[1].s)): # get last hang
-#             # post_error("no shape in common")
-#             yield
-#         # create weave
-#         state.hangs.append(last_hang)
-#         we = Weave.CreateFrom3(state.hangs, state.incrs, state.nloops)
-#         create_weave(context, we)
-#         if context.weaveback:
-#             back_weave = Weave.BackWeave(we)
-#             if back_weave: create_weave(context, back_weave)
-#         # reset
-#         if subhook: subhook.finish(); subhook = None
-#         reset_hints(context)
-#         state.hangs, state.incrs, state.nloops = [], context.weavity, 0
-#     #
-#     state.iter = set_hangs_iter()
-#     def inner(ev):
-#         cur_pos, candidates = snappy_get_point(context, ev.pos)
-#         if mouse_subtype(ev) == ms.LCLICK:
-#             iter_pass.candidates = candidates
-#             try: next(state.iter)
-#             except StopIteration:
-#                 state.iter = set_hangs_iter()
-#                 next(state.iter)
-#         elif mouse_subtype(ev) == ms.RCLICK:
-#             inc0, inc1 = state.incrs
-#             state.incrs = -inc0, inc1
-#         update_hints(cur_pos, candidates)
-#     #
-#     hook.event_loop(inner)
-# 
+# Weaves
 
 @iter_hook( { pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION },
             filter = lambda ev: mouse_subtype(ev) == ms.LCLICK,
@@ -581,20 +419,6 @@ def create_weaves_hook(hook, context):
         reset_hints(cx)
     ###
 
-# def select_color_hook(hook, context):
-#     cx = context
-#     def cleanup(): cx.show_palette = save_show_palette
-#     setup_hook(hook, set(), (cleanup,) )
-#     steal_menu_keys(hook, cx.menu, 'QWERASDF', {})
-#     #
-#     save_show_palette = cx.show_palette
-#     context.show_palette = True
-#     #
-#     def inner(ev):
-#         context.color_key = alpha_scan(ev)
-#         hook.finish()
-#     hook.event_loop(inner)
-# 
 @iter_hook(set(), filter = lambda ev: alpha_scan(ev) in 'QWERASDF')
 def select_color_hook(hook, context):
     save_show_palette = context.show_palette
@@ -607,40 +431,7 @@ def select_color_hook(hook, context):
     ev = yield
     context.color_key = alpha_scan(ev)
 
-# def color_picker_hook(hook, context):
-#     cx = context
-#     def cleanup(): 
-#         cx.show_palette = save_show_palette
-#         cx.show_picker = False
-#         cx.palette[cx.color_key] = save_color
-#     setup_hook(hook, {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, (cleanup, ))
-#     steal_menu_keys(hook, cx.menu, ''.join.cx.palette.keys(), {})
-#     #
-#     save_show_palette = cx.show_palette
-#     cx.show_palette = True
-#     cx.show_picker = True
-#     save_color = cx.palette[cx.color_key]
-#     #
-#     def inner(ev):
-#         if ev.type == pg.KEYDOWN:
-#             cx.palette[cx.color_key] = save_color
-#             cx.color_key = alpha_scan(ev)
-#             save_color = cx.palette[cx.color_key]
-#         else:
-#             cur_color = cx.color_picker.at_pixel(ev.pos)
-#             match mouse_subtype(ev), cur_color:
-#                 case ms.RCLICK, _:
-#                     hook.finish()
-#                 case _, None: pass
-#                 case ms.MOTION, color:
-#                     cx.palette[cx.color_key] = color
-#                 case ms.LCLICK, color:
-#                     cx.palette[cx.color_key] = color
-#                     save_color = color
-#         redraw_weaves(cx)
-#     hook.event_loop(inner)
-# 
-
+# TODO kinda ugly maybe refactor
 def _color_picker_setup(hook, context):
     save_show_palette = context.show_palette
     state = Rec(save_color = context.palette[context.color_key], lum = 0.7)
@@ -923,104 +714,6 @@ def interactive_transform_hook(hook, context):
                 cx.shapes, cx.selected = merge_into(cx.shapes, pending, new_weaves)
                 return
         evloop(Rec(type = pg.MOUSEMOTION, pos = pg.mouse.get_pos()))
-
-#     # rclick * 2: catch + release center
-#     # keys for: 
-#     #   f: flip ( mouse controls axis, lclick to confirm )
-#     #   d: rotate lclick catch + lclick release
-#     #   move:
-#     #   put down copy
-#     #   put down and exit
-#     #   cancel
-#     # hints:
-#     #   keep all Ts but one intermdiate result, subhooks set last T, apply to hints
-#     #   last_T may be undefined
-#     #   moving does its own thing / has its own hints
-#     vflip = np.array([ [-1, 0], [0, 1] ])
-#     def rot_matrix(angle):
-#         return np.array([
-#             [np.cos(angle), -np.sin(angle)],
-#             [np.sin(angle),  np.cos(angle)]
-#             ])
-#     ##
-#     transforms = [] # (matrix, center) pairs
-#     def push_transform(matrix, center):
-#         transforms.append( (matrix, center) )
-#     center, _ = snappy_get_point(cx, pg.mouse.get_pos())
-#     # subhook( set center )
-#     def inner(ev):
-#         if (ev.type == KEYDOWN):
-#             match alpha_scan(ev):
-#                 case 'f': #flip
-#                     def flip_matrix(pos)
-#                         v = (pos - center) / dist(pos, center)
-#                         x, y = v[0], v[1]
-#                         return np.array([ [y, x], [x, -y] ])
-#                 case 'd': #rotate
-#                     # attach get from
-#                     # def rot_matrix(pos)
-#                 case 's': # move
-#                     # attach hook
-#                 case 'q': # cancel
-#                     hook.finish()
-#                 case 'e': # put down
-#         else:
-#             match mouse_subtype(ev):
-#                 case ms.MOTION: pass
-#     #
-# 
-# def interactive_transform(hook, context):
-#     cx = context
-#     setup_hook(hook, { pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, (reset_hints, cx) )
-#     steal_menu_keys(hook, cx.menu, 'QWERASDF', {}) # TODO labels
-#     #
-#     center, _ = snappy_get_point(cx, pg.mouse.get_pos())
-#     current_shapes = cx.selected
-#     loose_center = False
-#     pending_matrix = None
-#     def inner(ev):
-#         nonlocal center
-#         if ev.type == pg.KEYDOWN: 
-#             match alpha_scan(ev):
-#                 case 'F': # flip
-#                     @sub_hook(
-#                             hook, {pg.MOUSEBUTTONDOWN}, 
-#                             filter = lambda ev: mouse_subtype(ev) in { ms.LCLICK, ms.MOTION }
-#                             )
-#                     def set_flip(subhook, ev):
-#                         nonlocal pending_matrix
-#                         if (mouse_subtype(ev) == ms.LCLICK): subhook.finish()
-#                         else:
-#                             pos, _ = snappy_get_point(cx, ev.pos)
-#                             v = (pos - center) / dist(pos, center)
-#                             x, y = v[0], v[1]
-#                             pending_matrix = np.array[ [y, x], [x, -y] ]
-#                 case 'D': # rotate
-#                     @sub_hook(
-#                             hook, {pg.MOUSEBUTTONDOWN}, 
-#                             filter = lambda ev: mouse_subtype(ev) in { ms.LCLICK, ms.MOTION }
-#                             )
-#                     def set_flip(subhook, ev):
-#                         nonlocal pending_matrix
-#                         if (mouse_subtype(ev) == ms.LCLICK): subhook.finish()
-#                         else:
-#                             pos, _ = snappy_get_point(cx, ev.pos)
-#                             v = (pos - center) / dist(pos, center)
-#                             x, y = v[0], v[1]
-#                             pending_matrix = np.array[ [y, x], [x, -y] ]
-# 
-#         else:
-#             pos, _ = snappy_get_point(cx, ev.pos) 
-#             match mouse_subtype(ev):
-#                 case ms.MOTION: pass
-#                 case ms.RCLICK:
-#                     # attach hook
-#         #
-#         if pending_matrix:
-# 
-#             cx.hints = [sh.transformed(pending_matrix, center) for sh in current_shapes ]
-# 
-# 
 
 ## MINITER
 def miniter_hook(hook, context, cmd = ''):
