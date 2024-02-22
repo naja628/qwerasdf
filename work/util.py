@@ -3,9 +3,6 @@ from math import sqrt
 
 import sys
 
-def expr(*a, **ka): ## usage example: lambda: expr(do_thing())
-    return a[-1] if a else None
-
 def eprint(*a, **ka):
     ka['file'] = sys.stderr
     print(*a, **ka)
@@ -15,6 +12,11 @@ def sprint(*a, sep = ' ', end = '\n'):
 
 def constants(n):
     return range(n)
+# use case K1, K2, K3 = constants(3)
+
+def masks(n):
+    return [2 ** i for i in range(n)]
+# use case opt1, opt2 = masks(2)
 
 def farr(seq):
     return np.array([float(x_i) for x_i in seq])
@@ -44,6 +46,11 @@ def naive_scan(s, *conversions):
     #
     return tuple([conv(i, tok) for (i, tok) in enumerate(s.split())])
 
+def clamp(x, mini, maxi):
+    if x < mini: return mini
+    elif x > maxi: return maxi
+    else: return x
+
 ####### DECORATORS
 # (decorator(f, *a, **ka) -> wf) -> (meta(*a, **ka) -> (ret(f) -> wf))
 def param_decorator(wrapped_deco):
@@ -62,6 +69,8 @@ def param_decorator(wrapped_deco):
 # @declaring("foo")
 # def add(a, b): return a + b
 
+
+## Consider deletion (not that useful)
 def returned(decorated):
     return decorated()
 # Useful for things like unique closures, fake "singletons", ...
@@ -76,9 +85,8 @@ def returned(decorated):
 def do_chain(fun, *more):
     return lambda: [ fun() for fun in [fun, *more]][-1]
 
-def clamp(x, mini, maxi):
-    if x < mini: return mini
-    elif x > maxi: return maxi
-    else: return x
+class EarlyExit(BaseException): pass
 
+def expr(*a, **ka): ## usage example: lambda: expr(do_thing())
+    return a[-1] if a else None
 

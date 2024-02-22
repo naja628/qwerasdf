@@ -1,7 +1,7 @@
 import os
 from pygame import Color
 
-import params
+from params import params
 from shape import *
 from util import naive_scan, Rec, sprint, clamp
 from merge import merge_weaves

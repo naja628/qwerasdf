@@ -2,7 +2,7 @@ from pygame import display, FULLSCREEN
 from numpy import pi
 import os
 
-import params
+from params import params
 from util import Rec, param_decorator, eprint
 from save import *
 from context import *

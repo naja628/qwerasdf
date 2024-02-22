@@ -1,6 +1,6 @@
 from pygame import *
 
-import params
+from params import params
 from util import Rec
 
 # class TextArea():
@@ -82,6 +82,7 @@ class TextArea:
         colorlines = _flatten1([ [(line, se.color) for line in se.lines] 
             for se in self.sections.values() ])
         surf = Surface((self.width, len(colorlines) * self.ch_dim[1]))
+        surf.fill(self.bg)
         for i, (line, color) in enumerate(colorlines):
             s = self.font.render(line, True, color, self.bg)
             surf.blit(s, (0, i * self.ch_dim[1]))

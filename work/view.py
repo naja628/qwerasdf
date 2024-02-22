@@ -1,5 +1,5 @@
 import numpy as np
-import params
+from params import params
 from util import clamp
 
 def farr(seq):

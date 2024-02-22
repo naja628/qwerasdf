@@ -1,7 +1,8 @@
 import numpy as np
 from math import ceil
 
-from params import eps
+from params import params
+eps = params.eps
 
 _box_margin = 0.7 # in cm
 # printers apparently can't print right to edge of the page, and 7mm is safe-ish for 

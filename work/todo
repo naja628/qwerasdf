@@ -1,38 +1,37 @@
-# Now
-* set at least some params / have a conf
-
 # Min for v2
 * set default div by shape type
-* look for rc first in cwd, then in user home
 
 * rework interactive transforms
 
 * manual
-* proper install process, put on PiPy ?
+* proper install process
 
 + Ideally
+* fix ! logic in commands
+* smth with saves/load (eg lo shows options, `find` command, and accept unifished save names for load?)
+
 * polar grid
 
-* fix ! logic in commands
-* menu_translate
-* smth with saves/load (eg lo shows options, `find` command, and accept unifished save names for load?)
-* command line args: commands, session, open, norc, continue (load last auto save)
-* pinned commands
 * view show/hide options
+* command line args: commands, session, open, norc, continue (load last auto save)
 
-(Extra extra)
++Extra
+* menu_translate
+* pinned commands
+
++Extra extra
 * refactor terminal,
 * export images
 * sync with save file
 
+### OLD
+
 ## Easy Details
 * look for rc first in cwd, then in user home
-* ls_save ( or in load)
 
 ## LATER (features):
 
 * pinning commands under V 
--- checkpoint sunday --
 
 * manual 
 * 'menu_translate' (easy but PITA)

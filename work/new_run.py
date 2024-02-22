@@ -10,6 +10,7 @@ from hooks import *
 from context import delete_selection, unweave_inside_selection
 from menu import Menu
 from save import Autosaver, save_path, save
+from params import params
 
 _sho = Menu.Shortcut
 _menu_layout = ['QWER', 'ASDF', 'ZXCV']
@@ -176,12 +177,14 @@ def main():
     g.dispatch.add_hook(click_move_hook, g)
     g.dispatch.add_hook(menu_hook, g)
     #
-    try:
-        with open(params.dotrc) as rc:
-            for line in rc:
-                if line.strip() == '' or line.strip()[0] == '#': continue
-                miniter_exec(line, g)
-    except: pass
+    for filename in params.dotrc_path:
+        try:
+            with open(filename) as rc:
+                for line in rc:
+                    if line.strip() == '' or line.strip()[0] == '#': continue
+                    miniter_exec(line, g)
+            break
+        except: continue
     #
     clock = time.Clock()
     g.QUIT = False
@@ -231,7 +234,7 @@ def main():
             elt_y = g.screen.get_size()[1]
             for elt in reversed(bottom_elements):
                 elt_y -= elt.get_size()[1]
-                g.screen.blit(elt, (0, elt_y))
+                g.screen.blit(elt, (0, elt_y - params.bottom_margin))
             #
             if g.show_picker:
                 picker_surf = g.color_picker.get_surf()

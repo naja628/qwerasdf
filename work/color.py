@@ -1,7 +1,7 @@
 from pygame import *
 import numpy as np
 
-import params
+from params import params
 from util import clamp
 
 # Simple Palette

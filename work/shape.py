@@ -5,7 +5,7 @@ from numpy import sin, cos, pi
 from pygame import draw, Color, Rect
 from math import atan2
 
-import params
+from params import params
 from util import farr, dist, Rec, sqdist
 
 def near_zero(x):
@@ -192,9 +192,6 @@ class Arc(Shape):
         dts = np.linspace(t1, t2, ndivs)
         xs, ys = np.cos(dts), np.sin(dts)
         self.divs = self.center + rr * np.array([xs, ys]).transpose()
-# 
-#         divs = np.concatenate((np.cos(dts), np.sin(dts))).reshape((2, -1)).transpose()
-#         self.divs = self.center + rr * divs
     #
     def draw(self, screen, view, color = params.shape_color):
         if almost_equal(self.center, self.start):
@@ -263,16 +260,7 @@ class Line(Shape):
         Shape.draw_divs(self, screen, view)
     #
     def merger(self, to):
-#         if ( type(to) != Line ) or ( len(self.divs) != len(to.divs) ):
-#             return None
-#         if ( almost_equal(self.start, to.start) and almost_equal(self.end, to.end) ):
-#             print('line merger +')
-#             return lambda i : i # same dir
-#         if ( almost_equal(self.start, to.end) and almost_equal(self.end, to.start) ):
-#             print('line merger -')
-#             return lambda i : len(self.divs) - 1 - i # opposite dirs
         return self._naive_merger(to)
-        ##
     ###
 
 class PolyLine(Shape):
@@ -399,7 +387,6 @@ class Weave:
         if n <= 0:
             return None
         hgs = [copy(hg) for hg in forward.hangpoints]
-        #hgs[0].i += hgs[0].s.get_div(hgs[0].i + forward.incrs[0])
         sh0 = hgs[0].s
         hgs[0].i = hgs[0].i + forward.incrs[0]
         if hgs[0].i > len(sh0.divs):
@@ -416,7 +403,7 @@ class Weave:
         self.incrs = incrs
     #
     def copy(self):
-        #needed be the "right" copy is "half-deep"
+        # needed because the "right" copy is "half-deep"
         [hg1, hg2] = self.hangpoints
         new_hangpoints = [Rec(s = hg1.s, i = hg1.i), Rec(s = hg2.s, i = hg2.i)]
         return Weave(new_hangpoints, self.nwires, self.incrs)

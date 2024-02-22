@@ -1,6 +1,6 @@
 import pygame as pg
 
-import params
+from params import params
 from shape import *
 from view import View
 from menu import Menu
@@ -37,7 +37,6 @@ class EvHook:
     def call_once(self, ev):
         assert ev.type in self.watched
         #
-        # strategy?
         if self.iter_filter(ev) and self.ev_iter:
             try: self.ev_iter.send(ev)
             except StopIteration: self.finish()
@@ -143,7 +142,7 @@ def mouse_subtype(ev):
 def alpha_scan(event):
     if not pg.KSCAN_A <= event.scancode < pg.KSCAN_A + 26:
         return '' 
-    return chr(ord('A') + event.scancode - 4)
+    return chr(ord('A') + event.scancode - pg.KSCAN_A)
 
 ## GENERIC 
 def setup_hook(hook, watched, *cleanup_commands):
@@ -169,18 +168,9 @@ def steal_menu_keys(hook, menu, stolen, labels):
                             break_recursion and break_recursion()]
 
 ## HOOKS
-# def zoom_hook(hook, context, factor = params.zoom_factor):
-#     setup_hook(hook, {pg.MOUSEWHEEL})
-#     #
-#     def inner(ev):
-#         context.view.zoom(pg.mouse.get_pos(), factor ** ev.y)
-#         redraw_weaves(context)
-#     #
-#     hook.event_loop(inner)
-# 
-_AUTOSAVE = pg.event.custom_type()
 
-## Rewind
+_AUTOSAVE = pg.event.custom_type()
+# Rewind
 def _autosave_setup(hook, context):
     pg.time.set_timer(_AUTOSAVE, params.autosave_pulse * 1000)
 @loop_hook(  {_AUTOSAVE}, 
@@ -203,36 +193,11 @@ def rewind_hook(hook, ev, context):
     elif type == ms.LCLICK or type == ms.RCLICK:
         hook.finish()
 
-## CAMERA CONTROL
+# Camera Control
 @loop_hook({pg.MOUSEWHEEL})
 def zoom_hook(hook, ev, context, factor = params.zoom_factor):
     context.view.zoom(pg.mouse.get_pos(), factor ** ev.y)
     redraw_weaves(context)
-
-def click_move_hook(hook, context):
-    setup_hook(hook, {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION})
-    #
-    state = Rec(start = None, start_corner = None)
-    def move_view(pos):
-        view = context.view
-        dx = -view.ptord(pos[0] - state.start[0])
-        dy = +view.ptord(pos[1] - state.start[1])
-        view.corner = state.start_corner + np.array([dx, dy])
-        redraw_weaves(context)
-    #
-    def inner(ev):
-        match mouse_subtype(ev), state.start:
-            case ms.RCLICK, None:
-                state.start = ev.pos
-                state.start_corner = context.view.corner
-            case ms.RCLICK, start:
-                move_view(ev.pos)
-                state.start = None
-            case _, None: pass
-            case _, start:
-                move_view(ev.pos)
-    #
-    hook.event_loop(inner)
 
 @iter_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, 
             filter = lambda ev: mouse_subtype(ev) == ms.RCLICK )
@@ -254,17 +219,6 @@ def click_move_hook(hook, context):
         move_view(ev.pos)
     #
 
-def change_view_hook(hook, context):
-    setup_hook(hook, { pg.MOUSEBUTTONDOWN })
-    hook.filter = lambda ev: mouse_subtype(ev) == ms.LCLICK
-    hook.attach(context.dispatch.add_hook(zoom_hook, context))
-    hook.attach(context.dispatch.add_hook(click_move_hook, context))
-    #
-    def inner(ev):
-        if mouse_subtype(ev) == ms.LCLICK:
-            hook.finish()
-    hook.event_loop(inner)
-
 @iter_hook({ pg.MOUSEBUTTONDOWN })
 def change_view_hook(hook, context):
     hook.attach(context.dispatch.add_hook(zoom_hook, context))
@@ -274,21 +228,8 @@ def change_view_hook(hook, context):
     #
     ev = yield # Terminate on first event (ie LCLICK = done)
 
-# CREATE SHAPES
-def create_points_hook(hook, context):
-    setup_hook(hook, {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, (reset_hints, context) )
-    #
-    def inner(ev):
-        cur_pos, _ = snappy_get_point(context, ev.pos)
-        point = Point(cur_pos)
-        match mouse_subtype(ev):
-            case ms.MOTION:
-                set_hints(context, point)
-            case ms.LCLICK:
-                create_shapes(context, point)
-    #
-    hook.event_loop(inner)
 
+# Create Shapes
 def _evpos(context, ev): return snappy_get_point(context, ev.pos)[0]
 
 @loop_hook({pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, lambda context: reset_hints(context))
