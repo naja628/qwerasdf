@@ -5,15 +5,7 @@ from math import atan2
 from util import dist 
 from params import params
 
-# DEBUG
-from random import randint
-
 eps = params.eps
-
-# TODO
-# * subdivs: infinite loop if repeating segment is empty
-# *          stop early if reached max division
-# * 
 
 def subdiv(pre, repeat = ()): return pre, repeat
 def prerepeat(subdiv): return subdiv[0]
@@ -110,7 +102,6 @@ class Grid:
             for lv, grad in reversed([*enumerate(rgrads)]):
                 color = color_lerp(min_fade + (1-min_fade)*self.fade_factor ** lv, bg, fg)
                 for r in np.arange(first_above(rmin, grad), rmax, grad):
-#                     pg.draw.circle(surf, color, v.rtop(self.center), v.rtopd(r), width = 1)
                     r_pix = v.rtopd(r)
                     arc_rect = pg.Rect(x_c - r_pix, y_c - r_pix, 2 * r_pix, 2 * r_pix)
                     pg.draw.arc(surf, color, arc_rect, tmin, tmax)
@@ -128,11 +119,8 @@ class Grid:
             return
         dr, dt = rgrads[-1], agrads[-1]
         r0 = first_above(rmin, dr)
+        # TODO? maybe hande r = 0 (when center is inside) specially
         nrings = (rmax - r0) // dr
-#         c_inside = (r0 == 0)
-#         if c_inside:
-#             r0 = dr
-#             nrings -= 1
         #
         angles = ph + np.arange(first_above(tmin - ph, dt), tmax - ph, dt)
         units = ar([ np.cos(angles), np.sin(angles) ]).transpose()
@@ -140,130 +128,10 @@ class Grid:
         big_arc = self.center + (r0 + (nrings - 1) * dr) * units
         #
         self._points = np.linspace(small_arc, big_arc, int(nrings)).reshape((-1, 2))
-#         if c_inside: self._points = np.concatenate(ar([[0,0]]), self._points)
     #
     def render(self, surf, bg, fg):
         return self._render(surf, bg, fg)
     #
     def points(self):
         return self._points 
-    # TODO setters for subdvis (r and a), center, phase, maybe smallest_grad
 
-#     
-# 
-# 
-# 
-# 
-# 
-#         def points():
-#             def first_above(step, low):
-#                 return step * np.ceil(low / step)
-#             dr = rgrads[-1]
-#             dt = agrads[-1]
-#             nrings = R // dr
-#             #
-#             # go from polar to eucl
-#             angles = np.arange(0, 2 * np.pi - params.eps, dt)
-#             units = ar([np.cos(angles), np.sin(angles)]).transpose()
-#             first_ring = dr * units
-#             last_ring = nrings * dr * units
-#             points = np.linspace(first_ring, last_ring, int(nrings)).reshape((-1, 2)) # index 0 is [0, 0]
-#             points = np.concatenate( ar([[0, 0]]) , points) + self.center
-#             #
-#             # filter within surf
-#             bounds = ar([ v.ptor([0, 0]), v.ptor(dims) ])
-#             T = points.transpose()
-#             xs, ys = T[0], T[1]
-#             afilter = (bounds[0][0] <= xs) & (xs <= bounds[1][0])
-#             afilter &= (bounds[1][1] <= ys) & (ys <= bounds[0][1]) # inverted because corner is down
-#             return points[afilter]
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-#     def _compute(self):
-#         ar = np.array
-#         v, dims = self.view, self.draw_surf.get_size()
-#         #
-#         corners = v.corner + ar([[0.0, 0], [0, 1], [1, 0], [1, 1]]) * ar(dims)
-#         corners = ar([v.ptor(p) for p in corners])
-#         R = max( dist(self.center, corner) for corner in corners)
-#         #
-#         grad = 1
-#         rgrads = []
-#         bound = v.ptord(self.smallest_grad)
-#         for d in iter_subdiv(self.rsubdivs):
-#             rgrads.append(grad)
-#             grad /= d
-#             if bound > grad: break
-#         else:
-#             rgrads.append(grad)
-#         #
-#         arc = 2 * np.pi
-#         agrads = []
-#         bound = v.ptord(self.smallest_grad) / R
-#         for d in iter_subdiv(self.asubdivs):
-#             agrads.append(arc)
-#             arc /= d
-#             if bound > arc: break
-#         else:
-#             agrads.append(arc)
-#         #
-#         return R, rgrads, agrads
-#     #
-#     def render(self, bg, fg):
-#         ar = np.array
-#         v, surf, dims = self.view, self.draw_surf, self.draw_surf.get_size()
-#         def color_lerp(t, c0, c1):
-#             return pg.Color( (1 - t) * ar(c0) + t * ar(c1) )
-#         #
-#         dims = surf.get_size()
-#         R, rgrads, agrads = self._compute()
-#         #
-#         for lv, gr in reversed([*enumerate(rgrads)]):
-#             color = color_lerp(lv / len(rgrads), fg, bg) # TODO linear or exponential colors fading? (linear for now)
-#             for r in np.arange(gr, R, gr):
-#                 pg.draw.circle(surf, color, v.rtop(self.center), v.rtopd(r), width = 1)
-# #         for lv, d in reversed([*enumerate(rsubdivs)]):
-# #             # note: we redraw over higher levels in lower, not optimal but eh
-# #             color = color_lerp(lv / len(rsubdivs), fg, bg) # TODO linear or exponential colors fading? (linear for now)
-# #             for r in np.arange(grad, R, grad):
-# #                 pg.draw.circle(surf, color, v.rtop(self.center), v.rtopd(r), width = 1)
-# #             grad /= d
-#         #
-#         for lv, arc in reversed([*enumerate(agrads)]):
-#             color = color_lerp(lv / len(agrads), fg, bg) # TODO linear or exponential colors fading? (linear for now)
-#             for angle in np.arange(0, 2 * np.pi - params.eps, arc):
-#                 end = R * ar([np.cos(angle), np.sin(angle)])
-#                 pg.draw.line(surf, color, v.rtop(self.center), v.rtop(end))
-#     #
-#     def points(self):
-#         ar = np.array
-#         v, dims = self.view, draw_surf.dims
-#         #
-#         R, rgrads, agrads = self._compute()
-#         dr = rgrads[-1]
-#         dt = agrads[-1]
-#         nrings = R // dr
-#         #
-#         # go from polar to eucl
-#         angles = np.arange(0, 2 * np.pi - params.eps, dt)
-#         units = ar([np.cos(angles), np.sin(angles)]).transpose()
-#         first_ring = dr * units
-#         last_ring = nrings * dr * units
-#         points = np.linspace(first_ring, last_ring, int(nrings)).reshape((-1, 2)) # index 0 is [0, 0]
-#         points = np.concatenate( ar([[0, 0]]) , points) + self.center
-#         #
-#         # filter within surf
-#         bounds = ar([ v.ptor([0, 0]), v.ptor(dims) ])
-#         T = points.transpose()
-#         xs, ys = T[0], T[1]
-#         afilter = (bounds[0][0] <= xs) & (xs <= bounds[1][0])
-#         afilter &= (bounds[1][1] <= ys) & (ys <= bounds[0][1]) # inverted because corner is down
-#         return points[afilter]
-# 
