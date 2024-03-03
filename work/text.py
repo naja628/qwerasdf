@@ -59,8 +59,15 @@ class TextArea:
     #
     def set_width(self, width):
         self.width = width
+        self._render()
     #
     def write_section(self, section, lines):
+        self.sections[section].lines = lines
+        self._render()
+    #
+    def display_lines(self, section):
+        lines = self.sections[section].lines
+        #
         cpl = self.width // self.ch_dim[0]
         if self.sections[section].wrap:
             def split_line(line):
@@ -71,21 +78,19 @@ class TextArea:
             lines = [line[0:cpl] for line in lines]
         a, b = self.sections[section].minmax
         if len(lines) < a: lines = lines + [''] * (a - len(lines)) 
-        elif len(lines) > b: lines = lines[:b+1]
+        elif len(lines) > b: lines = lines[:b]
         #
-        self.sections[section].lines = lines
-        self.surf = self._render()
+        return lines
     #
     def _render(self):
-        # TODO needs optimized? maybe use a bool to know if lines changed, 
-        # or pre-alloc a Surface, and return a sub area written to?
-        colorlines = _flatten1([ [(line, se.color) for line in se.lines] 
-            for se in self.sections.values() ])
+        colorlines = _flatten1([ [(line, se_v.color) for line in self.display_lines(se_k)] 
+            for se_k, se_v in self.sections.items() ])
         surf = Surface((self.width, len(colorlines) * self.ch_dim[1]))
         surf.fill(self.bg)
         for i, (line, color) in enumerate(colorlines):
             s = self.font.render(line, True, color, self.bg)
             surf.blit(s, (0, i * self.ch_dim[1]))
+        self.surf = surf
         return surf
     # 
     def render(self):

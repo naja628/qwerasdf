@@ -122,7 +122,7 @@ def iter_hook(f, watched, filter = lambda ev: True, cleanup = None):
 
 ## Pygame event related utils
 
-# TODO probably OS dependent (Works on windows and Linux so far so ?)
+# TODO probably OS dependent (Works on windows and Linux so far so maybe not ?)
 MS_LEFT, MS_MID, MS_RIGHT = 1, 2, 3
 
 ms = Rec()
@@ -184,13 +184,15 @@ LOOP = pg.event.custom_type()  # TODO where should this be declared for cleaner?
 def rewind_hook(hook, ev, context):
     type = mouse_subtype(ev)
     if not context.autosaver:
-        hook.finsish()
+        post_error("not connected to a session", context)
+        hook.finish()
     elif type == ms.WHEEL:
         context.autosaver.rewind(-ev.y)
     elif type == LOOP:
         load_me = context.autosaver.current_file()
         if load_me: load_to_context(context, load_me)
     elif type == ms.LCLICK or type == ms.RCLICK:
+        reset_menu(context)
         hook.finish()
 
 # Camera Control
@@ -243,31 +245,33 @@ def create_points_hook(hook, ev, context):
             filter = lambda ev: mouse_subtype(ev) == ms.LCLICK,
             cleanup = lambda context: reset_hints(context) )
 def create_lines_hook(hook, context):
+    def _Line(*a, **ka): return Line(*a, **ka, ndivs = context.df_divs['line'])
+    #
     while True:
         start = None
         hook.event_loop( lambda ev: set_hints(context, Point(_evpos(context, ev))) )
         #
         ev = yield
         start = _evpos(context, ev)
-        hook.event_loop( lambda ev: set_hints(context, Line(start, _evpos(context, ev))) )
+        hook.event_loop( lambda ev: set_hints(context, _Line(start, _evpos(context, ev))) )
         #
         ev = yield
-        create_shapes(context, Line(start, _evpos(context, ev)))
+        create_shapes(context, _Line(start, _evpos(context, ev)))
         reset_hints(context)
 
 @iter_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, 
             filter = lambda ev: mouse_subtype(ev) == ms.LCLICK,
             cleanup = lambda context: reset_hints(context) )
 def create_circles_hook(hook, context):
-    def wcircle(p1, p2):
-        if center_first: return Circle(p1, p2)
-        else: return Circle(p2, p1)
+    def _Circle(p1, p2):
+        if center_first: return Circle(p1, p2, ndivs = context.df_divs['circle'])
+        else: return Circle(p2, p1, ndivs = context.df_divs['circle'])
     #
     def evloop(ev):
         nonlocal center_first
         if mouse_subtype(ev) == ms.RCLICK: 
             center_first = not center_first
-        set_hints(context, wcircle(point1, _evpos(context, ev)))
+        set_hints(context, _Circle(point1, _evpos(context, ev)))
     #
     while True:
         point1, center_first = None, True
@@ -279,7 +283,7 @@ def create_circles_hook(hook, context):
         #
         ev = yield
         create_shapes(context, 
-                wcircle(point1, _evpos(context, ev) ),
+                _Circle(point1, _evpos(context, ev) ),
                 Point(point1 if center_first else _evpos(context, ev)))
         reset_hints(context)
 
@@ -287,6 +291,9 @@ def create_circles_hook(hook, context):
             filter = lambda ev: mouse_subtype(ev) == ms.LCLICK,
             cleanup = lambda context: reset_hints(context) )
 def create_arcs_hook(hook, context):
+    def _Arc(*a, **ka): return Arc(*a, **ka, ndivs = context.df_divs['arc'])
+    def _Circle(*a, **ka): return Circle(*a, **ka, ndivs = context.df_divs['circle'])
+    #
     cx, clockwise, subloop = context, False, None
     def loop(ev):
         nonlocal clockwise
@@ -300,19 +307,20 @@ def create_arcs_hook(hook, context):
         ev = yield
         center = _evpos(cx, ev)
         #
-        subloop = lambda ev: set_hints(cx, Circle(center, _evpos(cx, ev)))
+        subloop = lambda ev: set_hints(cx, _Circle(center, _evpos(cx, ev)))
         ev = yield
         start = _evpos(cx, ev)
         #
-        subloop = lambda ev: set_hints(cx, Arc(center, start, _evpos(cx, ev), clockwise = clockwise))
+        subloop = lambda ev: set_hints(cx, _Arc(center, start, _evpos(cx, ev), clockwise = clockwise))
         ev = yield
         end = _evpos(cx, ev)
         #
-        create_shapes(cx, Arc(center, start, end, clockwise = clockwise))
+        create_shapes(cx, _Arc(center, start, end, clockwise = clockwise))
 
 @iter_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, 
             cleanup = lambda context: reset_hints(context) )
 def create_poly_hook(hook, context):
+    def _Poly(*a, **ka): return PolyLine(*a, **ka, ndivs = context.df_divs['poly'])
     points, new = [], False
     #
     def reset():
@@ -328,19 +336,18 @@ def create_poly_hook(hook, context):
         match mouse_subtype(ev):
             case ms.LCLICK:
                 if points and (pos == points[0]).all():
-                    create_shapes(context, PolyLine(*points, loopy = True))
+                    create_shapes(context, _Poly(*points, loopy = True))
                     reset()
                 else:
                     points.append(_evpos(context, ev))
             case ms.RCLICK:
-                create_shapes(context, PolyLine(*points, loopy = False))
+                create_shapes(context, _Poly(*points, loopy = False))
                 reset()
             case _:
-                set_hints(context, PolyLine(*points, pos, loopy = False))
+                set_hints(context, _Poly(*points, pos, loopy = False))
     ###
 
 # Weaves
-
 @iter_hook( { pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION },
             filter = lambda ev: mouse_subtype(ev) == ms.LCLICK,
             cleanup = lambda context: reset_hints(context))
@@ -469,7 +476,7 @@ def color_picker_hook(hook, ev, context, *, _state):
             cx.palette[cx.color_key] = color
     redraw_weaves(cx)
 
-## SELECTION
+# Selection 
 @loop_hook({ pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION }, lambda context: reset_hints(context))
 def select_hook(hook, ev, context):
         cur_pos, matches = snappy_get_point(context, ev.pos)
@@ -597,11 +604,127 @@ def transform_selection_hook(hook, context, want_copy = False):
     #
     hook.event_loop(inner)
 
+# @iter_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, 
+#             filter = lambda ev: mouse_subtype(ev) in {ms.LCLICK, pg.KEYDOWN},
+#             cleanup = lambda context: reset_hints(context))
+# def interactive_transform_hook(hook, context):
+#     # TODO extra hints (axis etc)
+#     hflip = np.array( [ [ 1, 0 ], [0, -1]] )
+#     def rot(cos, sin): return np.array( [[cos, -sin], [sin, cos]] )
+#     def unit(u): 
+#         d = dist(u, [0, 0])
+#         if near_zero(d): raise ZeroDivisionError
+#         return np.array(u) / dist(u, [0, 0])
+#     #
+#     cx = context
+#     def evloop(ev):
+#         nonlocal center
+#         if mouse_subtype(ev) == ms.RCLICK: center = _evpos(cx, ev)
+#         #
+#         reset_hints(cx)
+#         if pending != cx.selected: cx.hints = [*pending]
+#         if pendingT: cx.hints += [ pendingT(_evpos(cx, ev), sh) for sh in pending ]
+#         else: cx.hints.append( Point(_evpos(cx, ev)) )
+#     hook.event_loop(evloop)
+#     submenu = {  
+#             'Q': "put down", 'W': "put copy", 'E': "still", 'R': "close",
+#             'A': "scale",    'S': "rotate", 'D': "move", 'F': "flip", }
+#     steal_menu_keys(hook, cx.menu, 'QWERASDF', submenu)
+#     #
+#     center, _ = snappy_get_point(cx, pg.mouse.get_pos())
+#     pending, pendingT = cx.selected, None
+#     #
+#     def action(ev): 
+#         try: return submenu[alpha_scan(ev)]
+#         except: return ''
+#     while True:
+#         # q put down w       e        r finish     
+#         # a put copy s move  d rot    f flip 
+#         ev = yield
+#         match action(ev):
+#             case "close": return
+#             case "move":
+#                 start, _ = snappy_get_point(cx, pg.mouse.get_pos())
+#                 pendingT = lambda end, sh: sh.moved(end - start)
+#             case "flip":
+#                 start, _ = snappy_get_point(cx, pg.mouse.get_pos())
+# #                 def do_flip(to, sh):
+# #                     try:
+# #                         xcenter = np.array([start[0], to[1]]) # ignore nonlocal center
+# #                         if near_zero(to[0] - start[0]):
+# #                             raise ZeroDivisionError
+# #                         ratio = (to[1] - start[1]) / (to[0] - start[0])
+# #                         matrix = np.array([
+# #                                 [0.0,  - 1 / ratio],
+# #                                 [- ratio, 0.0] ])
+# #                     except:
+# #                         matrix = np.identity(2)
+# #                     return sh.transformed(matrix, center)
+#                 if almost_equal(start, center):
+#                     post_error("can't start on center", context)
+#                     continue
+#                 def do_flip(to, sh):
+#                     try:
+#                         # prolly not the best way
+#                         [x, y] = unit(unit(to - center) - unit(start - center))
+#                         [c, s] = y, -x
+#                         matrix = rot(c ** 2 - s ** 2, 2 * c * s) @ hflip
+#                     except ZeroDivisionError:
+#                         matrix = np.identity(2)
+#                     return sh.transformed(matrix, center)
+#                 pendingT = do_flip
+#             case "rotate":
+#                 start, _ = snappy_get_point(cx, pg.mouse.get_pos())
+#                 if almost_equal(start, center):
+#                     post_error("can't start on center", context)
+#                     continue
+#                 def do_rot(to, sh):
+#                     try: 
+#                         [c1, s1] = unit(start - center)
+#                         [c2, s2] = unit(to - center)
+#                         # sin b - a = sin b cos a - sin a cos b
+#                         # cos b - a = cos a cos b + sin a sin b
+#                         matrix = rot(c1 * c2 + s1 * s2, s2 * c1 - s1 * c2)
+#                     except ZeroDivisionError:
+#                         matrix = np.identity(2)
+#                     return sh.transformed(matrix, center)
+#                 pendingT = do_rot
+#             case "scale":
+#                 start, _ = snappy_get_point(cx, pg.mouse.get_pos())
+#                 if almost_equal(start, center):
+#                     post_error("can't start on center", context)
+#                     continue
+#                 def do_scale(to, sh):
+#                     try:
+#                         rstart = dist(center, start)
+#                         rend = dist(center, to)
+#                         matrix = rend / rstart * np.identity(2)
+#                     except ZeroDivisionError:
+#                         return np.identity(2)
+#                     return sh.transformed(matrix, center)
+#                 pendingT = scale
+#             case "still": 
+#                 pendingT = None
+#             case _:
+#                 if pendingT:
+#                     pos, _ = snappy_get_point(cx, pg.mouse.get_pos())
+#                     pending = [ pendingT(pos, sh) for sh in pending ]
+#                     pendingT = None
+#         match action(ev):
+#             case "put copy": 
+#                 new_weaves = copy_weaves_inside(pending, cx.selected, cx.weaves, cx)
+#                 cx.shapes, cx.selected = merge_into(cx.shapes, pending, new_weaves)
+#                 pending = cx.selected
+#             case "put down": 
+#                 new_weaves = copy_weaves_into(pending, cx.selected, cx.weaves, cx)
+#                 delete_selection(cx)
+#                 cx.shapes, cx.selected = merge_into(cx.shapes, pending, new_weaves)
+#                 return
+#         evloop(Rec(type = pg.MOUSEMOTION, pos = pg.mouse.get_pos()))
+
 @iter_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, 
-            filter = lambda ev: mouse_subtype(ev) in {ms.LCLICK, pg.KEYDOWN},
             cleanup = lambda context: reset_hints(context))
 def interactive_transform_hook(hook, context):
-    # TODO extra hints (axis etc)
     hflip = np.array( [ [ 1, 0 ], [0, -1]] )
     def rot(cos, sin): return np.array( [[cos, -sin], [sin, cos]] )
     def unit(u): 
@@ -610,112 +733,94 @@ def interactive_transform_hook(hook, context):
         return np.array(u) / dist(u, [0, 0])
     #
     cx = context
-    def evloop(ev):
-        nonlocal center
-        if mouse_subtype(ev) == ms.RCLICK: center = _evpos(cx, ev)
+    actions = { 
+            ms.LCLICK: "apply change", ms.RCLICK: "put copy",
+            'Q': "cancel change", 'W': "done",                'R': "recenter",
+            'A': "scale",         'S': "move", 'D': "rotate", 'F': "flip",
+            }
+    stolen_keys = { k: v for k, v in actions.items() 
+                    if (type(k) is str and k in 'QWERASDF') }
+    steal_menu_keys(hook, cx.menu, 'QWERASDF', stolen_keys)
+    def action(ev):
+        if ev.type == pg.KEYDOWN: key = alpha_scan(ev)
+        else: key = mouse_subtype(ev)
         #
-        reset_hints(cx)
-        if pending != cx.selected: cx.hints = [*pending]
-        if pendingT: cx.hints += [ pendingT(_evpos(cx, ev), sh) for sh in pending ]
-        else: cx.hints.append( Point(_evpos(cx, ev)) )
-    hook.event_loop(evloop)
-    submenu = {  
-            'Q': "put down", 'W': "put copy", 'E': "still", 'R': "close",
-            'A': "scale",    'S': "rotate", 'D': "move", 'F': "flip", }
-    steal_menu_keys(hook, cx.menu, 'QWERASDF', submenu)
+        try: return actions[key]
+        except KeyError: return key
     #
     center, _ = snappy_get_point(cx, pg.mouse.get_pos())
-    pending, pendingT = cx.selected, None
+    pendingT = None
     #
-    def action(ev): 
-        try: return submenu[alpha_scan(ev)]
-        except: return ''
     while True:
-        # q put down w       e        r finish     
-        # a put copy s move  d rot    f flip 
         ev = yield
+        try: pos = _evpos(cx, ev)
+        except AttributeError: pos, _ = snappy_get_point(cx, pg.mouse.get_pos())
+        # "Basic" Actions
         match action(ev):
-            case "close": return
-            case "move":
-                start, _ = snappy_get_point(cx, pg.mouse.get_pos())
-                pendingT = lambda end, sh: sh.moved(end - start)
-            case "flip":
-                start, _ = snappy_get_point(cx, pg.mouse.get_pos())
-#                 def do_flip(to, sh):
-#                     try:
-#                         xcenter = np.array([start[0], to[1]]) # ignore nonlocal center
-#                         if near_zero(to[0] - start[0]):
-#                             raise ZeroDivisionError
-#                         ratio = (to[1] - start[1]) / (to[0] - start[0])
-#                         matrix = np.array([
-#                                 [0.0,  - 1 / ratio],
-#                                 [- ratio, 0.0] ])
-#                     except:
-#                         matrix = np.identity(2)
-#                     return sh.transformed(matrix, center)
-                if almost_equal(start, center):
-                    post_error("can't start on center", context)
-                    continue
-                def do_flip(to, sh):
-                    try:
-                        # prolly not the best way
-                        [x, y] = unit(unit(to - center) - unit(start - center))
-                        [c, s] = y, -x
-                        matrix = rot(c ** 2 - s ** 2, 2 * c * s) @ hflip
-                    except ZeroDivisionError:
-                        matrix = np.identity(2)
-                    return sh.transformed(matrix, center)
-                pendingT = do_flip
-            case "rotate":
-                start, _ = snappy_get_point(cx, pg.mouse.get_pos())
-                if almost_equal(start, center):
-                    post_error("can't start on center", context)
-                    continue
-                def do_rot(to, sh):
-                    try: 
-                        [c1, s1] = unit(start - center)
-                        [c2, s2] = unit(to - center)
-                        # sin b - a = sin b cos a - sin a cos b
-                        # cos b - a = cos a cos b + sin a sin b
-                        matrix = rot(c1 * c2 + s1 * s2, s2 * c1 - s1 * c2)
-                    except ZeroDivisionError:
-                        matrix = np.identity(2)
-                    return sh.transformed(matrix, center)
-                pendingT = do_rot
-            case "scale":
-                start, _ = snappy_get_point(cx, pg.mouse.get_pos())
-                if almost_equal(start, center):
-                    post_error("can't start on center", context)
-                    continue
-                def do_scale(to, sh):
-                    try:
-                        rstart = dist(center, start)
-                        rend = dist(center, to)
-                        matrix = rend / rstart * np.identity(2)
-                    except ZeroDivisionError:
-                        return np.identity(2)
-                    return sh.transformed(matrix, center)
-                pendingT = scale
-            case "still": 
-                pendingT = None
-            case _:
+            case "done": return
+            case "cancel change": pendingT = None
+            case "recenter": center = pos
+            case "apply change":
                 if pendingT:
-                    pos, _ = snappy_get_point(cx, pg.mouse.get_pos())
-                    pending = [ pendingT(pos, sh) for sh in pending ]
+                    for sh in cx.selected:
+                        pendingT(pos, sh, copy = False)
+                    merge_into(cx.shapes, cx.selected, cx.weaves)
+                    redraw_weaves(cx)
                     pendingT = None
+            case "put copy":
+                if pendingT:
+                    new_shapes = [pendingT(pos, sh, copy = True) for sh in cx.selected]
+                    new_weaves = copy_weaves_inside(new_shapes, cx.selected, cx.weaves, cx)
+                    cx.shapes, cx.selected = merge_into(cx.shapes, new_shapes, new_weaves)
+                    pendingT = None
+        ##
+        def apply_matrix(f):
+            nonlocal pendingT
+            def wrapped(to, sh, copy = True):
+                try: matrix = f(to, sh)
+                except ZeroDivisionError: matrix = np.identity(2)
+                #
+                if copy: return sh.transformed(matrix, center)
+                else: sh.transform(matrix, center)
+            pendingT = wrapped
+        # Set current transformation (parametrized by current pos)
         match action(ev):
-            case "put copy": 
-                new_weaves = copy_weaves_inside(pending, cx.selected, cx.weaves, cx)
-                cx.shapes, cx.selected = merge_into(cx.shapes, pending, new_weaves)
-                pending = cx.selected
-            case "put down": 
-                new_weaves = copy_weaves_into(pending, cx.selected, cx.weaves, cx)
-                delete_selection(cx)
-                cx.shapes, cx.selected = merge_into(cx.shapes, pending, new_weaves)
-                return
-        evloop(Rec(type = pg.MOUSEMOTION, pos = pg.mouse.get_pos()))
+            case "move":
+                start = pos
+                def do_move(to, sh, copy = True):
+                    if copy: return sh.moved(to - start)
+                    else: sh.move(to - start)
+                pendingT = do_move
+            case "rotate":
+                start = pos
+                @apply_matrix
+                def rot_matrix(to, sh):
+                    [c1, s1] = unit(start - center)
+                    [c2, s2] = unit(to - center)
+                    return rot(c1 * c2 + s1 * s2, s2 * c1 - s1 * c2)
+            case "flip":
+                start = pos
+                @apply_matrix
+                def flip_matrix(to, sh):
+                    [x, y] = unit(unit(to - center) - unit(start - center))
+                    [c, s] = y, -x
+                    return rot(c ** 2 - s ** 2, 2 * c * s) @ hflip
+            case "scale":
+                start = pos
+                @apply_matrix
+                def do_scale(to, sh, copy = True):
+                    rstart = dist(center, start)
+                    if near_zero(rstart):
+                        raise ZeroDivisionError
+                    rend = dist(center, to)
+                    return rend / rstart * np.identity(2)
+        # Set hints (show pending change)
+        if pendingT: set_hints(cx, *[pendingT(pos, sh, copy = True) for sh in cx.selected])
+        else: set_hints(cx, Point(pos))
+    ###
 
-## MINITER
+
+# Miniter
 def miniter_hook(hook, context, cmd = ''):
     setup_hook(hook, { pg.KEYDOWN }, (context.text.write_section, 'term', []) )
     def set_line(cmd):
@@ -748,4 +853,51 @@ def miniter_hook(hook, context, cmd = ''):
             set_line(state.cmd)
     #
     hook.event_loop(inner)
+
+## Grid
+@loop_hook({pg.MOUSEWHEEL, pg.MOUSEBUTTONDOWN})
+def grid_sparseness_hook(hook, ev, context):
+    match mouse_subtype(ev):
+        case ms.WHEEL:
+            context.grid.smallest_grad += params.grid_sparseness_scroll_speed * ev.y
+            context.grid.smallest_grad = clamp(10, context.grid.smallest_grad, 500)
+        case ms.LCLICK | ms.RCLICK:
+            hook.finish()
+
+@iter_hook( {pg.MOUSEMOTION, pg.MOUSEBUTTONDOWN}, 
+            filter = lambda ev: mouse_subtype(ev) == ms.LCLICK,
+            cleanup = lambda context: reset_hints(context))
+def grid_phase_hook(hook, context):
+    grid = context.grid
+    def loop(ev):
+        if mouse_subtype(ev) == ms.MOTION:
+            set_hints(context, Line(grid.center, _evpos(context, ev), ndivs = 1) )
+        if mouse_subtype(ev) == ms.RCLICK:
+            hook.finish()
+    hook.event_loop(loop)
+    #
+    while True:
+        ev = yield
+        pos = _evpos(context, ev)
+        if almost_equal(pos, grid.center):
+            # maybe post error
+            continue
+        [x, y] = pos - grid.center
+        grid.phase = atan2(y, x) % (2 * np.pi)
+        return
+
+@iter_hook( {pg.MOUSEMOTION, pg.MOUSEBUTTONDOWN}, 
+            filter = lambda ev: mouse_subtype(ev) == ms.LCLICK,
+            cleanup = lambda context: reset_hints(context))
+def grid_recenter_hook(hook, context):
+    grid = context.grid
+    def loop(ev):
+        if mouse_subtype(ev) == ms.MOTION:
+            set_hints(context, Point(_evpos(context, ev)) )
+        if mouse_subtype(ev) == ms.RCLICK:
+            hook.finish()
+    hook.event_loop(loop)
+    #
+    ev = yield
+    grid.center = _evpos(context, ev)
 

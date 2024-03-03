@@ -7,15 +7,17 @@ from color import draw_palette, ColorPicker
 from hooks import EvDispatch
 from text import TextArea
 from hooks import *
-from context import delete_selection, unweave_inside_selection
+from context import delete_selection, unweave_inside_selection, MENU_RESET
 from menu import Menu
-from save import Autosaver, save_path, save
+from save import Autosaver, save_path, save, save_buffer
 from params import params
+from grid import Grid
 
 _sho = Menu.Shortcut
 _menu_layout = ['QWER', 'ASDF', 'ZXCV']
 _nested_menu = {
-        'A': "Rewind",
+        'A': ("Grid", 
+            {   'A': "Grid on/off", 'S': "Grid +/- sparse", 'D': "Grid recenter", 'F': "Grid phase"}),
         'S': ("Selection", 
             {   'W': "Visual", 'E': "Unweave", 'R': "Remove",
                 'A': "Transform", 'S': "Copy-Transform", 'D': "Move", 'F': "Copy-Move" }),
@@ -26,7 +28,7 @@ _nested_menu = {
             {   'W': "Color Picker", 'E': "Select Color",
                                      'D': ("Create Shape", _sho('D')), 'F': ("Draw Weaves", _sho('F'))}),
         }
-_pinned_menu = {'Z': "Camera", 'X': "Menu Top", 'C': "Command"}
+_pinned_menu = {'Z': "Camera", 'X': "Menu Top", 'C': "Command", 'V': "Rewind"}
 
 _menuaction_info = { # What the user has to do AFTER, not what it does
         "New Arc": "LCLICK * 3: place center, start, end | RCLICK: invert rotation",
@@ -44,13 +46,14 @@ _menuaction_info = { # What the user has to do AFTER, not what it does
         "Copy-Move": "LCLICK -> confirm (new copy will be created) | RCLICK -> cancel",
         "Transform": "LCLICK -> confirm (shape will change) | RCLICK -> cancel",
         "Cp-Transform": "LCLICK -> confirm (new copy will be created) | RCLICK -> cancel",
-        "Visual": "LCLICK -> next change | RCLICK -> place transform center",
+        "Visual": "LCLICK -> apply change | RCLICK -> put copy",
         "Color Picker": "LCLICK -> apply | RCLICK -> close | QWERASDF -> change affected color | WHEEL -> adjust brightness",
+        # TODO grid 
         }
 
 
 def menu_hook(hook, context):
-    setup_hook(hook, {KEYDOWN})
+    setup_hook(hook, {KEYDOWN, MENU_RESET})
     #
     menu = context.menu
     state = Rec(main_hook = None)
@@ -68,12 +71,15 @@ def menu_hook(hook, context):
         else: state.main_hook = subhook
     #
     def inner(ev):
-        if ev.key == K_SPACE:
-            menu.go_path("")
-            set_hook(None)
-            return
-        key = alpha_scan(ev)
-        menu_item = menu.go(key)
+        if ev.type == MENU_RESET:
+            menu_item = menu.go_path(ev.path)
+        else:
+            if ev.key == K_SPACE:
+                menu.go_path("")
+                set_hook(None)
+                return
+            key = alpha_scan(ev)
+            menu_item = menu.go(key)
         try: post_info( _menuaction_info[menu_item], context)
         except KeyError: pass
         match menu_item:
@@ -105,6 +111,12 @@ def menu_hook(hook, context):
             case "Draw Weaves": set_hook(create_weaves_hook, context)
             case "Select Color": overhook(select_color_hook, context)
             case "Color Picker": overhook(color_picker_hook, context)
+            # Grid
+            case "Grid on/off": toggle_grid(context)
+            case "Grid +/- sparse": set_hook(grid_sparseness_hook, context)
+            case "Grid recenter": set_hook(grid_recenter_hook, context)
+            case "Grid phase": set_hook(grid_phase_hook, context)
+            #
             case _: set_hook(None) # Necessary? Good?
     #
     hook.event_loop(inner)
@@ -134,15 +146,12 @@ def init_context(dimensions):
     #
     cx.menu = Menu(_nested_menu, _pinned_menu, _menu_layout)
     #
-#     cx.menubox = TextArea(dimensions[0], numlines = 3)
     cx.show_menu = True
-#     cx.bottom_text = TextArea(dimensions[0], numlines = 3)
-#     cx.TERMLINE, cx.ERRLINE, cx.INFOLINE = 0, 1, 2 # line numbers, maybe move to `params`?
     sections = {
-            'error': ((0,1), params.error_text_color, True),
-            'info': ((0, 3), params.text_color, True),
-            'term': ((0, 1), params.term_color, False),
             'menu': ((0, 3), params.text_color, False),
+            'term': ((0, 1), params.term_color, False),
+            'error': ((0,2), params.error_text_color, True),
+            'info': ((0, 4), params.text_color, True),
             }
     cx.text = TextArea(params.font_size, params.start_dimensions[0], params.background)
     cx.text.set_sections_abcw(sections)
@@ -154,6 +163,9 @@ def init_context(dimensions):
     #
     cx.default_rotation = 2 * pi / 6
     #
+    cx.df_divs = {'circle': 120, 'line': 20, 'arc': 20, 'poly': 60}
+    #
+    cx.last_save_buffer = ''
     try:
         cx.autosaver = Autosaver(path.join(params.autosave_dir, 'default'), 
                                  pulse = params.autosave_pulse)
@@ -163,6 +175,9 @@ def init_context(dimensions):
                 "Use `session <name>` to connect to another session", 
                 cx)
         cx.autosaver = None
+    #
+    cx.grid = Grid(cx.view, cx.screen)
+    cx.grid_on = True
     return cx
 
 def del_context(context):
@@ -171,12 +186,13 @@ def del_context(context):
 def main():
     init() #pygame
     g = init_context(params.start_dimensions)
-    #
+    g.last_save_buffer = save_buffer(g, extra = {'session'})
+    # Base actions
     g.dispatch.add_hook(zoom_hook, g)
     g.dispatch.add_hook(autosave_hook, g)
     g.dispatch.add_hook(click_move_hook, g)
     g.dispatch.add_hook(menu_hook, g)
-    #
+    # Read rc:
     for filename in params.dotrc_path:
         try:
             with open(filename) as rc:
@@ -185,7 +201,7 @@ def main():
                     miniter_exec(line, g)
             break
         except: continue
-    #
+    # Main loop:
     clock = time.Clock()
     g.QUIT = False
     if path.isfile(path.join(params.save_dir, params.recover_filename)):
@@ -219,7 +235,15 @@ def main():
             #
             # Draw Rest: (on top)
             g.screen.lock()
-            # for we in g.weaves: we.draw(g.screen, g.view)
+            # draw grid:
+            # note: update may be slightly "too late" if the view has changed this frame
+            #  but this avoids re-doing expensive computations and is probably not perceptible
+            if g.grid_on:
+                g.grid.update(g.view, g.screen.get_size())
+                g.grid.render(g.screen, params.background, params.grid_color)
+#             # TESTING
+#             for p in g.grid.points(): Point(p).draw(g.screen, g.view, Color(255, 0, 0))
+            # draw shapes, etc
             for sh in g.shapes: sh.draw(g.screen, g.view, params.shape_color)
             for sel in g.selected: sel.draw(g.screen, g.view, color = params.select_color)
             for hi in g.hints: hi.draw(g.screen, g.view, color = params.hint_color)

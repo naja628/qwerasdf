@@ -36,7 +36,7 @@ params.start_palette = {
 
 params.font_size = 15
 params.text_color = Color(192, 192, 192)
-params.error_text_color = Color(128, 32, 32)
+params.error_text_color = Color(200, 30, 60)
 params.term_color = Color(0, 160, 128)
 
 params.term_xx_close = True # typing 'xx' or 'XX' at the end of the prompt will close the terminal
@@ -44,12 +44,16 @@ params.term_xx_close = True # typing 'xx' or 'XX' at the end of the prompt will 
 params.start_ndivs = 60 # TODO used anywhere?
 params.snap_radius = 9
 
-params.zoom_factor = 1.1
+params.zoom_factor = 1.05
 
 params.brightness_scroll_speed = 0.025
 params.min_pick_saturation = 0.2
 
 params.bottom_margin = 15
+
+params.grid_color = Color(255, 255, 255)
+params.grid_fade_factor = 1 / 2
+params.grid_sparseness_scroll_speed = 3
 
 # touch at own risk
 params.eps = 0.0000001 # distance under which two points are considered "the same"
@@ -118,8 +122,12 @@ def _read_conf():
             'select_color': rcolor(),
             'hint_color': rcolor(),
             #
+            'grid_color': rcolor(),
+            'grid_fade_factor': rfloat(0.01, 0.99),
+            'grid_sparseness_scroll_speed': rint(1, 25),
+            #
             'point_color': rcolor(),
-            'point_radius': rint(1, 4),
+            'point_radius': rint(0, 5),
             #
             'zoom_factor': rfloat(0.25, 4),
             'brightness_scroll_speed': rfloat(1 / 256, 0.2),
@@ -157,9 +165,11 @@ def _read_conf():
                 val = apply_cast(val_str)
                 setattr(params, param, val)
             except KeyError:
-                eprint(f"line {i} | no such param: '{param}'")
-            except BaseException as e:
-                eprint(f"line {i} | expected [{e}] for '{param}', but got '{val_str}'")
+                eprint(f"line {i+1} | no such param: '{param}'")
+            except CastExn as e:
+                eprint(f"line {i+1} | expected [{e}] for '{param}', but got '{val_str}'")
+            except:
+                eprint("Unexpected error reading conf")
     finally:
         f.close()
     ##

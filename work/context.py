@@ -3,7 +3,7 @@ import os
 
 from util import Rec, sqdist
 from params import params
-from pygame import Surface
+from pygame import Surface, event
 from save import Autosaver, load
 
 def snappy_get_point(context, pos):
@@ -24,6 +24,37 @@ def snappy_get_point(context, pos):
         if sqdist(snappoint, sh.divs[i]) < params.eps ** 2:
             candidates.append(Rec(s = sh, i = i))
     #filter candidates, they need to be equal to actual found
+    candidates = [ cd for cd in candidates 
+            if sqdist(cd.s.divs[cd.i], snappoint) < params.eps ** 2]
+    return np.copy(snappoint), candidates
+
+def snappy_get_point(context, pos):
+    cx = context
+    sq_rrad = cx.view.ptord(params.snap_radius) ** 2
+    point = cx.view.ptor(pos)
+    snappoint = point
+    shortest = sq_rrad + params.eps
+    candidates = []
+    def find_shortest(points):
+        rels = points - point
+        rels **= 2
+        [xs, ys] = np.split(rels, 2, axis = 1)
+        sqdists = xs + ys
+        i = np.argmin(sqdists)
+        return i, sqdists[i]
+    #
+    for sh in cx.shapes:
+        i, d = find_shortest(sh.divs)
+        if d < min(sq_rrad, shortest):
+            snappoint, shortest = sh.divs[i], d 
+        if sqdist(snappoint, sh.divs[i]) < params.eps ** 2:
+            candidates.append(Rec(s = sh, i = i))
+    #filter candidates, they need to be equal to actual found
+    if cx.grid_on:
+        i, d = find_shortest(cx.grid.points())
+        if d < min(sq_rrad, shortest):
+            snappoint = cx.grid.points()[i] 
+    #
     candidates = [ cd for cd in candidates 
             if sqdist(cd.s.divs[cd.i], snappoint) < params.eps ** 2]
     return np.copy(snappoint), candidates
@@ -99,14 +130,13 @@ def reload_session(context, session_name):
         cx.autosaver = None
         return
     #
-    new_saver = Autosaver(os.path.join(params.autosave_dir, session_name),
-                          pulse = params.autosave_pulse)
-    if cx.autosaver: cx.autosaver.finish()
-    cx.autosaver = new_saver
-    if session_name == 'OFF':
-        cx.autosaver.finish()
-        cx.autosaver = None
-        return
+    try:
+        new_saver = Autosaver(os.path.join(params.autosave_dir, session_name),
+                              pulse = params.autosave_pulse)
+        if cx.autosaver: cx.autosaver.finish()
+        cx.autosaver = new_saver
+    except Autosaver.DirectoryBusyError:
+        post_error(f"'{session_name}' session already in use. ", cx)
 
 def load_to_context(context, file, load_extra = set()):
     context.hints = []
@@ -132,3 +162,9 @@ def import_to_context(context, file):
     #
     redraw_weaves(context)
 
+MENU_RESET = event.custom_type()
+def reset_menu(context, path = None):
+    context.dispatch.dispatch([event.Event(MENU_RESET, path = None)])
+
+def toggle_grid(context):
+    context.grid_on = not context.grid_on

@@ -6,6 +6,7 @@ from util import clamp
 
 # Simple Palette
 def draw_palette(palette, selected = None, label_color = params.background):
+    # TODO kerning is not a problem bc monospace
     font_ = font.SysFont(('MonoSpace', None), params.font_size * 15 // 10 )
     widths = []
     # get size:

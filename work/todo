@@ -1,54 +1,39 @@
-# Min for v2
-* set default div by shape type
+## Now
+Finish Grid:
+* grid hook can: on/off | +/- sparse | set phase (get phase to work) | recenter
+* commands to set subdivs
 
-* rework interactive transforms
+* colors use monospace
 
+## Bugs
+* (can't reproduce) saw weird rewind behavior
+* (can't reproduce) saw interactive_transform/merge/weave bug
+* weird event bugs in miniter (rctl or ctl-bksp)
+
+## Min for v2
 * manual
+* rework command descriptions + hints?
 * proper install process
 
-+ Ideally
-* fix ! logic in commands
-* smth with saves/load (eg lo shows options, `find` command, and accept unifished save names for load?)
+# Extra
+* command line args: 
+	basic: open first arg --norc --noconf --session= --cl --wd=
 
-* polar grid
-
+* rectangle or polygon selection
 * view show/hide options
-* command line args: commands, session, open, norc, continue (load last auto save)
 
-+Extra
+# Extra+
 * menu_translate
 * pinned commands
 
-+Extra extra
-* refactor terminal,
+# Extra++
 * export images
 * sync with save file
+* refactor terminal, (autocomplete, history, types, etc)
 
-### OLD
-
-## Easy Details
-* look for rc first in cwd, then in user home
-
-## LATER (features):
-
-* pinning commands under V 
-
-* manual 
-* 'menu_translate' (easy but PITA)
-
-Extra
-* snappy polar grid, 
-	(snappy_get_points should accepts extras, also use divs of intermediate from `interactive_transform` in extras)
-* refactor terminal + text? autocomplete, history, types?
-* export images
-
-## "DETAILS":
-	# Really Do
-* be able to set params + show/hide some types of thing
+# details:
 * remake tooltips (mostly done (VISUAL)). Keep up to date
-	# Eh
-* fix ! logic in command
+* be able to set params + show/hide some types of thing
 * only consider the last MOUSEMOTION every frame ?
 * maybe don't draw circle-center on existing shapes, merge points into shapes?
-
-* command line args: commands, session, open, norc
+* refactor: should a math_utils module (put some of the shape helper funs, + some utils)

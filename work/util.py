@@ -3,6 +3,15 @@ from math import sqrt
 
 import sys
 
+def take(seq, n):
+    seq = iter(seq)
+    ret = []
+    try:
+        for _ in range(n):
+            ret.append(next(seq))
+    finally:
+        return ret
+
 def eprint(*a, **ka):
     ka['file'] = sys.stderr
     print(*a, **ka)

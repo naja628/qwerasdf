@@ -38,13 +38,26 @@ class Menu:
     def __getitem__(self, key):
         return self.go(key, navigate = False)
     #
+#     def go_path(self, path):
+#         self.pos = self.root
+#         self._path = ""
+#         for (i, key) in enumerate(path):
+#             if self.go(key) == None:
+#                 self._path = path[:i]
+#                 break
     def go_path(self, path):
+        if path == None: path = self._path
+        #
         self.pos = self.root
         self._path = ""
+        prev, current = None, None
         for (i, key) in enumerate(path):
-            if self.go(key) == None:
+            current = self.go(key)
+            if current == None:
                 self._path = path[:i]
-                break
+                return prev
+            prev = current
+        return current
     #
     def path(self):
         return self._path

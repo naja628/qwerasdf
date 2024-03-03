@@ -157,7 +157,6 @@ class Circle(Shape):
         if (not near_zero(r)):
             return None
         else:
-            print('circle merger')
             def merger(i):
                 return int(-q + (-1 if self.clockwise != to.clockwise else 1) * i) % n
             return merger

@@ -47,7 +47,7 @@ def save_buffer(context, extra = set()):
             line = f"{k}="
             try:
                 match k: # only supported k = session for now
-                    case session:
+                    case 'session':
                         line += context.autosaver.root
                 p(line)
             except: pass # just ignore problematic lines
@@ -62,6 +62,7 @@ _save_header = ''.join([
 def write_save(filename, buffer, overwrite_ok = True, header = False):
     open_mode = 'w' if overwrite_ok else 'x'
     try:
+        filename = os.path.join('.', filename)
         os.makedirs(os.path.dirname(filename), exist_ok = True)
         with open(filename, open_mode) as f:
             buffer = _save_header + buffer if header else buffer
