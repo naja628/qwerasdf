@@ -20,18 +20,18 @@ def iter_subdiv(subdiv):
 
 class Grid:
     # center, phase, view, dims or surface, subdiv, sm
-    def __init__(self, view, surf):
-        self.center = np.array([-1, 1])
-        #self.center = np.array([0, 0])
-        self.rsubdivs = subdiv([], [2]) # r = radial
-        self.asubdivs = subdiv([6], [2]) # a = arc-wise
+    def __init__(self):
+        self.center = np.array([0, 0])
+        self.phase = 0
         self.smallest_grad = 100 # pixels
         #
+        self.rsubdivs = subdiv([], [2]) # r = radial
+        self.asubdivs = subdiv([6], [2]) # a = arc-wise
+        #
         self.fade_factor = params.grid_fade_factor
-        self.view = view
-        self.draw_surf = surf
-        self.phase = np.pi / 4
-        # call update
+        #
+        self._render = None
+        self._points = np.array([])
     #
     def update(self, view, dims):
         ar, v, tau, ph = np.array, view, 2 * np.pi, self.phase # abbrevs
@@ -130,6 +130,7 @@ class Grid:
         self._points = np.linspace(small_arc, big_arc, int(nrings)).reshape((-1, 2))
     #
     def render(self, surf, bg, fg):
+        if not self._render: return
         return self._render(surf, bg, fg)
     #
     def points(self):

@@ -35,12 +35,6 @@ class View:
     #
     def rzoom(self, rcenter, factor):
         self.ppu *= factor
-#         if self.ppu > params.max_ppu:
-#             self.ppu = params.max_ppu
-#             return
-#         if self.ppu < params.min_ppu:
-#             self.ppu = params.min_ppu
-#             return
         if not (params.min_ppu <= self.ppu <= params.max_ppu):
             self.ppu = clamp(self.ppu, params.min_ppu, params.max_ppu)
             return

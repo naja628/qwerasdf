@@ -156,7 +156,7 @@ def init_context(dimensions):
     cx.text = TextArea(params.font_size, params.start_dimensions[0], params.background)
     cx.text.set_sections_abcw(sections)
     #
-    cx.view = View()
+    cx.view = View(corner = (-1, 1))
     cx.weave_layer = Surface(dimensions)
     cx.screen = display.set_mode(params.start_dimensions)
     display.set_caption('QWERASDF')
@@ -176,8 +176,8 @@ def init_context(dimensions):
                 cx)
         cx.autosaver = None
     #
-    cx.grid = Grid(cx.view, cx.screen)
-    cx.grid_on = True
+    cx.grid = Grid()
+    cx.grid_on = False
     return cx
 
 def del_context(context):
