@@ -28,6 +28,7 @@ class View:
         return (px, py)
     #
     def ptord(self, pd):
+        "pixel to real; distance"
         return pd / self.ppu
     #
     def rtopd(self, rd):

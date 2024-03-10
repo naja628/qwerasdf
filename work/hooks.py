@@ -189,8 +189,8 @@ def rewind_hook(hook, ev, context):
     elif type == ms.WHEEL:
         context.autosaver.rewind(-ev.y)
     elif type == LOOP:
-        load_me = context.autosaver.current_file()
-        if load_me: load_to_context(context, load_me)
+        loaded_data = context.autosaver.load_current(context)
+        if loaded_data: load_to_context(context, loaded_data)
     elif type == ms.LCLICK or type == ms.RCLICK:
         reset_menu(context)
         hook.finish()
@@ -683,9 +683,17 @@ def interactive_transform_hook(hook, context):
             case "flip":
                 start = pos
                 @apply_matrix
+#                 def flip_matrix(to, sh):
+#                     [x, y] = unit(unit(to - center) - unit(start - center))
+#                     [c, s] = y, -x
+#                     return rot(c ** 2 - s ** 2, 2 * c * s) @ hflip
                 def flip_matrix(to, sh):
-                    [x, y] = unit(unit(to - center) - unit(start - center))
-                    [c, s] = y, -x
+                    v = unit(to - center) - unit(start - center)
+                    try: 
+                        [x, y] = unit(v)
+                        [c, s] = y, -x
+                    except ZeroDivisionError:
+                        [c, s] = unit(to - center)
                     return rot(c ** 2 - s ** 2, 2 * c * s) @ hflip
             case "scale":
                 start = pos

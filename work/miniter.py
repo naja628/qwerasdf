@@ -54,16 +54,16 @@ def term_exec(cmd, cmd_map, usage_map, context):
         return 0
     except CmdExn as e: 
         post_error(str(e), context); return e.exit_code
-    except BaseException as e:
-        try:
-            eprint('debug info: term caught', type(e), e) # debug
-            usage_msg = usage_map[cmd_map[cmd]].replace('$CMD', cmd)
-            post_error(usage_msg, context)
-        except BaseException as e:
-            eprint('debug info: term REcaught', type(e), e) #debug
-            post_error(str(e), context)
-        return 1
-
+    except BaseException as e: raise
+#         try:
+#             eprint('debug info: term caught', type(e), e) # debug
+#             usage_msg = usage_map[cmd_map[cmd]].replace('$CMD', cmd)
+#             post_error(usage_msg, context)
+#         except BaseException as e:
+#             eprint('debug info: term REcaught', type(e), e) #debug
+#             post_error(str(e), context)
+#         return 1
+# 
 class CmdExn(Exception): 
     def __init__(self, *a, exit_code = 1, **ka):
         self.exit_code = exit_code
@@ -169,7 +169,7 @@ def ls_saves_cmd(search = None, *, _env):
         post_info(', '.join(saves), _env.context) 
 
 @miniter_command(('load', 'lo'), "$CMD load_file || $CMD load_file !")
-def load_cmd(load, bang = None, *, _env):
+def load_cmd(search_file, bang = None, *, _env):
     "load file. Use ! to suppress save warning"
     #
     if bang != '!' and bang is not None: raise Exception()
@@ -179,13 +179,15 @@ def load_cmd(load, bang = None, *, _env):
         raise CmdExn(f"Would discard changes. Use '{_env.cmd} {load} !' to ignore")
     #
     try:
-        matches = [*_fuzzy_matches(load, _saves_list())]
+        matches = [*_fuzzy_matches(search_file, _saves_list())]
         if len(matches) == 0: raise CmdExn(f"no match for '{load}' found")
         elif len(matches) > 1: raise CmdExn(f"found several matches: {', '.join(matches)}")
         #
-        [load] = matches
-        load_to_context(_env.context, save_path(load), load_extra = {'session'})
-#         _env.context.menu.go_path('')
+        load_file = save_path( matches[0] )
+        loaded_data, extra = load(load_file)
+        load_to_context(_env.context, loaded_data, extra)
+        #
+        _env.context.last_save_buffer = save_buffer(_env.context, extra = {'session'})
         reset_menu(_env.context)
     except ParseError as e: raise CmdExn(str(e))
     except LoadError: raise CmdExn(f"Error loading {load}")
@@ -199,7 +201,7 @@ def exit_cmd(save_or_bang = None, *, _env):
     if not save_or_bang and not same:
         raise CmdExn(f"Quitting would discard changes. Use '{_env.cmd} !' to ignore")
     #
-    if save_or_bang != '!':
+    if save_or_bang and save_or_bang != '!':
         write_save(save_path(save_or_bang), buffer, header = True)
     _env.context.QUIT = True
 
@@ -322,17 +324,20 @@ def toggle_weaveback(*, _env):
     "toggle weaveback"
     _env.context.weaveback = not _env.context.weaveback
 
-@miniter_command(('set-rotation', 'rot'), "$CMD new_angle OR $CMD p / q  (p qth of a turn)")
-def set_default_rotation_cmd(*a, _env):
-    "set the size of the rotation when transforming shapes"
+def _read_angle(*a):
     if len(a) != 1 and len(a) != 3: raise Exception()
     if len(a) == 3 and a[1] != '/': raise Exception()
     #
-    if len(a) == 3: new_rot = 2 * pi * (a[0] / a[2])
-    elif type(a[0]) == int: new_rot = 2 * pi * a[0] / 360
-    elif type(a[0]) == float: new_rot = a[0]
+    if len(a) == 3: rot = 2 * pi * (a[0] / a[2])
+    elif type(a[0]) == int: rot = 2 * pi * a[0] / 360
+    elif type(a[0]) == float: rot = a[0]
     else: raise Exception
-    _env.context.default_rotation = new_rot
+    return rot
+
+@miniter_command(('set-rotation', 'rot'), "$CMD new_angle OR $CMD p / q  (p qth of a turn)")
+def set_default_rotation_cmd(*a, _env):
+    "set the size of the rotation when transforming shapes"
+    _env.context.default_rotation = _read_angle(*a)
 
 # Resizing
 @miniter_command( ('fullscreen', 'fu') )
@@ -363,6 +368,11 @@ def _parse_subdiv(*a):
         i, _ = next( filter( lambda i_a: (i_a[1] == ':') , enumerate(a)) )
     except StopIteration:
         i = len(a)
+    def validate(x):
+        return (type(x) is int and x > 1)
+    no_repeat, repeat = a[:i], a[i+1:]
+    if not all( validate(x) for x in no_repeat + repeat ):
+        raise Exception()
     return a[:i], a[i+1:]
 
 @miniter_command(('grid-rsubdiv', 'grsub'), "$CMD non-repeating ... : repeating...")
@@ -373,6 +383,10 @@ def grid_rsubdiv_cmd(*divs, _env):
 def grid_asubdiv_cmd(*divs, _env):
     _env.context.grid.asubdivs = _parse_subdiv(*divs)
 
+@miniter_command(('set-phase', 'ph'), "$CMD new_phase")
+def set_phase_cmd(*a, _env):
+    ph = _read_angle(*a)
+    _env.context.grid.phase = ph
 
 ## Misc
 @miniter_command(('session', 'se'), "$CMD session_name | $CMD OFF")

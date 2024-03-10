@@ -1,14 +1,13 @@
 ## Now
-Finish Grid:
-* grid hook can: on/off | +/- sparse | set phase (get phase to work) | recenter
-* commands to set subdivs
-
 * colors use monospace
+* maybe have Point be bigger than div (setable) with params
+* manual + better tooltips
+* something about bug n2
+* proper install? (with pip, AT LEAST: requirement.txt)
 
 ## Bugs
-* (can't reproduce) saw weird rewind behavior
-* (can't reproduce) saw interactive_transform/merge/weave bug
-* weird event bugs in miniter (rctl or ctl-bksp)
+1: (can't reproduce) saw interactive_transform/merge/weave bug
+2: weird event bugs in miniter (rctl or ctl-bksp)
 
 ## Min for v2
 * manual
@@ -21,6 +20,7 @@ Finish Grid:
 
 * rectangle or polygon selection
 * view show/hide options
+* adjust fontsize to winsize
 
 # Extra+
 * menu_translate
@@ -31,9 +31,13 @@ Finish Grid:
 * sync with save file
 * refactor terminal, (autocomplete, history, types, etc)
 
+# Extra+++
+* select weaves individually
+* (drawing weaves) in subview, split ambiguous shapes
+
 # details:
 * remake tooltips (mostly done (VISUAL)). Keep up to date
 * be able to set params + show/hide some types of thing
 * only consider the last MOUSEMOTION every frame ?
 * maybe don't draw circle-center on existing shapes, merge points into shapes?
-* refactor: should a math_utils module (put some of the shape helper funs, + some utils)
+* refactor: should have a math_utils module (put some of the shape helper funs, + some utils)

@@ -76,140 +76,6 @@ def save(filename, context, overwrite_ok = True, header = True, extra = {'sessio
     buffer = save_buffer(context, extra)
     write_save(filename, buffer, overwrite_ok, header)
 
-# ## NOW
-# * rotor nesting
-# * determine previous save (rewind(n))
-# * when changes go back to 0
-# * for the hook only load in the main loop
-# + detail: if several instances in same cwd problem
-# 
-# ## NOTES
-# * for rewind either 'reset_hook' in menu (+ use 'reset_hook' for loading too?)
-# 			 or don't pin it (would allow a pinned commands under V)
-# * at the same time: do ! logic thing, + import + recover since these have to do with saves too
-# * when recover needed, cleanup session things
-# 
-class Autosaver: # autosaves system
-    class DirectoryBusyError(BaseException): pass
-    #
-    def __init__(self, root, pulse = 10):
-        try: 
-            os.makedirs(root, exist_ok = True)
-            with open(os.path.join(root, '.busy'), 'x'): pass # touch '.busy'
-        except FileExistsError: 
-            raise Autosaver.DirectoryBusyError()
-        #
-        self.last_back, self.last_buffer = 0, ''
-        self.root = root
-        #
-        self.pulse = pulse
-#         self.rotorctl = [(4, 2)] * 3 + [4] # hardcode something reasonable somewhere
-        self.rotorctl = params.autosave_rotorctl
-        try:
-            with open(os.path.join(self.root, '.rotor')) as rotorfile:
-                self.rotor = [int(w) for w in next(rotorfile).split()]
-        except:
-            self.rotor = [0] 
-        #
-        self.back = 0
-        self.nsaves = 0
-        try:
-            dir = self.root
-            while True:
-                self.nsaves += len([ f for f in os.listdir(dir) 
-                    if (f[0] != '.' and os.path.isfile(os.path.join(dir, f))) ])
-                dir = os.path.join(dir, 'older')
-        except FileNotFoundError:
-            pass
-    #
-    def finish(self):
-        with open(os.path.join(self.root, '.rotor'), 'w') as rotor:
-            rotor.write(' '.join([str(i) for i in self.rotor]) + '\n')
-        #
-        try: os.remove(os.path.join(self.root, '.busy'))
-        except: pass
-    #
-    def savepoint(self, context):
-        def archive(k, destdir, src): # k start at 0
-            if not (k < len(self.rotorctl)): return
-            if not (k < len(self.rotor)):
-                # TODO actually find file with a + if exists
-                self.rotor.append(0)
-            #
-            isave = self.rotor[k]
-            try: n, d = self.rotorctl[k]
-            except: n, d = self.rotorctl[k], None
-            #
-            dest = os.path.join(destdir, str(isave))
-            if not os.path.isfile(dest):
-                self.nsaves += 1
-            elif d and isave % d == 0:
-#             if d and isave % d == 0 and os.path.isfile(dest):
-                    archive(k + 1, os.path.join(destdir, 'older'), dest)
-            #print(f"archiving '{src}' to '{dest}'")
-            os.makedirs(destdir, exist_ok = True)
-            os.rename(src, dest)
-            self.rotor[k] = (isave + 1) % n
-        ###
-        if self.last_back != self.back:
-            savename = self.current_file()
-            with open(savename) as load:
-                self.last_buffer = load.read()
-            self.last_back = self.back
-        #
-        buffer = save_buffer(context)
-        if self.last_buffer == buffer:
-            return
-        self.last_buffer = buffer
-        savename = os.path.join(self.root, 'tmp')
-        write_save(savename, buffer)
-        archive(0, self.root, savename)
-        #print(f'wrote {savename}')
-        # TODO current one has a '+', rename prev one
-        self.back = 0
-    #
-    def rewind(self, n = 1):
-        if self.nsaves == 0: return
-        self.back = clamp(self.back + n, 0, self.nsaves - 1) # number *back* in time
-        print(f'rewinding to {self.back = }. ({self.nsaves = })')
-    #
-    def unwind(self, n = 1):
-        self.rewind(-n)
-    #
-    def current_file(self):
-        if self.nsaves == 0: return
-        #
-        back, reldir = self.back, ''
-        for k in range(len(self.rotorctl) - 1):
-            try: n, _ = self.rotorctl[k]
-            except: n = self.rotorctl[k]
-            if back < n: 
-                break
-            #
-            reldir = os.path.join(reldir, 'older')
-            back -= n
-            k += 1
-        isave = (self.rotor[k] - (back + 1)) % n
-        savename = os.path.join(self.root, reldir, str(isave))
-        return savename
-# 
-# 
-#             isave = self.rotor[k]
-#             n, d = self.rotorctl[k]
-#             if isave % d:
-#                 dest = self.root / 'older' / str(self.rotor[k + 1])
-# 
-# 
-# 
-#         buffer = save_buffer(context)
-#         if (buffer == self.last_buffer):
-#             return 
-#         else:
-#             write_path = ...
-#             if path.is_file(): 
-#                 self.archive(
-# 
-
 class LoadError(BaseException): pass
 class ParseError(BaseException):
     def __init__(self, i, line, section = None):
@@ -273,12 +139,135 @@ def load(filename):
             loaded_subcontext = Rec(
                     shapes = list(sh_dict.values()), 
                     weaves = weaves,
+                    pending_weaves = [], # needed for `save_buffer`
                     weave_colors = colors,
                     palette = palette)
             return loaded_subcontext, extra
     except ParseError: raise
     except: raise LoadError()
 
-## for custom events (probably in hooks
-# AUTOSAVE = pg.event.custom_type() 
-# pg.time.set_timer(AUTOSAVE, 10 * 1000)
+class Autosaver: # autosaves system
+    class DirectoryBusyError(BaseException): pass
+    #
+    def __init__(self, root, pulse = 10):
+        try: 
+            os.makedirs(root, exist_ok = True)
+            with open(os.path.join(root, '.busy'), 'x'): pass # touch '.busy'
+        except FileExistsError: 
+            raise Autosaver.DirectoryBusyError()
+        #
+        self.last_load = 0
+        self.back, self.last_buffer = 0, ''
+        self.root = root
+        #
+        self.pulse = pulse
+#         self.rotorctl = [(4, 2)] * 3 + [4] # hardcode something reasonable somewhere
+        self.rotorctl = params.autosave_rotorctl
+        try:
+            with open(os.path.join(self.root, '.rotor')) as rotorfile:
+                self.rotor = [int(w) for w in next(rotorfile).split()]
+        except:
+            self.rotor = [0] 
+        #
+        self.nsaves = 0
+        try:
+            dir = self.root
+            while True:
+                self.nsaves += len([ f for f in os.listdir(dir) 
+                    if (f[0] != '.' and os.path.isfile(os.path.join(dir, f))) ])
+                dir = os.path.join(dir, 'older')
+        except FileNotFoundError:
+            pass
+    #
+    def finish(self):
+        with open(os.path.join(self.root, '.rotor'), 'w') as rotor:
+            rotor.write(' '.join([str(i) for i in self.rotor]) + '\n')
+        #
+        try: os.remove(os.path.join(self.root, '.busy'))
+        except: pass
+    #
+    def savepoint(self, context):
+        def archive(k, destdir, src): # k start at 0
+            if not (k < len(self.rotorctl)): return
+            if not (k < len(self.rotor)):
+                # TODO actually find file with a + if exists
+                self.rotor.append(0)
+            #
+            isave = self.rotor[k]
+            try: n, d = self.rotorctl[k]
+            except: n, d = self.rotorctl[k], None
+            #
+            dest = os.path.join(destdir, str(isave))
+            if not os.path.isfile(dest):
+                self.nsaves += 1
+            elif d and isave % d == 0:
+#             if d and isave % d == 0 and os.path.isfile(dest):
+                    archive(k + 1, os.path.join(destdir, 'older'), dest)
+            #print(f"archiving '{src}' to '{dest}'")
+            os.makedirs(destdir, exist_ok = True)
+            os.rename(src, dest)
+            self.rotor[k] = (isave + 1) % n
+        ###
+        buffer = save_buffer(context)
+        if self.last_buffer == buffer:
+            return
+        print('found diff')
+        self.last_buffer = buffer
+        savename = os.path.join(self.root, 'tmp')
+        write_save(savename, buffer)
+        archive(0, self.root, savename)
+        self.back = 0
+    #
+    def rewind(self, n = 1):
+        if self.nsaves == 0: return
+        print(f'PRE: {self.back = }. ({self.nsaves = })')
+        self.back = clamp(self.back + n, 0, self.nsaves - 1) # number *back* in time
+        print(f'rewinding to {self.back = }. ({self.nsaves = })')
+    #
+    def unwind(self, n = 1):
+        self.rewind(-n)
+    #
+    def current_file(self):
+        if self.nsaves == 0: return
+        #
+        back, reldir = self.back, ''
+        for k in range(len(self.rotorctl) - 1):
+            try: n, _ = self.rotorctl[k]
+            except: n = self.rotorctl[k]
+            if back < n: 
+                break
+            #
+            reldir = os.path.join(reldir, 'older')
+            back -= n
+            k += 1
+        isave = (self.rotor[k] - (back + 1)) % n
+        savename = os.path.join(self.root, reldir, str(isave))
+        return savename
+    #
+    def load_current(self, context):
+        if self.last_load == self.back: return
+        #
+        if load_me := self.current_file() : 
+#             breakpoint()
+            loaded_data, _ = load(load_me)
+            self.last_buffer = save_buffer(loaded_data)
+            self.last_load = self.back
+            return loaded_data
+        else:
+            return None
+
+# def load_to_context(context, file, load_extra = set()):
+#     context.hints = []
+#     context.selected = []
+#     loaded, extra = load(file)
+#     #
+#     context.update(loaded)
+#     for k, v in extra.items():
+#         if not k in load_extra:
+#             continue
+#         match k: # only k = session supported now
+#             case 'session': 
+#                 reload_session(context, v)
+#     #
+#     context.redraw_weaves = True
+# 

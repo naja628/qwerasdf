@@ -138,15 +138,13 @@ def reload_session(context, session_name):
     except Autosaver.DirectoryBusyError:
         post_error(f"'{session_name}' session already in use. ", cx)
 
-def load_to_context(context, file, load_extra = set()):
+def load_to_context(context, loaded, extra = {}):
     context.hints = []
     context.selected = []
-    loaded, extra = load(file)
+#     loaded, extra = load(file)
     #
     context.update(loaded)
     for k, v in extra.items():
-        if not k in load_extra:
-            continue
         match k: # only k = session supported now
             case 'session': 
                 reload_session(context, v)

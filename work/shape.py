@@ -313,9 +313,9 @@ class PolyLine(Shape):
     # 
     def merger(self, to):
         # Doesn't handle rotations of keypoints
-        if (type(to) != Poly) or not self.loopy == to.loopy:
+        if (type(to) != PolyLine) or not self.loopy == to.loopy:
             return None
-        if (len(self.keypoints) != len(other.keypoints)):
+        if (len(self.keypoints) != len(to.keypoints)):
             return None
         return self._naive_merger(to)
     ###

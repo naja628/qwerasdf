@@ -84,13 +84,11 @@ def menu_hook(hook, context):
         except KeyError: pass
         match menu_item:
             # Pinned
-            case "Camera":
-                overhook(change_view_hook, context)
             case "Menu Top":
                 menu.go_path("")
                 set_hook(None)
+            case "Camera": overhook(change_view_hook, context)
             case "Command": overhook(miniter_hook, context)
-            # Rewind
             case "Rewind": set_hook(rewind_hook, context)
             # Selection
             case "Selection": set_hook(select_hook, context)
@@ -241,8 +239,6 @@ def main():
             if g.grid_on:
                 g.grid.update(g.view, g.screen.get_size())
                 g.grid.render(g.screen, params.background, params.grid_color)
-#             # TESTING
-#             for p in g.grid.points(): Point(p).draw(g.screen, g.view, Color(255, 0, 0))
             # draw shapes, etc
             for sh in g.shapes: sh.draw(g.screen, g.view, params.shape_color)
             for sel in g.selected: sel.draw(g.screen, g.view, color = params.select_color)
