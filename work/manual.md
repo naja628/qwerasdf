@@ -51,7 +51,7 @@ Note: reminders for the above will be displayed will be displayed at the bottom 
 The colorful strings between are nails are organized in "weaves".
 Go to `F: Draw Weave` to start creating weaves.
 
-## Creating Weaves
+### Creating Weaves
 To create a new weave: 
 * left-click a nail on any shape to define the first attach point 
 * left-click another nail on another (or the same) shape to define the second attach point 
@@ -60,11 +60,14 @@ To create a new weave:
 
 A colorful string should be drawn between the first 2 attach points, and between every 2 points after them on their respective shapes until the third attach point is reached, or the first shape runs out of nails.
 
+### Choosing the weave you want
 For any 3 attach points, there are up to 4 possible weaves depending on:
 * The direction we're going in on the first shape. (swap with `A: Invert dir`)
 * For loopy shapes, whether we're going clockwise or not. (swap with `S: Invert Spin`)
+
 Right-clicking will go through all 4 possibilities so you can choose.
 
+### "Advanced" Options
 Some commands affect the behavior when drawing weaves:
 * `weaveback/wb`: toggles `weaveback` (on by default). If `weaveback` is enabled, a second set of colorful strings will appear to connect the previous set, as if all the lines came from a single string that wraps around the nails.
 * `weavity/wy inc1 inc2`: set the "weavity" (1 -1 by default). which allow skipping some nails. (eg if the weavity is 2 1, a nail will be skipped every time when finding the "next" nail on the first shape).
