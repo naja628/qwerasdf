@@ -55,8 +55,9 @@ Go to `F: Draw Weave` to start creating weaves.
 To create a new weave: 
 * left-click a nail on any shape to define the first attach point 
 * left-click another nail on another (or the same) shape to define the second attach point 
-* left-click a third time on any point on the same shape where the second attach point is to extend the weave.
+* left-click a third time on any nail on the same shape where the second attach point is to extend the weave.
 * **Note:** For the first 2 attach points, if you click on a nail that is at the intersection of several shapes, you will need to choose what shape you want to use by clicking another nail on it.
+
 A colorful string should be drawn between the first 2 attach points, and between every 2 points after them on their respective shapes until the third attach point is reached, or the first shape runs out of nails.
 
 For any 3 attach points, there are up to 4 possible weaves depending on:
