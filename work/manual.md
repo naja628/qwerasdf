@@ -74,14 +74,14 @@ Some commands affect the behavior when drawing weaves:
 
 ## Using Colors
 For drawing weaves you use any of 8 different colors associated with one of the `QWERASDF` keyboard keys.  
-To select to apply when confirming a new weave, use `E: Select Color`, then hit the key corresponding to the color you want to use.  
+To select what color to apply when confirming a new weave, use `E: Select Color`, then hit the key corresponding to the color you want to use.  
 
 To customize a color use `W: Color Picker`. When you modify a color this way, the weaves that were drawn using this color will also be modified (in real time).  
 In the color picker:
 * use of the `QWERASDF` keys to select the color you want to modify.
 * left-click the big rainbow to choose the color to apply for this key.
 * repeat for every color you want to modify.
-* Use right-click when you're done. 
+* right-click when you're done. 
 
 
 
