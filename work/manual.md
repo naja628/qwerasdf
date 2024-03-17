@@ -2,22 +2,22 @@
 Place your left hand on the home row (ASDF), and use your mouse with your right hand.
 
 ## Using the Menu
-The botton area of the screen displays a list of all currently available menu actions (e.g. `D: Draw Shape`), which are always activated by hitting the corresponding key on the keyboard.
-After triggering an action, the mappings will change to more contextually relevant sub-actions (the menu has a tree-like structure).
-Use `X` or `SPACE` to come back to the start of the menu. (This will also cancel currently unifinished actions)
+The botton area of the screen displays a list of all currently available menu actions (e.g. `D: Draw Shape`), which are always activated by hitting the corresponding key on the keyboard.  
+After triggering an action, the mappings will change to more contextually relevant sub-actions.  
+Use `X` or `SPACE` to come back to the start of the menu. (This will also cancel currently unifinished actions)  
 
-The bottom 4 actions (`Camera`, `Menu Top`, `Command` and `Rewind`) are "pinned", and are available form anywhere in the menu.
+The bottom 4 actions (`Camera`, `Menu Top`, `Command` and `Rewind`) are "pinned", and are available form anywhere in the menu.  
 
-Triggering an action in the menu will often change the behavior of the mouse, and/or display a **hint at the bottom of screen**.
-For example after `D: Draw Shape`/`S: New Segment`, left-clicking on 2 points will draw a segment between them.
+Triggering an action in the menu will often change the behavior of the mouse, and/or display a **hint at the bottom of screen**.  
+For example after `D: Draw Shape`/`S: New Segment`, left-clicking on 2 points will draw a segment between them.  
 
 ## The Commandline
-Some things are acheived through the command-line (i.e. by literally typing commands).
-Use `C: Command`, to enter the command-line and start typing a commands. A green command prompt will appear.
-To quit the command-line use `Ctrl-C` or use `Enter` when the prompt is empty (no text was typed since the last command).
-The cursor is always at the end of the line and you cannot navigate with the arrows (or the mouse).
+Some things are acheived through the command-line (i.e. by literally typing commands).  
+Use `C: Command`, to enter the command-line and start typing a commands. A green command prompt will appear.  
+To quit the command-line use `Ctrl-C` or use `Enter` when the prompt is empty (no text was typed since the last command).  
+The cursor is always at the end of the line and you cannot navigate with the arrows (or the mouse).  
 
-See list of available commands (look first at `help` (TODO link) and `ls-cmd` (TODO link)). [TODO link]
+See list of available commands (look first at `help` (TODO link) and `ls-cmd` (TODO link)). [TODO link]  
 
 Available shortcuts:
 * `Ctrl-U`: erase current line
@@ -33,9 +33,9 @@ Available shortcuts:
 * Leaving view adjustement (with left-click) will resume whatever you were doing.
 
 # Drawing Shapes 
-To start drawing shapes go to `D: Draw Shapes`, then select the desired shape type from the menu.
-All shapes have a number of nails (white dots) on them, you can adjust it with the `nails` or `default-divs` commands. (TODO link).
-You do not need to select the shape a second type in between drawing 2 shapes of the same type.
+To start drawing shapes go to `D: Draw Shapes`, then select the desired shape type from the menu.  
+All shapes have a number of nails (white dots) on them, you can adjust it with the `nails` or `default-divs` commands. (TODO link).  
+You do not need to select the shape a second type in between drawing 2 shapes of the same type.  
 
 To draw a:
 * circle: left-click on the center, then left-click on any point on the perimeter. You can use right-click to make it so the first point you clicked is on the perimeter, and the second controls the center.
@@ -69,10 +69,10 @@ Some commands affect the behavior when drawing weaves:
 * `weavity/wy inc1 inc2`: set the "weavity" (1 -1 by default). which allow skipping some nails. (eg if the weavity is 2 1, a nail will be skipped every time when finding the "next" nail on the first shape).
 
 ## Using Colors
-For drawing weaves you use any of 8 different colors associated with one of the `QWERASDF` keyboard keys.
-To select to apply when confirming a new weave, use `E: Select Color`, then hit the key corresponding to the color you want to use.
+For drawing weaves you use any of 8 different colors associated with one of the `QWERASDF` keyboard keys.  
+To select to apply when confirming a new weave, use `E: Select Color`, then hit the key corresponding to the color you want to use.  
 
-To customize a color use `W: Color Picker`. When you modify a color this way, the weaves that were drawn using this color will also be modified (in real time).
+To customize a color use `W: Color Picker`. When you modify a color this way, the weaves that were drawn using this color will also be modified (in real time).  
 In the color picker:
 * use of the `QWERASDF` keys to select the color you want to modify.
 * left-click the big rainbow to choose the color to apply for this key.
