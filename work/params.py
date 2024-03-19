@@ -55,6 +55,21 @@ params.grid_color = Color(255, 255, 255)
 params.grid_fade_factor = 1 / 2
 params.grid_sparseness_scroll_speed = 3
 
+params.menu_translate = ('', '')
+# params.menu_translate = ('QWAZ', 'AZQW')
+def _assoc(src, dest, k):
+    i = src.find(k)
+    if i < 0 or i >= len(dest): return k
+    else: return dest[i]
+
+def ptol(k): # position (scancode) to layout
+    src, dest = params.menu_translate
+    return _assoc(src, dest, k)
+
+def ltop(k):
+    dest, src = params.menu_translate
+    return _assoc(src, dest, k)
+
 # touch at own risk
 params.eps = 0.0000001 # distance under which two points are considered "the same"
 params.max_div = 1000
@@ -114,6 +129,14 @@ def rfloat(s, min = 1e-6, max = 1e6):
     except:
         raise CastExn("{min} <= float <= {max}")
 
+@cast
+def rkeymap(s):
+    try:
+        [src, dest] = s.split(' ')
+        return (src.upper(), dest.upper())
+    except:
+        CastExn("keymap (FROM TO)")
+
 def _read_conf():
     setable_to_type = {
             'background': rcolor(),
@@ -140,7 +163,8 @@ def _read_conf():
             #
             'snap_radius': rint(1, 100),
             #
-            'bottom_margin': rint(0, 50)
+            'bottom_margin': rint(0, 50),
+            'menu_translate': rkeymap()
             }
     #
     home = os.path.expanduser('~')

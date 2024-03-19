@@ -1,4 +1,5 @@
 from text import TextArea
+from params import ptol, ltop
 
 class Menu:
     class Shortcut:
@@ -88,7 +89,7 @@ class Menu:
                     label = self[key]
                 #
                 if label:
-                    line += f" {key}: "
+                    line += f" {ptol(key)}: "
                     line += label[:label_size].ljust(label_size, ' ')
                 else:
                     line += ' ' * (len(" X: ") + label_size)

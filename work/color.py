@@ -1,23 +1,37 @@
 from pygame import *
 import numpy as np
 
-from params import params
+from params import params, ptol, ltop
 from util import clamp
 
 # Simple Palette
+# def draw_palette(palette, selected = None, label_color = params.background):
+#     # TODO kerning is not a problem bc monospace
+#     font_ = font.SysFont(('MonoSpace', None), params.font_size * 15 // 10 )
+#     widths = []
+#     # get size:
+#     for key in palette.keys(): # can't multiply because kerning
+#         widths.append(font_.size(f" {key} ")[0])
+#     surf = Surface(( sum(widths), font_.size('')[1] ))
+#     # render:
+#     offset = 0
+#     for (width, (key, bg)) in zip(widths, palette.items()):
+#         label = f"*{key}*" if selected == key else f" {key} " # might cause kering problems
+#         box = font_.render(label, True, label_color, bg)
+#         surf.blit(box, (offset, 0))
+#         offset += width
+#     return surf
+
 def draw_palette(palette, selected = None, label_color = params.background):
-    # TODO kerning is not a problem bc monospace
-    font_ = font.SysFont(('MonoSpace', None), params.font_size * 15 // 10 )
-    widths = []
-    # get size:
-    for key in palette.keys(): # can't multiply because kerning
-        widths.append(font_.size(f" {key} ")[0])
-    surf = Surface(( sum(widths), font_.size('')[1] ))
-    # render:
+    _font = font.SysFont(('MonoSpace', None), params.font_size * 15 // 10 )
+    #
+    n = len(palette.keys())
+    width = _font.size(" X ")[0]
+    surf = Surface(( n * width, _font.size('')[1] ))
     offset = 0
-    for (width, (key, bg)) in zip(widths, palette.items()):
-        label = f"*{key}*" if selected == key else f" {key} " # might cause kering problems
-        box = font_.render(label, True, label_color, bg)
+    for (key, bg) in palette.items():
+        label = f"*{ptol(key)}*" if selected == key else f" {ptol(key)} "
+        box = _font.render(label, True, label_color, bg)
         surf.blit(box, (offset, 0))
         offset += width
     return surf

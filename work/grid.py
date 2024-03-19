@@ -31,7 +31,7 @@ class Grid:
         self.fade_factor = params.grid_fade_factor
         #
         self._render = None
-        self._points = np.array([])
+        self._points = np.array([]).reshape((-1, 2))
     #
     def update(self, view, dims):
         ar, v, tau, ph = np.array, view, 2 * np.pi, self.phase # abbrevs
@@ -115,12 +115,13 @@ class Grid:
         self._render = render
         #
         if not rgrads or not agrads:
-            self._points = ar([])
+            self._points = ar([]).reshape((-1, 2))
             return
         dr, dt = rgrads[-1], agrads[-1]
         r0 = first_above(rmin, dr)
         # TODO? maybe hande r = 0 (when center is inside) specially
         nrings = (rmax - r0) // dr
+        if nrings < 0: nrings = 0
         #
         angles = ph + np.arange(first_above(tmin - ph, dt), tmax - ph, dt)
         units = ar([ np.cos(angles), np.sin(angles) ]).transpose()

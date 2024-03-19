@@ -405,6 +405,10 @@ def create_weaves_hook(hook, context):
     while True:
         subloop = lambda ev: set_hints(cx, Point(_evpos(cx, ev)))
         hg1 = yield from get_hang()
+        def line_hint(ev):
+            start = hg1.s.get_div(hg1.i)
+            set_hints(cx, Line(start, _evpos(cx, ev), ndivs = 1))
+        subloop = line_hint
         hg2 = yield from get_hang()
         def weaves_at_pos(pos):
             _, candidates = snappy_get_point(cx, pos)

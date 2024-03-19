@@ -2,7 +2,7 @@ from pygame import display, FULLSCREEN
 from numpy import pi
 import os
 
-from params import params
+from params import params, ltop, ptol
 from util import Rec, param_decorator, eprint
 from save import *
 from context import *
@@ -54,16 +54,16 @@ def term_exec(cmd, cmd_map, usage_map, context):
         return 0
     except CmdExn as e: 
         post_error(str(e), context); return e.exit_code
-    except BaseException as e: raise
-#         try:
-#             eprint('debug info: term caught', type(e), e) # debug
-#             usage_msg = usage_map[cmd_map[cmd]].replace('$CMD', cmd)
-#             post_error(usage_msg, context)
-#         except BaseException as e:
-#             eprint('debug info: term REcaught', type(e), e) #debug
-#             post_error(str(e), context)
-#         return 1
-# 
+    except BaseException as e:
+        try:
+            eprint('debug info: term caught', type(e), e) # debug
+            usage_msg = usage_map[cmd_map[cmd]].replace('$CMD', cmd)
+            post_error(usage_msg, context)
+        except BaseException as e:
+            eprint('debug info: term REcaught', type(e), e) #debug
+            post_error(str(e), context)
+        return 1
+
 class CmdExn(Exception): 
     def __init__(self, *a, exit_code = 1, **ka):
         self.exit_code = exit_code
@@ -176,7 +176,7 @@ def load_cmd(search_file, bang = None, *, _env):
     #
     same, _ = _cmp_buff(_env.context)
     if bang != '!' and not same:
-        raise CmdExn(f"Would discard changes. Use '{_env.cmd} {load} !' to ignore")
+        raise CmdExn(f"Would discard changes. Use '{_env.cmd} {search_file} !' to ignore")
     #
     try:
         matches = [*_fuzzy_matches(search_file, _saves_list())]
@@ -263,7 +263,7 @@ def set_color_cmd(*args, _env):
         [r, g, b] = [int(hexstr[i:i+2], 16) for i in range(0, 6, 2)]
         set_rgb(r, g, b)
     #
-    key = args[0].upper()
+    key = ltop(args[0].upper())
     if key not in _env.context.palette: raise CmdExn("Invalid color key")
     #
     match args[1:]:
@@ -412,7 +412,7 @@ def select_all_cmd(*, _env):
 def translate_colors_cmd(src, dest, *, _env):
     "change the colors of the weaves inside the selection"
     cx = _env.context
-    src, dest = src.upper(), dest.upper()
+    src, dest = (''.join(ltop(k) for k in ks) for ks in (src.upper(), dest.upper()))
     for i, we in enumerate(cx.weaves):
         [s1, s2] = [hg.s for hg in we.hangpoints]
         if not (s1 in cx.selected and s2 in cx.selected):

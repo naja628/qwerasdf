@@ -12,8 +12,8 @@ Triggering an action in the menu will often change the behavior of the mouse, an
 For example after `D: Draw Shape`/`S: New Segment`, left-clicking on 2 points will draw a segment between them.  
 
 ## The Commandline
-Some things are acheived through the command-line (i.e. by literally typing commands).  
-Use `C: Command`, to enter the command-line and start typing a commands. A green command prompt will appear.  
+Some things are achieved through the command-line (i.e. by literally typing commands).  
+Use `C: Command`, to enter the command-line and start typing commands. A green command prompt will appear.  
 To quit the command-line use `Ctrl-C` or use `Enter` when the prompt is empty (no text was typed since the last command).  
 
 See list of available commands (look first at `help` (TODO link) and `ls-cmd` (TODO link)). [TODO link]  
@@ -30,6 +30,8 @@ Available shortcuts:
 
 * To move the view, go to `Z: Camera` and right-click twice: once to grab, once to release.
 * Leaving view adjustement (with left-click) will resume whatever you were doing.
+
+* Pink visual hints (shapes, etc) will often appear to help you understand what you're doing.
 
 # Drawing Shapes 
 To start drawing shapes go to `D: Draw Shapes`, then select the desired shape type from the menu.  
@@ -69,10 +71,10 @@ Right-clicking will go through all 4 possibilities.
 ### "Advanced" Options
 Some commands affect the behavior when drawing weaves:
 * `weaveback/wb`: toggles `weaveback` (on by default). If `weaveback` is enabled, a second set of colorful strings will appear to connect the previous set, as if all the lines came from a single string that wraps around the nails.
-* `weavity/wy inc1 inc2`: set the "weavity" (1 -1 by default). This allows skipping some nails. (e.g. if the weavity is 2 1, a nail will be skipped every time when finding the "next nail" on the first shape).
+* `weavity/wy INC1 INC2`: set the "weavity" (1 -1 by default). This allows skipping some nails. (e.g. if the weavity is 2 1, a nail will be skipped every time when finding the "next nail" on the first shape).
 
 ## Using Colors
-You can drawing weaves in any of 8 different colors associated with one of the `QWERASDF` keyboard keys.  
+You can draw weaves in any of 8 different colors associated with one of the `QWERASDF` keyboard keys.  
 To select what color to apply when confirming a new weave, use `E: Select Color`, then hit the key corresponding to the color you want to use.  
 
 To customize a color use `W: Color Picker`. When you modify a color this way, the weaves that were drawn using this color will also be modified (in real time).  
@@ -82,7 +84,17 @@ In the color picker:
 * repeat for every color you want to modify.
 * right-click when you're done. 
 
+# Selecting and Editing
+Editing is done from the `S: Selection` submenu.
+Left-click any nail to select all the shapes the nail belongs to (there can be several shapes if the nail is at an intersection)
+Similarly, right-click a nail to "toggle the select state" of all the shapes under it. (i.e. selected shapes become unselected and vice-versa)
+Selected shapes will be highlighted in blue.
+Note that you will always select shapes. (i.e. you cannot select individual nails or weaves)
 
+`R: Remove` will delete all the currently selected shapes.
+`E: Unweave` will remove all the weaves between two shapes that are **both** selected.
 
+There are two main ways to move or transform (e.g. rotate or mirror) the current selection.
+By using the quick transform shortcuts:
 
 

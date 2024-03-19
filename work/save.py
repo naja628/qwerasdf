@@ -161,7 +161,6 @@ class Autosaver: # autosaves system
         self.root = root
         #
         self.pulse = pulse
-#         self.rotorctl = [(4, 2)] * 3 + [4] # hardcode something reasonable somewhere
         self.rotorctl = params.autosave_rotorctl
         try:
             with open(os.path.join(self.root, '.rotor')) as rotorfile:
@@ -201,9 +200,7 @@ class Autosaver: # autosaves system
             if not os.path.isfile(dest):
                 self.nsaves += 1
             elif d and isave % d == 0:
-#             if d and isave % d == 0 and os.path.isfile(dest):
-                    archive(k + 1, os.path.join(destdir, 'older'), dest)
-            #print(f"archiving '{src}' to '{dest}'")
+                archive(k + 1, os.path.join(destdir, 'older'), dest)
             os.makedirs(destdir, exist_ok = True)
             os.rename(src, dest)
             self.rotor[k] = (isave + 1) % n
@@ -211,7 +208,6 @@ class Autosaver: # autosaves system
         buffer = save_buffer(context)
         if self.last_buffer == buffer:
             return
-        print('found diff')
         self.last_buffer = buffer
         savename = os.path.join(self.root, 'tmp')
         write_save(savename, buffer)
@@ -220,9 +216,7 @@ class Autosaver: # autosaves system
     #
     def rewind(self, n = 1):
         if self.nsaves == 0: return
-        print(f'PRE: {self.back = }. ({self.nsaves = })')
         self.back = clamp(self.back + n, 0, self.nsaves - 1) # number *back* in time
-        print(f'rewinding to {self.back = }. ({self.nsaves = })')
     #
     def unwind(self, n = 1):
         self.rewind(-n)
@@ -248,7 +242,6 @@ class Autosaver: # autosaves system
         if self.last_load == self.back: return
         #
         if load_me := self.current_file() : 
-#             breakpoint()
             loaded_data, _ = load(load_me)
             self.last_buffer = save_buffer(loaded_data)
             self.last_load = self.back
@@ -256,18 +249,3 @@ class Autosaver: # autosaves system
         else:
             return None
 
-# def load_to_context(context, file, load_extra = set()):
-#     context.hints = []
-#     context.selected = []
-#     loaded, extra = load(file)
-#     #
-#     context.update(loaded)
-#     for k, v in extra.items():
-#         if not k in load_extra:
-#             continue
-#         match k: # only k = session supported now
-#             case 'session': 
-#                 reload_session(context, v)
-#     #
-#     context.redraw_weaves = True
-# 

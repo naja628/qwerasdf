@@ -1,6 +1,13 @@
-## Now
+# menu translate
+when displaying menu
+when displaying palette (do monospace at same time)
+In the color picker/selector
+when reading keys in miniter (set-color, translate-color)
+allow configuring translate via conf (read raw?)
+## Min for v2
 * colors use monospace
 * maybe have Point be bigger than div (setable) with params
+* menu translate
 * manual + better tooltips
 * something about bug n2
 * proper install? (with pip, AT LEAST: requirement.txt)
@@ -8,6 +15,7 @@
 ## Bugs
 1: (can't reproduce) saw interactive_transform/merge/weave bug
 2: weird event bugs in miniter (rctl or ctl-bksp)
+3: crash due to 0 points grid?
 
 ## Min for v2
 * manual

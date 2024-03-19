@@ -6,27 +6,28 @@ from params import params
 from pygame import Surface, event
 from save import Autosaver, load
 
-def snappy_get_point(context, pos):
-    cx = context
-    sq_rrad = cx.view.ptord(params.snap_radius) ** 2
-    point = cx.view.ptor(pos)
-    snappoint = point
-    shortest = sq_rrad + params.eps
-    candidates = []
-    for sh in cx.shapes:
-        rels = sh.divs - point
-        rels **= 2
-        [xs, ys] = np.split(rels, 2, axis = 1)
-        sqdists = xs + ys
-        i = np.argmin(sqdists)
-        if sqdists[i] < min(sq_rrad, shortest):
-            snappoint, shortest = sh.divs[i], sqdists[i]
-        if sqdist(snappoint, sh.divs[i]) < params.eps ** 2:
-            candidates.append(Rec(s = sh, i = i))
-    #filter candidates, they need to be equal to actual found
-    candidates = [ cd for cd in candidates 
-            if sqdist(cd.s.divs[cd.i], snappoint) < params.eps ** 2]
-    return np.copy(snappoint), candidates
+# def snappy_get_point(context, pos):
+#     cx = context
+#     sq_rrad = cx.view.ptord(params.snap_radius) ** 2
+#     point = cx.view.ptor(pos)
+#     snappoint = point
+#     shortest = sq_rrad + params.eps
+#     candidates = []
+#     for sh in cx.shapes:
+#         rels = sh.divs - point
+#         rels **= 2
+#         [xs, ys] = np.split(rels, 2, axis = 1)
+#         sqdists = xs + ys
+#         i = np.argmin(sqdists)
+#         if sqdists[i] < min(sq_rrad, shortest):
+#             snappoint, shortest = sh.divs[i], sqdists[i]
+#         if sqdist(snappoint, sh.divs[i]) < params.eps ** 2:
+#             candidates.append(Rec(s = sh, i = i))
+#     #filter candidates, they need to be equal to actual found
+#     candidates = [ cd for cd in candidates 
+#             if sqdist(cd.s.divs[cd.i], snappoint) < params.eps ** 2]
+#     return np.copy(snappoint), candidates
+# 
 
 def snappy_get_point(context, pos):
     cx = context
