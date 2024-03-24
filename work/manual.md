@@ -111,8 +111,8 @@ Notes:
 There are two main ways to move or transform (e.g. rotate or mirror) the current selection. (detailed below)
 
 ### Editing shapes via the quick edit shortcuts (under ASDF)
-* Use `D: Move` to move shapes: it will **immediately** grab the point under the cursor (immediately = you do not need to click; snappiness applies). Left-click to release.
-* Use `A: Transform` to rotate and or mirror.
+* Use `D: Move` to move shapes: it will **immediately** grab the point under the cursor (snappiness applies; immediately = you do not need to click). Left-click to release.
+* Use `A: Transform` to rotate and/or mirror currently selected shapes.
 	* from there you can "stack" several transformation using the keyboard shortcuts (`S: +Rotation`, etc)
 	* the center of the transformation follows the mouse snappily (e.g. rotating turns the selection **around the cursor**)
 	* the angle of the rotation that is applied by `S: +Rotation` and `D: -Rotation` is configured via the `rot ANGLE` command
@@ -139,7 +139,7 @@ To apply transformations:
 ### Basics
 You can undo/redo either with `Z: Undo`/`X: Redo`.  
 Or from `R: Rewind`: scroll through the history with the mouse-wheel and click when you're done.  
-Redoing will not erase the undo history, instead the first time you make a change after an undo, it is added **at the end** of the history. So, undoing after will take you first to it, then to all the savepoints you went through to get to the previous state you made the change from.  
+The first time you make a change after an undo, it is added **at the end** of the history; so the history is not erased. Undoing right after would take you through all the savepoints you went through to get to the previous state you made the change from.  
 You can still access the undo history after closing and restarting the program.  
 
 ### Sessions
