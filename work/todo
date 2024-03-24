@@ -1,16 +1,13 @@
-# menu translate
-when displaying menu
-when displaying palette (do monospace at same time)
-In the color picker/selector
-when reading keys in miniter (set-color, translate-color)
-allow configuring translate via conf (read raw?)
+# Final touches
+tweak help/post-info command, multi-line docs for commands
+Keep or no: prefer selected for disambiguting (in weaves)
+Grid hints, rework hints a bit?
+
 ## Min for v2
-* colors use monospace
-* maybe have Point be bigger than div (setable) with params
-* menu translate
+* maybe have Point be bigger than div (setable) with params (test)
 * manual + better tooltips
-* something about bug n2
-* proper install? (with pip, AT LEAST: requirement.txt)
+* something about bug n2, bug n3 fixed?
+* proper install? (with pip)
 
 ## Bugs
 1: (can't reproduce) saw interactive_transform/merge/weave bug

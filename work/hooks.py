@@ -141,7 +141,7 @@ def mouse_subtype(ev):
         
 def alpha_scan(event):
     if not pg.KSCAN_A <= event.scancode < pg.KSCAN_A + 26:
-        return '' 
+        return event.key
     return chr(ord('A') + event.scancode - pg.KSCAN_A)
 
 ## GENERIC 
@@ -194,6 +194,16 @@ def rewind_hook(hook, ev, context):
     elif type == ms.LCLICK or type == ms.RCLICK:
         reset_menu(context)
         hook.finish()
+
+def undo_n(context, n = 1):
+    if not context.autosaver:
+        post_error("not connected to a session", context)
+        return
+    #
+    context.autosaver.rewind(n)
+    loaded_data = context.autosaver.load_current(context)
+    if loaded_data: load_to_context(context, loaded_data)
+    reset_menu(context)
 
 # Camera Control
 @loop_hook({pg.MOUSEWHEEL})

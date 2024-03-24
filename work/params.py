@@ -19,8 +19,10 @@ params.shape_color = Color(32, 64, 64)
 params.hint_color = Color(128, 32, 96)
 params.select_color = Color(64, 0, 192)
 
-params.point_radius = 1
 params.div_color = Color(128, 128, 128)
+params.point_radius = 1
+params.point_shape_radius = 2
+
 
 params.start_palette = {
  'Q': Color(192, 32, 96),
@@ -151,6 +153,7 @@ def _read_conf():
             #
             'point_color': rcolor(),
             'point_radius': rint(0, 5),
+            'point_shape_radius': rint(0, 10),
             #
             'zoom_factor': rfloat(0.25, 4),
             'brightness_scroll_speed': rfloat(1 / 256, 0.2),

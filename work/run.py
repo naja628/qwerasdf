@@ -10,7 +10,7 @@ from hooks import *
 from context import delete_selection, unweave_inside_selection, MENU_RESET
 from menu import Menu
 from save import Autosaver, save_path, save, save_buffer
-from params import params
+from params import params, ptol
 from grid import Grid
 
 _sho = Menu.Shortcut
@@ -27,27 +27,30 @@ _nested_menu = {
         'F': ("Draw Weaves",
             {   'W': "Color Picker", 'E': "Select Color",
                                      'D': ("Create Shape", _sho('D')), 'F': ("Draw Weaves", _sho('F'))}),
+        'R': "Rewind",
         }
-_pinned_menu = {'Z': "Camera", 'X': "Menu Top", 'C': "Command", 'V': "Rewind"}
+_pinned_menu = {'Z': "Undo", 'X': "Redo", 'C': "Command", 'V': "Change View"}
+_space_action = "Menu Start"
 
+_QWERASDF = ''.join(ptol(k) for k in 'QWERASDF')
 _menuaction_info = { # What the user has to do AFTER, not what it does
         "New Arc": "LCLICK * 3: place center, start, end | RCLICK: invert rotation",
-        "Rewind": "WHEEL -> Rewind | CLICK -> done",
-        "Camera": "WHEEL -> zoom | RCLICK, RCLICK: grab, then release canvas | LCLICK -> Done",
+        "Rewind": "WHEEL -> rewind | CLICK -> done",
+        "Change View": "WHEEL -> zoom | RCLICK, RCLICK: grab, then release canvas | LCLICK -> Done",
         "Command": "Commandline. 'ls' -> list available commands | CTRL-C -> close",
         "New Point": "LCLICK: place",
         "New Segment": "LCLICK, LCLICK: place endpoints",
         "New Polyline": "LCLICK: add point / (if on start) connect and finish | RCLICK: finish without connecting",
-        "New Circle": "LCLICK, LCLICK: place center, then point on perim | RCLICK: invert placement order",
-        "Draw Weaves": "LCLICK on 1st shape then LCLICK * 2 on 2nd shape. | RCLICK: \"no, the other way\"",
-        "Select Color": "QWERASDF (keyboard) -> pick color",
+        "New Circle": "LCLICK, LCLICK: place center, then point on perimeter | RCLICK: invert placement order",
+        "Draw Weaves": "LCLICK on 1st shape then LCLICK * 2 on 2nd shape. | RCLICK: cycle through alternatives",
+        "Select Color": f"{_QWERASDF} (keyboard) -> pick color",
         "Selection": "LCLICK -> select under cursor | RCLICK -> toggle-selected under cursor",
         "Move": "LCLICK -> confirm (shape will move) | RCLICK -> cancel",
         "Copy-Move": "LCLICK -> confirm (new copy will be created) | RCLICK -> cancel",
         "Transform": "LCLICK -> confirm (shape will change) | RCLICK -> cancel",
         "Cp-Transform": "LCLICK -> confirm (new copy will be created) | RCLICK -> cancel",
         "Visual": "LCLICK -> apply change | RCLICK -> put copy",
-        "Color Picker": "LCLICK -> apply | RCLICK -> close | QWERASDF -> change affected color | WHEEL -> adjust brightness",
+        "Color Picker": f"LCLICK -> apply | RCLICK -> close | {_QWERASDF} -> change affected color | WHEEL -> adjust brightness",
         # TODO grid 
         }
 
@@ -74,22 +77,21 @@ def menu_hook(hook, context):
         if ev.type == MENU_RESET:
             menu_item = menu.go_path(ev.path)
         else:
-            if ev.key == K_SPACE:
-                menu.go_path("")
-                set_hook(None)
-                return
             key = alpha_scan(ev)
             menu_item = menu.go(key)
-        try: post_info( _menuaction_info[menu_item], context)
+        try: post_info(_menuaction_info[menu_item], context)
         except KeyError: pass
         match menu_item:
             # Pinned
-            case "Menu Top":
+            case "Menu Start":
                 menu.go_path("")
                 set_hook(None)
-            case "Camera": overhook(change_view_hook, context)
+            case "Change View": overhook(change_view_hook, context)
             case "Command": overhook(miniter_hook, context)
+            # Undo
             case "Rewind": set_hook(rewind_hook, context)
+            case "Undo": undo_n(context, 1)
+            case "Redo": undo_n(context, -1)
             # Selection
             case "Selection": set_hook(select_hook, context)
             case "Remove": delete_selection(context)
@@ -134,7 +136,6 @@ def init_context(dimensions):
     cx.color_picker = ColorPicker(dimensions[0], dimensions[0] // 8, (0, 0), params.min_pick_saturation) 
     cx.show_picker = False
     #
-    #cx.color_weave_pairs = []
     cx.weaves = []
     cx.weave_colors = {}
     cx.pending_weaves = []
@@ -142,11 +143,11 @@ def init_context(dimensions):
     cx.weavity = (1, 1)
     cx.weaveback = True
     #
-    cx.menu = Menu(_nested_menu, _pinned_menu, _menu_layout)
+    cx.menu = Menu(_nested_menu, _pinned_menu, _menu_layout, _space_action)
     #
     cx.show_menu = True
     sections = {
-            'menu': ((0, 3), params.text_color, False),
+            'menu': ((0, 4), params.text_color, False),
             'term': ((0, 1), params.term_color, False),
             'error': ((0,2), params.error_text_color, True),
             'info': ((0, 4), params.text_color, True),

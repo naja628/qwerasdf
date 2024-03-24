@@ -14,8 +14,8 @@ def near_zero(x):
 def almost_equal(x, y):
     return sqdist(x, y) < params.eps ** 2
 
-def draw_point(screen, point, color = params.div_color):
-    draw.circle(screen, color, point, params.point_radius)
+def draw_point(screen, point, color = params.div_color, rad = params.point_radius):
+    draw.circle(screen, color, point, rad)
 
 class Shape:
     _KEYPOINT_NAMES = ()
@@ -234,7 +234,7 @@ class Point(Shape):
         self.divs = np.array([self.p])
     #
     def draw(self, screen, view, color = params.shape_color):
-        draw_point(screen, view.rtop(self.p), color)
+        draw_point(screen, view.rtop(self.p), color, rad = params.point_shape_radius)
     #
     def merger(self, to):
         if (type(to) != Point):

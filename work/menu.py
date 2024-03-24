@@ -1,12 +1,13 @@
 from text import TextArea
 from params import ptol, ltop
+from pygame import K_SPACE
 
 class Menu:
     class Shortcut:
         def __init__(self, path): self.path = path
         def get(self): return self.path
     ###
-    def __init__(self, nested = {}, pinned = {}, layout = []):
+    def __init__(self, nested = {}, pinned = {}, layout = [], space_action = None):
         self.layout = layout
         #
         self._path = ""
@@ -16,14 +17,19 @@ class Menu:
         self.pinned = pinned
         self.temp_show = {}
         self.temp_show_mask = ''
+        #
+        self.space_action = space_action
     #
     def _is_leaf(self, thing):
         return type(thing) is str
     #
     def go(self, key, navigate = True):
+        if key == K_SPACE:
+            return self.space_action
         if key in self.pinned:
             return self.pinned[key]
-        elif key in self.pos:
+        #
+        if key in self.pos:
             down = self.pos[key]
             if self._is_leaf(down):
                 return down
@@ -90,11 +96,14 @@ class Menu:
                 #
                 if label:
                     line += f" {ptol(key)}: "
-                    line += label[:label_size].ljust(label_size, ' ')
+                    line += label[:label_size].ljust(label_size)
                 else:
                     line += ' ' * (len(" X: ") + label_size)
                 line += ' |'
             lines.append(line)
+        if self.space_action and menu_layout:
+            line_sz = (len(" | X: ") + label_size) * len(menu_layout[0]) + 1
+            lines.append(f'| SPACE: {self.space_action}'.ljust(line_sz - 1) + '|')
         textbox.write_section('menu', lines)
         return textbox.render()
     ###
