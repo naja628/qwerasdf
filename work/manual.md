@@ -177,11 +177,34 @@ Similarly the "radial subdivisions" control how the main concentric circles are 
 Use the `grid-rsubdiv/grsub SUB1 ...` command.  
 
 # Saving / Loading / Exporting
-cf commands `s/save`, `load/lo`, `ls-saves`, `quit/q`, `outline`
-TODO (say more)
+cf commands `s/save`, `ls-saves/lsav`, `load/lo`, `quit/q`, `outline/out`
 
 # Configuration 
-TODO
+Conf files must be located `$YOURHOME/.qwerasdf` and have the `.conf` extension.
+The content has the `PARAM = VALUE` format, (1 param per line).
+
+Params | value (; allowed range) | description
+---|---|---|
+`background` | color | background color
+`shape_color` | color | default color for shapes
+`select_color` | color | color for selected shapes
+`hint_color` | color | color for hints
+`grid_color` | color | grid color
+`grid_fade_factor` | float; [0.01, 0.99] | bigger = subdivisions levels get dimmer faster
+`grid_sparseness_scroll_speed` | int; [1, 25] | controls mouse|wheel speed for `Grid +/| sparse`
+`point_color` | color | color of nails
+`point_radius` | int; [0, 5] | radius of nails (in pixels
+`point_shape_radius` | int; [1, 10] | color of 'point' shapes and hints.
+`zoom_factor` | float [1.01, 4] | controls zooming speed. 
+`brightness_scroll_speed` | float; [0.05, 0.2] | controls mouse|wheel speed when in the color picker
+`min_pick_saturation` | float; [0, 0.99] | controls the size of the gray band that is cut|off when rendering the color picker's rainbow
+`font_size` | int; [5, 30] | size of text
+`text_color` | color | default text color
+`error_text_color` | color | color of error messages
+`term_color` | color | color text of the commandline prompt
+`snap_radius` | int; [1, 100] | in pixels; min distance the cursor needs to be from a point to "snap" to it
+`bottom_margin` | int; [0, 50] | size of the band below the bottom text area
+`menu_translate` | keymap (e.g. `QWAZ AZQW`) | specifies key mappings (from `qwerty` to your layout) to use when displaying menu labels
 
 # TODO
 saving/loading/exporting
