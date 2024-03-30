@@ -1,10 +1,3 @@
-# TODO
-note about layout problems
-saving/loading/exporting
-conf file (mention rc)
-Grid
-Index and links
-
 # Basics
 Place your left hand on the home row (ASDF), and use your mouse with your right hand.
 
@@ -168,7 +161,7 @@ You can configure the "angular subdivisions" and "radial subdivisions" via the c
 
 For example, if the "angular subdivisions" is `5 2 : 3 2` this means:
 * subdivide the central circle into 5 equal angle sectors.
-* for each of this sectors subdivide it further into 2 equal subsectors
+* for each of these sectors subdivide it further into 2 equal subsectors
 * etc
 * The visible divisions will auto adjust depending on the zoom level so the view is not too cluttered. (i.e. more subdivisions will appear as you zoom)
 	* You can configure the "sparseness" of the grid via `A: Grid`/`S: Grid +/- sparse`. Scroll with the mouse-wheel to adjust it.
@@ -181,5 +174,19 @@ For example, if the "angular subdivisions" is `5 2 : 3 2` this means:
 	* You can omit the colon if you don't want repeating subdivisions
 
 Similarly the "radial subdivisions" control how the main concentric circles are divided into subcircles.  
-Use the `grid-rsubdiv/grsub SUB1 ...` command.
+Use the `grid-rsubdiv/grsub SUB1 ...` command.  
+
+# Saving / Loading / Exporting
+cf commands `s/save`, `load/lo`, `ls-saves`, `quit/q`, `outline`
+TODO (say more)
+
+# Configuration 
+TODO
+
+# TODO
+saving/loading/exporting
+conf file (mention rc)
+
+Index and links
+note about layout problems
 

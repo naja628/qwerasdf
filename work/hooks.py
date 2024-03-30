@@ -391,12 +391,11 @@ def create_weaves_hook(hook, context):
             _, candidates = snappy_get_point(cx, ev.pos)
             if not candidates: post_error("no shape under cursor", cx)
         while True:
-            match candidates, filter_cdt(candidates, cx.selected):
-                case ([ hg ], _) | (_, [ hg ]): return hg
-                case [], []: assert False
-                case (cdt, []) | (_, cdt) :
+            match candidates:
+                case [hg]: return hg
+                case []: assert False
+                case cdt: 
                     post_error("several shapes match. LCLICK -> disambiguate", cx)
-                    # highlight shape
                     def disambiguated(ev):
                         _, cdt2 = snappy_get_point(cx, ev.pos)
                         try: 
@@ -411,6 +410,27 @@ def create_weaves_hook(hook, context):
                         else: continue
                     subloop = save_loop
                     return ret
+#         while True:
+#             match candidates, filter_cdt(candidates, cx.selected):
+#                 case ([ hg ], _) | (_, [ hg ]): return hg
+#                 case [], []: assert False
+#                 case (cdt, []) | (_, cdt) :
+#                     post_error("several shapes match. LCLICK -> disambiguate", cx)
+#                     # highlight shape
+#                     def disambiguated(ev):
+#                         _, cdt2 = snappy_get_point(cx, ev.pos)
+#                         try: 
+#                             [ hg ] = filter_cdt(cdt, [hg.s for hg in cdt2])
+#                             return hg
+#                         except: return None
+#                     save_loop = subloop
+#                     subloop = lambda ev: (hg := disambiguated(ev)) and set_hints(cx, hg.s)
+#                     while True:
+#                         ev = yield
+#                         if ret := disambiguated(ev): break
+#                         else: continue
+#                     subloop = save_loop
+#                     return ret
     #
     while True:
         subloop = lambda ev: set_hints(cx, Point(_evpos(cx, ev)))

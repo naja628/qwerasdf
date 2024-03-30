@@ -7,11 +7,12 @@ params = Rec()
 #############################
 params.start_dimensions = (800, 800)
 
-params.save_dir = './save'
+_INSTALL = os.path.expanduser('~/.qwerasdf')
+params.save_dir = os.path.join(_INSTALL, 'save')
 params.recover_filename = 'RECOVER.qw'
-params.autosave_dir = './autosave'
+params.autosave_dir = os.path.join(_INSTALL, 'autosave')
 #dotrc = os.path.expanduser('~/.qwerasdfrc')
-params.dotrc_path = ['.qwerasdfrc', os.path.expanduser('~/.qwerasdfrc')]
+params.dotrc_path = ['.qwerasdfrc']
 
 params.background = Color(0, 0, 0)
 # shape_color = Color(0, 128, 128)
@@ -170,35 +171,43 @@ def _read_conf():
             'menu_translate': rkeymap()
             }
     #
-    home = os.path.expanduser('~')
-    allowed_names = ['qwerasdf.conf', '.qwerasdf.conf']
-    for filename in [*allowed_names, *[os.path.join(home, f) for f in allowed_names]]:
-        try: 
-            f = open(filename)
-            break
-        except:
-            continue
-    else: 
-        eprint("no conf file found")
+    if not os.path.isdir(_INSTALL):
         return
-        ###
-    try:
-        for i, line in enumerate(f):
-            if line.strip()[0] == '#': continue
-            #
-            [param, val_str] = [s.strip() for s in line.split('=')]
-            try: 
-                apply_cast = setable_to_type[param]
-                val = apply_cast(val_str)
-                setattr(params, param, val)
-            except KeyError:
-                eprint(f"line {i+1} | no such param: '{param}'")
-            except CastExn as e:
-                eprint(f"line {i+1} | expected [{e}] for '{param}', but got '{val_str}'")
-            except:
-                eprint("Unexpected error reading conf")
-    finally:
-        f.close()
+    #
+    for fname in os.listdir(_INSTALL): 
+        if not (parts := fname.split('.')) or parts[-1] != 'conf':
+            continue
+        try:
+            f = open(os.path.join(_INSTALL, fname))
+            for i, line in enumerate(f):
+                line = line.strip()
+                if not line or line.strip()[0] == '#': continue
+                #
+                [param, val_str] = [s.strip() for s in line.split('=')]
+                try: 
+                    apply_cast = setable_to_type[param]
+                    val = apply_cast(val_str)
+                    setattr(params, param, val)
+                except KeyError:
+                    eprint(f"line {i+1} | no such param: '{param}'")
+                except CastExn as e:
+                    eprint(f"line {i+1} | expected [{e}] for '{param}', but got '{val_str}'")
+                except:
+                    eprint("Unexpected error reading conf")
+        finally:
+            f.close()
+#     home = os.path.expanduser('~')
+#     allowed_names = ['qwerasdf.conf', '.qwerasdf.conf']
+#     for filename in [*allowed_names, *[os.path.join(home, f) for f in allowed_names]]:
+#         try: 
+#             f = open(filename)
+#             break
+#         except:
+#             continue
+#     else: 
+#         eprint("no conf file found")
+#         return
+#         ###
     ##
     
 _read_conf() # read conf when initing module

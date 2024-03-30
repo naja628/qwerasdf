@@ -1,14 +1,12 @@
-# Final touches
-tweak help/post-info command, multi-line docs for commands
-Keep or no: prefer selected for disambiguting (in weaves)
-Grid hints.
-default center grid thing
-
 ## Min for v2
-* maybe have Point be bigger than div (setable) with params (test)
 * manual + better tooltips
-* something about bug n2, bug n3 fixed?
+	* tweak help/post-info command, multi-line docs for commands
+	* Grid hints.
 * proper install? (with pip)
+* something about bug n2, bug n3 fixed?
+
+Keep or no: prefer selected for disambiguting (in weaves)?
+For hints, translate QWERASDF
 
 ## Bugs
 1: (can't reproduce) saw interactive_transform/merge/weave bug

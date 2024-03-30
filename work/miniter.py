@@ -157,7 +157,7 @@ def save_cmd(*a, _env):
     except FileExistsError:
         raise CmdExn(f"'{file}' exists. to allow overwrites, use: {_env.cmd} ! {file}")
 
-@miniter_command(('ls-save', 'lsav'), "$CMD || $CMD search")
+@miniter_command(('ls-saves', 'lsav'), "$CMD || $CMD search")
 def ls_saves_cmd(search = None, *, _env):
     "show list of existing saves in default save directory, matching `search` if specified"
     saves = _saves_list()
