@@ -37,6 +37,8 @@ def snappy_get_point(context, pos):
     shortest = sq_rrad + params.eps
     candidates = []
     def find_shortest(points):
+        if len(points) == 0:
+            raise RuntimeError
         rels = points - point
         rels **= 2
         [xs, ys] = np.split(rels, 2, axis = 1)
@@ -45,7 +47,9 @@ def snappy_get_point(context, pos):
         return i, sqdists[i]
     #
     for sh in cx.shapes:
-        i, d = find_shortest(sh.divs)
+        try: i, d = find_shortest(sh.divs)
+        except RuntimeError: continue
+        #
         if d < min(sq_rrad, shortest):
             snappoint, shortest = sh.divs[i], d 
         if sqdist(snappoint, sh.divs[i]) < params.eps ** 2:
@@ -56,7 +60,8 @@ def snappy_get_point(context, pos):
         if d < min(sq_rrad, shortest):
             snappoint = cx.grid.points()[i] 
     #
-    candidates = [ cd for cd in candidates 
+    candidates = [ 
+            cd for cd in candidates 
             if sqdist(cd.s.divs[cd.i], snappoint) < params.eps ** 2]
     return np.copy(snappoint), candidates
 
@@ -82,7 +87,6 @@ def set_color(context, color_key, new_color):
 def create_shapes(context, *shapes):
     context.shapes.extend(shapes)
     context.selected = list(shapes)
-    # TODO automerge ? maybe only in selection
 
 def set_hints(context, *hints):
     context.hints = list(hints)
@@ -142,7 +146,6 @@ def reload_session(context, session_name):
 def load_to_context(context, loaded, extra = {}):
     context.hints = []
     context.selected = []
-#     loaded, extra = load(file)
     #
     context.update(loaded)
     for k, v in extra.items():

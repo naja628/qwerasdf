@@ -1,7 +1,8 @@
 # Final touches
 tweak help/post-info command, multi-line docs for commands
 Keep or no: prefer selected for disambiguting (in weaves)
-Grid hints, rework hints a bit?
+Grid hints.
+default center grid thing
 
 ## Min for v2
 * maybe have Point be bigger than div (setable) with params (test)

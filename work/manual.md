@@ -25,6 +25,9 @@ To quit the command-line use `Ctrl-C` or use `Enter` when the prompt is empty (n
 
 See list of available commands (look first at `help` (TODO link) and `ls-cmd` (TODO link)). [TODO link]  
 
+Some commands have aliases. For example if I talk about the `help/h` command it means you can use either `help` or `h` as the command name to type.  
+Sometimes in this manual, I will omit some of the aliases for convenience.  
+
 Available shortcuts:
 * `Ctrl-U`: erase current line
 * `Ctrl-C`: cancel and close commandline
@@ -126,12 +129,12 @@ Transformation are applied relative to a center (except move). Initially it is s
 To change the center, use `R: recenter`. The center is set **immediately** to the point under your cursor.
 
 To apply transformations:
-* Choose the type of transformation from the menu with the keyboard. This will **immediately** grab the point under the cursor.
-* Move your the point you grabbed to its desired position. What this means exactly depends on the type of transformation.
+* choose the type of transformation from the menu with the keyboard. This will **immediately** grab the point under the cursor.
+* move your the point you grabbed to its desired position. What this means exactly depends on the type of transformation.
 * either:
 	* left-click to apply the transformation to the current selections. (The shapes will change)
 	* right-click to create a transformed copy. The created shapes become the selection for the next transformation.
-* repeat as many times
+* repeat as many times as needed
 * Use `W: done` to exit the visual transformation tool.
 * **Note**: You can use `Q: cancel change`, to cancel the pending change and select another type of transformation.
 
@@ -144,14 +147,39 @@ You can still access the undo history after closing and restarting the program.
 
 ### Sessions
 Sessions are used to bundle the history of one or several drawing together and are identified by a name. When you launch the program it will try to connect to the session `default`.  
-When undoing/redoing, you will only scroll through the changes that you where made while connected to the session you are currently connected to.  
+When undoing/redoing, you will only scroll through the changes that were made while connected to the session you are currently connected to.  
 Regular saves keep track of which session they are connected to. (i.e. loading will set your session to the one you were using when you saved).  
 
 To change session use the `session SESSIONNAME` command.   
 If the session does not already exist it will be created.  
 The special session name `OFF` is used to indicate you want to disable undoing/autosaving.  
 
-Session may only be used by one single running instance of the program at the same time. If you try to connect to a session that is currently being used, you will see an error message.
+A session may only be used by one single running instance of the program at the same time. If you try to connect to a session that is currently being used, you will see an error message.
 
 Note: the raw data of the the autosave history is located at `$YOUR_HOME/.qwerasdf/autosave` (TODO currently not true)
+
+# The Grid
+You can activate (toggle) the grid either via `A: Grid`/`A: Grid on/off` or with the `grid` command.  
+When the grid is on, you will see a bunch of concentric circles and radial subdivisions to help you place points precisely.  
+All the intersections of the circles and the radial lines are snappy.  
+To change the center of the grid, go to `A: Grid`/`D: Grid recenter` and click the desired new center.  
+
+You can configure the "angular subdivisions" and "radial subdivisions" via the commandline.  
+
+For example, if the "angular subdivisions" is `5 2 : 3 2` this means:
+* subdivide the central circle into 5 equal angle sectors.
+* for each of this sectors subdivide it further into 2 equal subsectors
+* etc
+* The visible divisions will auto adjust depending on the zoom level so the view is not too cluttered. (i.e. more subdivisions will appear as you zoom)
+	* You can configure the "sparseness" of the grid via `A: Grid`/`S: Grid +/- sparse`. Scroll with the mouse-wheel to adjust it.
+* the subdivisions after the colon (`:`) repeat. So `5 : 2` is actually `5 2 2 2 2 ...`. If you omit it the grid will stop subdiving after a certain point regardless of zoom level.
+* the "angle 0" that angular subdivisions start from can be changed by setting the "phase". By default it is horizontal to the right.
+	* either via the `phase ANGLE` command.
+	* or from `A: Grid`/`F: Grid set phase`, by clicking where you want the angle 0 to be.
+* the angular subdivisions is set via the `grid-asubdiv/gasub SUB1 ... ` command.
+	* spaces around the colon are **mandatory**
+	* You can omit the colon if you don't want repeating subdivisions
+
+Similarly the "radial subdivisions" control how the main concentric circles are divided into subcircles.  
+Use the `grid-rsubdiv/grsub SUB1 ...` command.
 

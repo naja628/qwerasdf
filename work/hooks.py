@@ -644,7 +644,10 @@ def interactive_transform_hook(hook, context):
         try: return actions[key]
         except KeyError: return key
     #
-    center, _ = snappy_get_point(cx, pg.mouse.get_pos())
+    if context.grid_on:
+        center = context.grid.center
+    else:
+        center, _ = snappy_get_point(cx, pg.mouse.get_pos())
     pendingT = None
     #
     while True:
