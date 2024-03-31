@@ -271,8 +271,8 @@ save !          : save (using the previous SAVENAME)
 ### ls-saves
 aliases: `ls-saves`/`lsav`
 ```
-ls-saves            : list all existing saves
-ls-saves SEARCHTERM : list all existing matching the search
+ls-saves            : list all existing save names
+ls-saves SEARCHTERM : list all existing save names matching the search
 Search Criterion: all letters appears in order. (eg 'ac' matches 'abc' but not 'ca')
 If the search term is a complete name, list only it (and not other matches)
 ```
@@ -371,8 +371,7 @@ aliases: `set-rotation`/`rot`
 ```
 set-rotation DEG   : set the default rotation angle to DEG degrees
 set-rotation RAD pi: set the default rotation angle to RAD * pi radians. (literally type 'pi')
-set-rotation P / Q : set the default rotation to P Qth of a turn. (spaces around the slash manda
-tory)
+set-rotation P / Q : set the default rotation to P Qth of a turn. (spaces around the slash mandatory)
 ```
 
 ### fullscreen

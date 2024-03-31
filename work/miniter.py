@@ -161,8 +161,8 @@ def save_cmd(*a, _env):
 
 @miniter_command(('ls-saves', 'lsav'), "$CMD || $CMD SEARCH_TERM")
 def ls_saves_cmd(search = None, *, _env):
-    '''$CMD            : list all existing saves
-       $CMD SEARCHTERM : list all existing matching the search
+    '''$CMD            : list all existing save names
+       $CMD SEARCHTERM : list all existing save names matching the search
        Search Criterion: all letters appears in order. (eg 'ac' matches 'abc' but not 'ca')
        If the search term is a complete name, list only it (and not other matches)'''
     saves = _saves_list()
