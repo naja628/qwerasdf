@@ -238,194 +238,223 @@ Parameter | Value (; allowed range) | Description
 `menu_translate` | keymap (e.g. `QWAZ AZQW`) | specifies key mappings (from `qwerty` to your layout) to use when displaying menu labels
 
 # List of Commands
-
 [help](#help), [ls-cmd](#ls-cmd), [usage](#usage), [save](#save), [ls-saves](#ls-saves), [load](#load), [exit](#exit), [new](#new), [import](#import), [recover](#recover), [outline](#outline), [set-color](#set-color), [menu](#menu), [palette](#palette), [div](#div), [default-divs](#default-divs), [weavity](#weavity), [weaveback](#weaveback), [set-rotation](#set-rotation), [fullscreen](#fullscreen), [resize](#resize), [grid](#grid), [grid-rsubdiv](#grid-rsubdiv), [grid-asubdiv](#grid-asubdiv), [set-phase](#set-phase), [session](#session), [clear](#clear), [select-all](#select-all), [translate-colors](#translate-colors), [highlight](#highlight), [source](#source), [\_debug](#_debug)
 
 ### help
 aliases: `help`/`h`
-```help CMD: show documentation for CMD
+```
+help CMD: show documentation for CMD
 ```
 
 ### ls-cmd
 aliases: `ls-cmd`/`ls`
-```ls-cmd: list available commands
+```
+ls-cmd: list available commands
 ```
 
 ### usage
 aliases: `usage`/`us`
-```usage CMD: show command usage
+```
+usage CMD: show command usage
 ```
 
 ### save
 aliases: `save`/`s`
-```save SAVENAME ! : save as SAVENAME
-       save SAVENAME   : same as above but forbid overwriting existing save.
-       save !          : save (using the previous SAVENAME)
+```
+save SAVENAME ! : save as SAVENAME
+save SAVENAME   : same as above but forbid overwriting existing save.
+save !          : save (using the previous SAVENAME)
 ```
 
 ### ls-saves
 aliases: `ls-saves`/`lsav`
-```ls-saves            : list all existing saves
-       ls-saves SEARCHTERM : list all existing matching the search
-       Search Criterion: all letters appears in order. (eg 'ac' matches 'abc' but not 'ca')
-       If the search term is a complete name, list only it (and not other matches)
+```
+ls-saves            : list all existing saves
+ls-saves SEARCHTERM : list all existing matching the search
+Search Criterion: all letters appears in order. (eg 'ac' matches 'abc' but not 'ca')
+If the search term is a complete name, list only it (and not other matches)
 ```
 
 ### load
 aliases: `load`/`lo`
-```load SEARCHSAVE ! : find matches for SEARCHSAVE according to 'ls-saves' rules, and load the s
-ave if a single match is found.
-       load SEARCHTERM   : same as above but forbids discarding unsaved changes
+```
+load SEARCHSAVE ! : find matches for SEARCHSAVE according to 'ls-saves' rules, and load the save
+ if a single match is found.
+load SEARCHTERM   : same as above but forbids discarding unsaved changes
 ```
 
 ### exit
 aliases: `exit`/`quit`/`q`
-```exit   : quit program. forbids discarding unsaved changes.
-       exit ! : quit program.
-       exit SAVENAME: save as savename, then quit program.
+```
+exit   : quit program. forbids discarding unsaved changes.
+exit ! : quit program.
+exit SAVENAME: save as savename, then quit program.
 ```
 
 ### new
 aliases: `new`/`blank`
-```new   : clear canvas and start new drawing. forbids discarding unsaved changes.
-       new ! : clear canvas and start new drawing.
-       new SAVENAME: save as savename, then clear canvas and start new drawing.
+```
+new   : clear canvas and start new drawing. forbids discarding unsaved changes.
+new ! : clear canvas and start new drawing.
+new SAVENAME: save as savename, then clear canvas and start new drawing.
 ```
 
 ### import
 aliases: `import`/`imp`
-```import SAVENAME: load SAVENAME **on top** of existing drawing
+```
+import SAVENAME: load SAVENAME **on top** of existing drawing
 ```
 
 ### recover
 aliases: `recover`
-```recover: try to recover state from a previous crash
+```
+recover: try to recover state from a previous crash
 ```
 
 ### outline
 aliases: `outline`/`out`
-```outline WIDTH_CM MARGIN_CM: generate multi-page printable outline for drawing.
-       (cf. manual. (Saving section))
+```
+outline WIDTH_CM MARGIN_CM: generate multi-page printable outline for drawing.
+(cf. manual. (Saving section))
 ```
 
 ### set-color
 aliases: `set-color`/`co`
-```set-color KEY       : select color KEY for drawing.
-       set-color KEY R G B : set color KEY by RGB
-       set-color KEY HHHHHH: set color KEY by hexcode
+```
+set-color KEY       : select color KEY for drawing.
+set-color KEY R G B : set color KEY by RGB
+set-color KEY HHHHHH: set color KEY by hexcode
 ```
 
 ### menu
 aliases: `menu`
-```menu: show/hide menu
+```
+menu: show/hide menu
 ```
 
 ### palette
 aliases: `palette`/`pal`
-```palette: show/hide palette
+```
+palette: show/hide palette
 ```
 
 ### div
 aliases: `div`/`nails`
-```div N: set the number of nails on all selected shapes to N. (evenly spaced)
+```
+div N: set the number of nails on all selected shapes to N. (evenly spaced)
 ```
 
 ### default-divs
 aliases: `default-divs`/`dfdiv`/`dfnails`
-```default-divs SHAPE_TYPE1 DEFAULT_NAILS1 ...: all shapes of type SHAPE_TYPE1 will be initially
- drawn with DEFAULT_NAILS1 nails.
-       Shape types: 'circle', 'line', 'arc', 'poly'
-       Can specify several (type, dfnails) pairs at once (after each other).
+```
+default-divs SHAPE_TYPE1 DEFAULT_NAILS1 ...: all shapes of type SHAPE_TYPE1 will be initially dr
+awn with DEFAULT_NAILS1 nails.
+Shape types: 'circle', 'line', 'arc', 'poly'
+Can specify several (type, dfnails) pairs at once (after each other).
 ```
 
 ### weavity
 aliases: `weavity`/`wy`
-```weavity BOUND_INCREMENT LOOSE_INCREMENT: set the weavity pair. (cf Weaves section of manual)
+```
+weavity BOUND_INCREMENT LOOSE_INCREMENT: set the weavity pair. (cf Weaves section of manual)
 ```
 
 ### weaveback
 aliases: `weaveback`/`wb`
-```weaveback: toggle weaveback
+```
+weaveback: toggle weaveback
 ```
 
 ### set-rotation
 aliases: `set-rotation`/`rot`
-```set-rotation DEG   : set the default rotation angle to DEG degrees
-       set-rotation RAD pi: set the default rotation angle to RAD * pi radians. (literally type 
-'pi')
-       set-rotation P / Q : set the default rotation to P Qth of a turn. (spaces around the slas
-h mandatory)
+```
+set-rotation DEG   : set the default rotation angle to DEG degrees
+set-rotation RAD pi: set the default rotation angle to RAD * pi radians. (literally type 'pi')
+set-rotation P / Q : set the default rotation to P Qth of a turn. (spaces around the slash manda
+tory)
 ```
 
 ### fullscreen
 aliases: `fullscreen`/`fu`
-```fullscreen: go fullscreen
+```
+fullscreen: go fullscreen
 ```
 
 ### resize
 aliases: `resize`/`res`
-```resize WIDTH HEIGHT: resize window
+```
+resize WIDTH HEIGHT: resize window
 ```
 
 ### grid
 aliases: `grid`
-```grid: enable/disable grid
+```
+grid: enable/disable grid
 ```
 
 ### grid-rsubdiv
 aliases: `grid-rsubdiv`/`grsub`
-```grid-rsubdiv DIV1 ... : REPEAT1 ...: set the 'radial subdivison' of the grid. (cf manual)
+```
+grid-rsubdiv DIV1 ... : REPEAT1 ...: set the 'radial subdivison' of the grid. (cf manual)
 ```
 
 ### grid-asubdiv
 aliases: `grid-asubdiv`/`gasub`
-```grid-asubdiv DIV1 ... : REPEAT1 ...: set the 'angular subdivison' of the grid. (cf manual)
+```
+grid-asubdiv DIV1 ... : REPEAT1 ...: set the 'angular subdivison' of the grid. (cf manual)
 ```
 
 ### set-phase
 aliases: `set-phase`/`ph`
-```set-phase DEG   : set the grid phase to DEG degrees
-       set-phase RAD pi: set the grid phase to RAD * pi radians. (literally type 'pi')
-       set-phase P / Q : set the grid phase to P Qth of a turn. (spaces around the slash mandato
-ry)
+```
+set-phase DEG   : set the grid phase to DEG degrees
+set-phase RAD pi: set the grid phase to RAD * pi radians. (literally type 'pi')
+set-phase P / Q : set the grid phase to P Qth of a turn. (spaces around the slash mandatory)
 ```
 
 ### session
 aliases: `session`/`se`
-```session SESSIONNAME: connect to session SESSIONNAME.
-       session OFF: disable undoing/autosaving. (literally type 'OFF' as the SESSIONNAME)
+```
+session SESSIONNAME: connect to session SESSIONNAME.
+session OFF: disable undoing/autosaving. (literally type 'OFF' as the SESSIONNAME)
 ```
 
 ### clear
 aliases: `clear`/`cl`
-```clear: clear error/info messages
+```
+clear: clear error/info messages
 ```
 
 ### select-all
 aliases: `select-all`/`sel*`
-```select-all: select all shapes
+```
+select-all: select all shapes
 ```
 
 ### translate-colors
 aliases: `translate-colors`/`trans`
-```translate-colors FROM TO: change the colors of the weaves inside the selection according to c
-onversion rule
-       ex: if FROM = Q and TO = A, weaves with color Q will turn to color A
+```
+translate-colors FROM TO: change the colors of the weaves inside the selection according to conv
+ersion rule
+ex: if FROM = Q and TO = A, weaves with color Q will turn to color A
 ```
 
 ### highlight
 aliases: `highlight`/`hi`
-```highlight INDEX1 ...: highlight the nails at the specified indices on all selected shapes
+```
+highlight INDEX1 ...: highlight the nails at the specified indices on all selected shapes
 ```
 
 ### source
 aliases: `source`/`so`
-```source CMDSFILE: read CMDSFILE, and execute its lines as commands
+```
+source CMDSFILE: read CMDSFILE, and execute its lines as commands
 ```
 
 ### \_debug
 aliases: `_debug`/`_db`
-```_debug: go into python debugger
+```
+_debug: go into python debugger
 ```
 
 # TODO
