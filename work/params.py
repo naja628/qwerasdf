@@ -117,10 +117,10 @@ def rcolor(s):
         [r, g, b] = [ rint(0, 255)(compo) for compo in words ]
     except:
         try:
-            xassert(s[0] == '#')
+            xassert(len(s) == 6)
             [r, g, b] = [int(s[i:i+2], 16) for i in range(0, 6, 2)]
         except:
-            raise CastExn("color (r, g, b or #xxxxxx)")
+            raise CastExn("color (r, g, b or xxxxxx (x = hex digit))")
     return Color(r, g, b)
 
 @cast
@@ -154,9 +154,9 @@ def _read_conf():
             #
             'point_color': rcolor(),
             'point_radius': rint(0, 5),
-            'point_shape_radius': rint(0, 10),
+            'point_shape_radius': rint(1, 10),
             #
-            'zoom_factor': rfloat(0.25, 4),
+            'zoom_factor': rfloat(1.01, 4),
             'brightness_scroll_speed': rfloat(1 / 256, 0.2),
             'min_pick_saturation': rfloat(0, 0.99),
             #

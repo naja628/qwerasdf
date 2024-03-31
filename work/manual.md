@@ -10,7 +10,7 @@
 * [List of Commands](#list-of-commands)
 
 # Intro
-It is recommended that follow along this manual by using the program.  
+It is recommended that you follow along this manual by using the program.  
 Place your left hand on the home row (ASDF), and use your mouse with your right hand.
 
 ## Using the Menu
@@ -26,9 +26,9 @@ For example after `D: Draw Shape`/`S: New Segment`, left-clicking on 2 points wi
 ## The Commandline
 Some things are achieved through the command-line (i.e. by literally typing commands).  
 Use `C: Command`, to enter the command-line and start typing commands. A green command prompt will appear.  
-To quit the command-line use `Ctrl-C` or use `Enter` when the prompt is empty (no text was typed since the last command).  
+To quit the command-line use `Ctrl-C` or use `Enter` when the prompt is empty (i.e. no text was typed since the last command).  
 
-See list of available commands (look first at `help` (TODO link) and `ls-cmd` (TODO link)). [TODO link]  
+See list of available commands (look first at [`help`](#help) and [`ls-cmd`](#ls-cmd)). 
 
 Some commands have aliases. For example when this manual mentions the `help/h` command it means you can use either `help` or `h` as the command name to type.  
 Sometimes in this manual, some of the aliases will be ommitted for convenience.  
@@ -53,22 +53,22 @@ Available shortcuts:
 
 # Shapes 
 To start drawing shapes go to `D: Draw Shapes`, then select the desired shape type from the menu.  
-All shapes have a number of nails (white dots) on them, you can adjust it with the `nails` or `default-divs` commands. (TODO link).  
-You do not need to select the shape a second type in between drawing 2 shapes of the same type.  
+All shapes have a number of nails (white dots) on them, you can adjust it with the [`nails`](#div) or [`default-divs`](#default-divs) commands.  
+You do not need to select the shape type a second time in between drawing 2 shapes of the same type.  
 
 To draw a:
-* circle: left-click on the center, then left-click on any point on the perimeter. You can use right-click to make it so the first point you clicked is on the perimeter, and the second controls the center.
+* circle: left-click on the center, then left-click on any point on the perimeter. You can use right-click to make it so the first point you clicked is on the perimeter, and the mouse controls the center.
 * segment: left-click on an endpoint, then the other
-* circle arc: left-click on the center, then left-click on an endpoint of the arc, then the other. Use right-click to toggle whether you're going clockwise.
+* circle arc: left-click on the center, then left-click on an endpoint of the arc, then the other (total 3 clicks). Use right-click to toggle whether you're going clockwise.
 * point: left-click on the point.
 * broken line: use `PolyLine` as the shape type; left-click on as many points as you want, and right-click when you're done.
 * polygon: use `PolyLine` as the shape type; left-click on all the vertices, then left-click the point you started on.
 
-Note: reminders for the above will be displayed at the bottom of the screen when you select a shape type.
+Note: reminders for the above will be displayed at the bottom of the screen when you select a shape type.  
 
 # Weaves and Colors
-The colorful strings between the nails are organized in "weaves".
-Go to `F: Draw Weave` to start creating weaves.
+The colorful strings between the nails are organized in "weaves".  
+Go to `F: Draw Weave` to start creating weaves.  
 
 ### Creating weaves
 To create a new weave: 
@@ -76,7 +76,6 @@ To create a new weave:
 * left-click another nail on another (or the same) shape to define the second attach point 
 * left-click a third time on any nail on the same shape where the second attach point is to extend the weave.
 * **Note:** For the first 2 attach points, if you click on a nail that is at the intersection of several shapes, you will need to choose what shape you want to use by clicking another nail on it before proceeding
-(TODO either mention the selection thing or remove the code for it)
 
 A colorful string should be drawn between the first 2 attach points, and between every 2 points after them on their respective shapes until the third attach point (on the second shape) is reached, or the first shape runs out of nails.
 
@@ -90,7 +89,7 @@ Right-clicking will cycle through all 4 possibilities.
 ### "Advanced" options
 Some commands affect the behavior when drawing weaves:
 * `weaveback/wb`: toggles `weaveback` (on by default). If `weaveback` is enabled, a second set of colorful strings will appear to connect the previous set, as if all the lines came from a single string that wraps around the nails.
-* `weavity/wy INC1 INC2`: set the "weavity" (1 -1 by default). This allows skipping some nails. (e.g. if the weavity is 2 1, a nail will be skipped every time when finding the "next nail" on the first shape).
+* `weavity/wy INC1 INC2`: set the "weavity" (`1 -1` by default). This allows skipping some nails. (e.g. if the weavity is `2 1`, a nail will be skipped every time when finding the "next nail" on the first shape).
 
 ## Using Colors
 You can draw weaves in any of 8 different colors associated with one of the `QWERASDF` keyboard keys.  
@@ -109,14 +108,15 @@ Select and edit form the `S: Selection` submenu
 ### Selection basics
 Left-click any nail to select all the shapes the nail belongs to (there can be several shapes if the nail is at an intersection)
 Similarly, right-click a nail to "toggle the select state" of all the shapes under it. (i.e. selected shapes become unselected and vice-versa)
-Selected shapes will be highlighted in blue.
+Selected shapes will be highlighted in blue.  
+
 Notes: 
 * you will always select shapes. (i.e. you cannot select individual nails or weaves)
 * some terminal actions act on the selection
 * some actions (even outside the selection submenu) will set the selection. (e.g. new shapes are selected upon creation)
 
 `R: Remove` will delete all the currently selected shapes.
-`E: Unweave` will remove all the weaves between two shapes that are **both** selected.
+`E: Unweave` will remove all the weaves between any two shapes that are **both** selected.
 
 There are two main ways to move or transform (e.g. rotate or mirror) the current selection. (detailed below)
 
@@ -131,9 +131,9 @@ There are two main ways to move or transform (e.g. rotate or mirror) the current
 * The `Copy-transform` and `Copy-move` variants work as above, but a copy of the selection with the transformation applied will be created.
 
 ### Using the visual transformation submenu
-Under `W: Visual`, you can sequentially apply several transformations to the shape.   
+Under `W: Visual`, you can sequentially apply several transformations to the shape.  
 Transformations are applied relative to a center (except move). Initially it is set to the center of the grid (if activated), or to the point under your cursor when you entered `W: visual`.  
-To change the center, use `R: recenter`. The center is set **immediately** to the point under your cursor.
+To change the center, use `R: recenter`. The center is set **immediately** to the point under your cursor.  
 
 To apply transformations:
 * choose the type of transformation from the menu with the keyboard. This will **immediately** grab the point under the cursor.
@@ -151,9 +151,10 @@ You can undo/redo either with `Z: Undo`/`X: Redo`.
 Or from `R: Rewind`: scroll through the history with the mouse-wheel and click when you're done.  
 The first time you make a change after an undo, it is added **at the end** of the history; so the history is not erased. Undoing right after would take you through all the savepoints you went through to get to the previous state you made the change from.  
 You can still access the undo history after closing and restarting the program.  
+Autosaves are not kept indefinitely, they will be progressively deleted in such a way that the history becomes sparser (more time between to savepoints) the further back in time you go.  
 
 ### Sessions
-Sessions are used to bundle the history of one or several drawing together and are identified by a name. When you launch the program it will try to connect to the session `default`.  
+Sessions are used to bundle the history of one or several drawings together and are identified by a name. When you launch the program it will try to connect to the session `default`.  
 When undoing/redoing, you will only scroll through the changes that were made while connected to the session you are currently connected to.  
 Regular saves keep track of which session they are connected to. (i.e. loading will set your session to the one you were using when you saved).  
 
@@ -161,14 +162,14 @@ To change session use the `session SESSIONNAME` command.
 If the session does not already exist it will be created.  
 The special session name `OFF` is used to indicate you want to disable undoing/autosaving.  
 
-A session may only be used by one single running instance of the program at the same time. If you try to connect to a session that is currently being used, you will see an error message.
+A session may only be used by one single running instance of the program at the any time. If you try to connect to a session that is currently being used, you will see an error message.
 
-Note: the raw data of the the autosave history is located at `$YOUR_HOME/.qwerasdf/autosave` (TODO currently not true)
+Note: the raw data of the the autosave history is located at `$YOUR_HOME/.qwerasdf/autosave` 
 
 # The Grid
-You can activate (toggle) the grid either via `A: Grid`/`A: Grid on/off` or with the `grid` command.  
-When the grid is on, you will see a bunch of concentric circles and radial subdivisions to help you place points precisely.  
-All the intersections of the circles and the radial lines are snappy.  
+You can activate/deactivate the grid either via `A: Grid`/`A: Grid on/off` or with the `grid` command.  
+When the grid is on, you will see a bunch of concentric circles and angle lines to help you place points precisely.  
+All the intersections of the circles and the angle lines are snappy.  
 To change the center of the grid, go to `A: Grid`/`D: Grid recenter` and click the desired new center.  
 
 You can configure the "angular subdivisions" and "radial subdivisions" via the commandline.  
@@ -183,7 +184,7 @@ For example, if the "angular subdivisions" is `5 2 : 3 2` this means:
 * the "angle 0" that angular subdivisions start from can be changed by setting the "phase". By default it is horizontal to the right.
 	* either via the `phase ANGLE` command.
 	* or from `A: Grid`/`F: Grid set phase`, by clicking where you want the angle 0 to be.
-* the angular subdivisions is set via the `grid-asubdiv/gasub SUB1 ... ` command.
+* the angular subdivisions is set via the `grid-asubdiv/gasub SUB1 ...` command.
 	* spaces around the colon are **mandatory**
 	* You can omit the colon if you don't want repeating subdivisions
 
@@ -192,11 +193,12 @@ Use the `grid-rsubdiv/grsub SUB1 ...` command.
 
 # Saving
 ### Saving and Loading
-Use the `s/save`, `ls-saves/lsav`, `load/lo`, and `quit/q` (TODO link) to save your work and quit.
+Use the [`s/save`](#save), [`ls-saves/lsav`](#ls-saves), [`load/lo`](#load), and [`quit/q`](#quit) to save your work and quit.  
+The actual save files are located at `$YOUR_HOME/.qwerasdf/save`
 
 ### Exporting Outlines
 You can export printable multi-page documents with marking for nails by the using `outline/out SIZE MARGIN [FORMAT]` command.
-The idea is that you would stick the cut-outs over your canvas, plant your nails and tear it off.
+The idea is that you would stick the cut-outs over your canvas, plant your nails and then tear it off.
 * `SIZE`: desired size of the drawing in cm. 
 * `MARGIN`: size of the margin in cm. (i.e. the canvas is a `SIZE + MARGIN` sized square)
 * `FORMAT`: paper format. (A4 if left blank; supported: `a4`, `us-letter`)
@@ -347,8 +349,7 @@ div N: set the number of nails on all selected shapes to N. (evenly spaced)
 ### default-divs
 aliases: `default-divs`/`dfdiv`/`dfnails`
 ```
-default-divs SHAPE_TYPE1 DEFAULT_NAILS1 ...: all shapes of type SHAPE_TYPE1 will be initially dr
-awn with DEFAULT_NAILS1 nails.
+default-divs SHAPE_TYPE1 DEFAULT_NAILS1 ...: all shapes of type SHAPE_TYPE1 will be initially drawn with DEFAULT_NAILS1 nails.
 Shape types: 'circle', 'line', 'arc', 'poly'
 Can specify several (type, dfnails) pairs at once (after each other).
 ```
@@ -405,7 +406,7 @@ grid-asubdiv DIV1 ... : REPEAT1 ...: set the 'angular subdivison' of the grid. (
 ```
 
 ### set-phase
-aliases: `set-phase`/`ph`
+aliases: `set-phase`/`phase`/`ph`
 ```
 set-phase DEG   : set the grid phase to DEG degrees
 set-phase RAD pi: set the grid phase to RAD * pi radians. (literally type 'pi')
@@ -434,8 +435,7 @@ select-all: select all shapes
 ### translate-colors
 aliases: `translate-colors`/`trans`
 ```
-translate-colors FROM TO: change the colors of the weaves inside the selection according to conv
-ersion rule
+translate-colors FROM TO: change the colors of the weaves inside the selection according to conversion rule
 ex: if FROM = Q and TO = A, weaves with color Q will turn to color A
 ```
 
@@ -456,9 +456,3 @@ aliases: `_debug`/`_db`
 ```
 _debug: go into python debugger
 ```
-
-# TODO
-Index and links
-note about layout problems
-proofread
-

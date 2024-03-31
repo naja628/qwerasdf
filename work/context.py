@@ -95,7 +95,8 @@ def reset_hints(context):
     context.hints = []
 
 def post_info(msg, context):
-    context.text.write_section('info', [ 'Info: ' + msg ])
+    context.text.write_section('info', [ line.strip() for line in msg.split('\n') ])
+    # context.text.write_section('info', [ 'Info: ' + msg ])
 
 def post_error(msg, context):
     context.text.write_section('error', [ 'Error: ' + msg ])

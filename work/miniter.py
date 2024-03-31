@@ -91,21 +91,21 @@ def miniter_command(cmd_fun, aliases, usage = '$CMD'):
 def _slash_aliases(cmd_name):
     return '/'.join(miniter_aliases_map[miniter_command_map[cmd_name]])
 
-@miniter_command(('help', 'h'), "$CMD cmd_name")
+@miniter_command(('help', 'h'), "$CMD CMD")
 def help_cmd(cmd_name, *, _env):
-    "get description of command"
+    "$CMD CMD: show documentation for CMD"
     #
-    post_info(f"{_slash_aliases(cmd_name)}: {miniter_command_map[cmd_name].__doc__}", _env.context)
+    post_info(f"{miniter_command_map[cmd_name].__doc__.replace('$CMD', cmd_name)}", _env.context)
 
 @miniter_command(('ls-cmd', 'ls'))
 def list_cmd(*, _env):
-    "list available commands"
+    "$CMD: list available commands"
     #
     post_info( ', '.join([ aliases[0] for aliases in miniter_aliases_map.values() ]), _env.context )
 
-@miniter_command(('usage', 'us'), "$CMD cmd_name")
+@miniter_command(('usage', 'us'), "$CMD CMDNAME")
 def usage_cmd(cmd_name, *, _env):
-    "show command usage"
+    "$CMD CMD: show command usage"
     #
     cmd_names = '/'.join(miniter_aliases_map[miniter_command_map[cmd_name]])
     usage_str = miniter_usage_map[miniter_command_map[cmd_name]]
@@ -138,9 +138,11 @@ def _cmp_buff(context):
     return same, buffer
 
 _last_save_filename = None
-@miniter_command(('save', 's'), "$CMD file || $CMD ! || $CMD file !")
+@miniter_command(('save', 's'), "$CMD SAVENAME || $CMD ! || $CMD SAVENAME !")
 def save_cmd(*a, _env):
-    "save. with ! : overwrite previous save"
+    '''$CMD SAVENAME ! : save as SAVENAME
+       $CMD SAVENAME   : same as above but forbid overwriting existing save.
+       $CMD !          : save (using the previous SAVENAME)'''
     #
     global _last_save_filename
     if not (1 <= len(a) <= 2): raise Exception()
@@ -157,9 +159,12 @@ def save_cmd(*a, _env):
     except FileExistsError:
         raise CmdExn(f"'{file}' exists. to allow overwrites, use: {_env.cmd} ! {file}")
 
-@miniter_command(('ls-saves', 'lsav'), "$CMD || $CMD search")
+@miniter_command(('ls-saves', 'lsav'), "$CMD || $CMD SEARCH_TERM")
 def ls_saves_cmd(search = None, *, _env):
-    "show list of existing saves in default save directory, matching `search` if specified"
+    '''$CMD            : list all existing saves
+       $CMD SEARCHTERM : list all existing matching the search
+       Search Criterion: all letters appears in order. (eg 'ac' matches 'abc' but not 'ca')
+       If the search term is a complete name, list only it (and not other matches)'''
     saves = _saves_list()
     if search:
         matches = [*_fuzzy_matches(search, saves)]
@@ -168,9 +173,10 @@ def ls_saves_cmd(search = None, *, _env):
     else:
         post_info(', '.join(saves), _env.context) 
 
-@miniter_command(('load', 'lo'), "$CMD load_file || $CMD load_file !")
+@miniter_command(('load', 'lo'), "$CMD SEARCHSAVE || $CMD SEARCHSAVE !")
 def load_cmd(search_file, bang = None, *, _env):
-    "load file. Use ! to suppress save warning"
+    '''$CMD SEARCHSAVE ! : find matches for SEARCHSAVE according to 'ls-saves' rules, and load the save if a single match is found.
+       $CMD SEARCHTERM   : same as above but forbids discarding unsaved changes'''
     #
     if bang != '!' and bang is not None: raise Exception()
     #
@@ -192,9 +198,11 @@ def load_cmd(search_file, bang = None, *, _env):
     except ParseError as e: raise CmdExn(str(e))
     except LoadError: raise CmdExn(f"Error loading {load}")
 
-@miniter_command( ('exit', 'quit', 'q'), "$CMD save_to OR $CMD !")
+@miniter_command( ('exit', 'quit', 'q'), "$CMD || $CMD ! || $CMD SAVE")
 def exit_cmd(save_or_bang = None, *, _env):
-    "save and exit. use ! instead of save-name to skip saving"
+    '''$CMD   : quit program. forbids discarding unsaved changes.
+       $CMD ! : quit program.
+       $CMD SAVENAME: save as savename, then quit program.'''
     #
     cx = _env.context
     same, buffer = _cmp_buff(_env.context)
@@ -205,9 +213,11 @@ def exit_cmd(save_or_bang = None, *, _env):
         write_save(save_path(save_or_bang), buffer, header = True)
     _env.context.QUIT = True
 
-@miniter_command(('new', 'blank'), "$CMD || $CMD save_to || $CMD !")
+@miniter_command(('new', 'blank'), "$CMD || $CMD ! || $CMD SAVENAME")
 def new_design_cmd(save_or_bang = None, *, _env):
-    "save current project to 'save_to' (! to discard). and open a new blank design"
+    '''$CMD   : clear canvas and start new drawing. forbids discarding unsaved changes.
+       $CMD ! : clear canvas and start new drawing.
+       $CMD SAVENAME: save as savename, then clear canvas and start new drawing.'''
     same, buffer = _cmp_buff(_env.context)
     if not save_or_bang and not same:
         raise CmdExn(f"Would discard changes. Use '{_env.cmd} !' or '{_env.cmd} savename'")
@@ -223,8 +233,9 @@ def new_design_cmd(save_or_bang = None, *, _env):
 #     cx.menu.go_path('')
     redraw_weaves(cx)
 
-@miniter_command(('import', 'imp'), "$CMD import_file ")
+@miniter_command(('import', 'imp'), "$CMD SAVENAME")
 def import_cmd(file, *, _env):
+    "$CMD SAVENAME: load SAVENAME **on top** of existing drawing"
     try:
         import_to_context(_env.context, save_path(file))
     except ParseError as e: raise CmdExn(str(e))
@@ -232,13 +243,15 @@ def import_cmd(file, *, _env):
 
 @miniter_command(('recover',) )
 def recover_cmd(*, _env):
+    "$CMD: try to recover state from a previous crash"
     load_cmd('!', params.recover_filename, _env = _env)
     os.remove(save_path(params.recover_filename))
     post_info(f"recovery succesful: '{params.recover_filename}' has been deleted", _env.context)
 
-@miniter_command(('outline', 'out'), "$CMD width margin [paper-format]")
+@miniter_command(('outline', 'out'), "$CMD WIDTH_CM MARGIN_CM [PAPER_FORMAT]")
 def export_outline_cmd(width, margin, paper = 'a4', *, _env):
-    "generate printable outline with size 'width' (+ 'margin') cm"
+    '''$CMD WIDTH_CM MARGIN_CM: generate multi-page printable outline for drawing.
+       (cf. manual. (Saving section))'''
     us_letter = (paper.lower() == 'us-letter')
     points = np.concatenate([sh.divs for sh in _env.context.shapes])
     ps_buffer = printpoints.generate(points, width, margin, us_letter)
@@ -248,9 +261,11 @@ def export_outline_cmd(width, margin, paper = 'a4', *, _env):
 
 
 ## Set Params
-@miniter_command(('set-color', 'co'), "$CMD key OR $CMD key r g b OR $CMD hex")
+@miniter_command(('set-color', 'co'), "$CMD KEY || $CMD KEY R G B || $CMD KEY HHHHHH")
 def set_color_cmd(*args, _env):
-    "key only: select draw color. else: change color designated by key"
+    '''$CMD KEY       : select color KEY for drawing.
+       $CMD KEY R G B : set color KEY by RGB
+       $CMD KEY HHHHHH: set color KEY by hexcode'''
     #
     def set_rgb(r, g, b):
         set_color(_env.context, key, Color(r, g, b))
@@ -273,19 +288,19 @@ def set_color_cmd(*args, _env):
 
 @miniter_command(('menu',))
 def show_menu_cmd(*, _env):
-    "toggle menu display"
+    "$CMD: show/hide menu"
     _env.context.show_menu = not _env.context.show_menu
     _env.context.text.write_section('menu', [])
 
 @miniter_command( ('palette', 'pal') )
 def show_palette_cmd(*, _env):
-    "toggle palette display"
+    "$CMD: show/hide palette"
     #
     _env.context.show_palette = not _env.context.show_palette
 
-@miniter_command( ('div', 'nails'), "$CMD n   (n = new number of nails)")
+@miniter_command( ('div', 'nails'), "$CMD N   (N = new number of nails)")
 def set_div_cmd(n, *, _env):
-    "set the number of nails on the selected shapes"
+    "$CMD N: set the number of nails on all selected shapes to N. (evenly spaced)"
     #
     if not ( 0 < n <= params.max_div) :
         raise CmdExn(f"number must be between 1 and {params.max_div}")
@@ -293,9 +308,11 @@ def set_div_cmd(n, *, _env):
     for sh in _env.context.selected:
         sh.set_divs(n)
 
-@miniter_command( ('default-divs', 'dfdiv'), "$CMD <shape_type> <default_div> ...")
+@miniter_command( ('default-divs', 'dfdiv', 'dfnails'), "$CMD SHAPE_TYPE1 DEFAULT_NAILS1 ...")
 def set_default_divs_cmd(*args, _env):
-    "set default number of divs by shape type"
+    '''$CMD SHAPE_TYPE1 DEFAULT_NAILS1 ...: all shapes of type SHAPE_TYPE1 will be initially drawn with DEFAULT_NAILS1 nails.
+       Shape types: 'circle', 'line', 'arc', 'poly'
+       Can specify several (type, dfnails) pairs at once (after each other).'''
     def bundle2(l):
         it = iter(l)
         try: yield (next(it), next(it))
@@ -311,9 +328,9 @@ def set_default_divs_cmd(*args, _env):
             types_list = ', '.join( ( f"'{type}'" for type in df_divs.keys()) )
             post_error(f"acceptable shape types are: {types_list}", _env.context)
 
-@miniter_command( ('weavity', 'wy'), "$CMD bound_increment loose_increment")
+@miniter_command( ('weavity', 'wy'), "$CMD BOUND_INCREMENT LOOSE_INCREMENT")
 def set_weavity_cmd(inc0 = 1, inc1 = 1, *, _env):
-    "set the 'weavity' pair. Controls spacing of strings when drawing weaves"
+    "$CMD BOUND_INCREMENT LOOSE_INCREMENT: set the weavity pair. (cf Weaves section of manual)"
     #
     if inc1 == 0:
         raise CmdExn("2nd argument cannot be 0")
@@ -321,35 +338,34 @@ def set_weavity_cmd(inc0 = 1, inc1 = 1, *, _env):
 
 @miniter_command( ('weaveback', 'wb') )
 def toggle_weaveback(*, _env):
-    "toggle weaveback"
+    "$CMD: toggle weaveback"
     _env.context.weaveback = not _env.context.weaveback
 
 def _read_angle(*a):
-    if len(a) != 1 and len(a) != 3: raise Exception()
-    if len(a) == 3 and a[1] != '/': raise Exception()
-    #
-    if len(a) == 3: rot = 2 * pi * (a[0] / a[2])
-    elif type(a[0]) == int: rot = 2 * pi * a[0] / 360
-    elif type(a[0]) == float: rot = a[0]
-    else: raise Exception
-    return rot
+    n = len(a)
+    if n == 1: return a[0] * pi / 180
+    if n == 2 and a[1].to_lower() == 'pi': return a[0] * pi
+    if n == 3 and a[1] == '/': return a[0] / a[2] * 2 * pi
+    raise Exception()
 
 @miniter_command(('set-rotation', 'rot'), "$CMD new_angle OR $CMD p / q  (p qth of a turn)")
 def set_default_rotation_cmd(*a, _env):
-    "set the size of the rotation when transforming shapes"
+    '''$CMD DEG   : set the default rotation angle to DEG degrees
+       $CMD RAD pi: set the default rotation angle to RAD * pi radians. (literally type 'pi')
+       $CMD P / Q : set the default rotation to P Qth of a turn. (spaces around the slash mandatory)'''
     _env.context.default_rotation = _read_angle(*a)
 
 # Resizing
 @miniter_command( ('fullscreen', 'fu') )
 def fullscreen_cmd(*, _env):
-    "go fullscreen"
+    "$CMD: go fullscreen"
     #
     _env.context.screen = display.set_mode(flags = FULLSCREEN)
     resize_context(_env.context, _env.context.screen.get_width())
 
-@miniter_command( ('resize', 'res'), "$CMD win_width win_height")
+@miniter_command( ('resize', 'res'), "$CMD WIDTH HEIGHT")
 def resize_cmd(w = params.start_dimensions[0], h = params.start_dimensions[1], *, _env):
-    "set window dimensions"
+    "$CMD WIDTH HEIGHT: resize window"
     #
     if w < 300 or h < 300 or w > 5000 or h > 5000:
         raise CmdExn("bad dimensions")
@@ -360,6 +376,7 @@ def resize_cmd(w = params.start_dimensions[0], h = params.start_dimensions[1], *
 ## Grid
 @miniter_command(('grid',))
 def grid_cmd(*, _env):
+    "$CMD: enable/disable grid"
     toggle_grid(_env.context)
 
 def _parse_subdiv(*a):
@@ -375,23 +392,29 @@ def _parse_subdiv(*a):
         raise Exception()
     return a[:i], a[i+1:]
 
-@miniter_command(('grid-rsubdiv', 'grsub'), "$CMD non-repeating ... : repeating...")
+@miniter_command(('grid-rsubdiv', 'grsub'), "$CMD DIV1 ... : REPEAT1 ...")
 def grid_rsubdiv_cmd(*divs, _env):
+    "$CMD DIV1 ... : REPEAT1 ...: set the 'radial subdivison' of the grid. (cf manual)"
     _env.context.grid.rsubdivs = _parse_subdiv(*divs)
 
-@miniter_command(('grid-asubdiv', 'gasub'), "$CMD non-repeating ... : repeating...")
+@miniter_command(('grid-asubdiv', 'gasub'), "$CMD DIV1 ... : REPEAT1 ...")
 def grid_asubdiv_cmd(*divs, _env):
+    "$CMD DIV1 ... : REPEAT1 ...: set the 'angular subdivison' of the grid. (cf manual)"
     _env.context.grid.asubdivs = _parse_subdiv(*divs)
 
-@miniter_command(('set-phase', 'ph'), "$CMD new_phase")
+@miniter_command(('set-phase', 'phase', 'ph'), "$CMD new_phase")
 def set_phase_cmd(*a, _env):
+    '''$CMD DEG   : set the grid phase to DEG degrees
+       $CMD RAD pi: set the grid phase to RAD * pi radians. (literally type 'pi')
+       $CMD P / Q : set the grid phase to P Qth of a turn. (spaces around the slash mandatory)'''
     ph = _read_angle(*a)
     _env.context.grid.phase = ph
 
 ## Misc
-@miniter_command(('session', 'se'), "$CMD session_name | $CMD OFF")
+@miniter_command(('session', 'se'), "$CMD SESSIONNAME | $CMD OFF")
 def connect_session(session_name, *,  _env):
-    "use session <session_name> for autosaves. OFF: turn off autosaving/rewinding"
+    '''$CMD SESSIONNAME: connect to session SESSIONNAME.
+       $CMD OFF: disable undoing/autosaving. (literally type 'OFF' as the SESSIONNAME)'''
     try:
         reload_session(_env.context, session_name)
     except Autosaver.DirectoryBusyError:
@@ -399,18 +422,19 @@ def connect_session(session_name, *,  _env):
 
 @miniter_command(('clear', 'cl'))
 def clear_cmd(*, _env):
-    "clears info/error area"
+    "$CMD: clear error/info messages"
     for section in {'info', 'error'}:
         _env.context.text.write_section(section, [])
 
 @miniter_command(('select-all', 'sel*'))
 def select_all_cmd(*, _env):
-    "select all shapes"
+    "$CMD: select all shapes"
     _env.context.selected = _env.context.shapes[:]
 
-@miniter_command(('translate-colors', 'trans'), "$CMD from to  (eg $CMD qw az)")
+@miniter_command(('translate-colors', 'trans'), "$CMD FROM TO  (example: $CMD qw az)")
 def translate_colors_cmd(src, dest, *, _env):
-    "change the colors of the weaves inside the selection"
+    '''$CMD FROM TO: change the colors of the weaves inside the selection according to conversion rule
+       ex: if FROM = Q and TO = A, weaves with color Q will turn to color A'''
     cx = _env.context
     src, dest = (''.join(ltop(k) for k in ks) for ks in (src.upper(), dest.upper()))
     for i, we in enumerate(cx.weaves):
@@ -424,9 +448,9 @@ def translate_colors_cmd(src, dest, *, _env):
         except: pass
     redraw_weaves(_env.context)
 
-@miniter_command(('highlight', 'hi'), "$CMD highlighted_nail_index1 ...")
+@miniter_command(('highlight', 'hi'), "$CMD INDEX1 ...")
 def highlight_cmd(index, *more, _env):
-    "highlight the nails at the specified indices on all selected shapes"
+    "$CMD INDEX1 ...: highlight the nails at the specified indices on all selected shapes"
     cx = _env.context
     cx.hints = []
     for sh in cx.selected: 
@@ -436,8 +460,9 @@ def highlight_cmd(index, *more, _env):
             ])
     ###
 
-@miniter_command(('source', 'so' ), "$CMD source_file")
+@miniter_command(('source', 'so' ), "$CMD CMDSFILE")
 def source_cmd(file, *, _env):
+    "$CMD CMDSFILE: read CMDSFILE, and execute its lines as commands"
     try:
         with open(file) as rc:
             for i, line in enumerate(rc):
@@ -452,7 +477,23 @@ def source_cmd(file, *, _env):
 # Debug
 @miniter_command(('_debug', '_db'))
 def debug(*, _env):
-    "go into python debugger"
+    "$CMD: go into python debugger"
     cx = _env.context
     breakpoint()
 
+# Not used in program itself but belongs here kinda
+def _generate_markdown_doc():
+    links = []
+    for cmd, aliases in miniter_aliases_map.items():
+        name = aliases[0]
+        links.append( f"[{name}](#{name})" )
+        doc = cmd.__doc__.replace('$CMD', name)
+        doc = '\n'.join([line.strip() for line in doc.split('\n')])
+        text = '\n'.join([
+            f"### {name}",
+            f"aliases: " + '/'.join([f'`{alias}`' for alias in aliases]),
+            f"```\n{doc}\n```",
+        ])
+        print(text)
+        print('')
+    print(', '.join(links))
