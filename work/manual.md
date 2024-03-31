@@ -1,4 +1,15 @@
-# Basics
+# INDEX
+* [Intro](#intro)
+* [Shapes](#shapes)
+* [Weaves and Colors](#weaves-and-colors)
+* [Selecting and Editing](#selecting-and-editing)
+* [Undoing and Autosaves](#undoing-and-autosaves)
+* [The Grid](#the-grid)
+* [Saving](#saving)
+* [Configuration](#configuration)
+
+# Intro
+It is recommended that follow along this manual by using the program.  
 Place your left hand on the home row (ASDF), and use your mouse with your right hand.
 
 ## Using the Menu
@@ -37,7 +48,7 @@ Available shortcuts:
 
 * Pink visual hints (shapes, etc) will often appear to help you understand what you're doing.
 
-# Drawing Shapes 
+# Shapes 
 To start drawing shapes go to `D: Draw Shapes`, then select the desired shape type from the menu.  
 All shapes have a number of nails (white dots) on them, you can adjust it with the `nails` or `default-divs` commands. (TODO link).  
 You do not need to select the shape a second type in between drawing 2 shapes of the same type.  
@@ -52,11 +63,11 @@ To draw a:
 
 Note: reminders for the above will be displayed at the bottom of the screen when you select a shape type.
 
-# Drawing Weaves (and working with colors)
+# Weaves and Colors
 The colorful strings between the nails are organized in "weaves".
 Go to `F: Draw Weave` to start creating weaves.
 
-### Creating Weaves
+### Creating weaves
 To create a new weave: 
 * left-click a nail on any shape to define the first attach point 
 * left-click another nail on another (or the same) shape to define the second attach point 
@@ -73,7 +84,7 @@ For any 3 attach points, there are up to 4 possible weaves depending on:
 
 Right-clicking will cycle through all 4 possibilities.
 
-### "Advanced" Options
+### "Advanced" options
 Some commands affect the behavior when drawing weaves:
 * `weaveback/wb`: toggles `weaveback` (on by default). If `weaveback` is enabled, a second set of colorful strings will appear to connect the previous set, as if all the lines came from a single string that wraps around the nails.
 * `weavity/wy INC1 INC2`: set the "weavity" (1 -1 by default). This allows skipping some nails. (e.g. if the weavity is 2 1, a nail will be skipped every time when finding the "next nail" on the first shape).
@@ -117,21 +128,21 @@ There are two main ways to move or transform (e.g. rotate or mirror) the current
 * The `Copy-transform` and `Copy-move` variants work as above, but a copy of the selection with the transformation applied will be created.
 
 ### Using the visual transformation submenu
-Under `W: Visual`, you will be sequentially apply several transformations to the shape.   
-Transformation are applied relative to a center (except move). Initially it is set to the center of the grid (if activated, TODO), or to the point under your cursor when you under `W: visual`.  
+Under `W: Visual`, you can sequentially apply several transformations to the shape.   
+Transformations are applied relative to a center (except move). Initially it is set to the center of the grid (if activated), or to the point under your cursor when you entered `W: visual`.  
 To change the center, use `R: recenter`. The center is set **immediately** to the point under your cursor.
 
 To apply transformations:
 * choose the type of transformation from the menu with the keyboard. This will **immediately** grab the point under the cursor.
-* move your the point you grabbed to its desired position. What this means exactly depends on the type of transformation.
+* move the point you grabbed to its desired position. What this means exactly depends on the type of transformation.
 * either:
-	* left-click to apply the transformation to the current selections. (The shapes will change)
-	* right-click to create a transformed copy. The created shapes become the selection for the next transformation.
+	* left-click to apply the transformation to the current selection. (The shapes will change)
+	* right-click to create a transformed copy. The copied shapes become the selection for the next transformation.
 * repeat as many times as needed
 * Use `W: done` to exit the visual transformation tool.
 * **Note**: You can use `Q: cancel change`, to cancel the pending change and select another type of transformation.
 
-# Undoing and the autosave system (sessions)
+# Undoing and Autosaves
 ### Basics
 You can undo/redo either with `Z: Undo`/`X: Redo`.  
 Or from `R: Rewind`: scroll through the history with the mouse-wheel and click when you're done.  
@@ -173,43 +184,58 @@ For example, if the "angular subdivisions" is `5 2 : 3 2` this means:
 	* spaces around the colon are **mandatory**
 	* You can omit the colon if you don't want repeating subdivisions
 
-Similarly the "radial subdivisions" control how the main concentric circles are divided into subcircles.  
+Similarly the "radial subdivisions" controls how the main concentric circles are divided into rings.  
 Use the `grid-rsubdiv/grsub SUB1 ...` command.  
 
-# Saving / Loading / Exporting
-cf commands `s/save`, `ls-saves/lsav`, `load/lo`, `quit/q`, `outline/out`
+# Saving
+### Saving and Loading
+Use the `s/save`, `ls-saves/lsav`, `load/lo`, and `quit/q` (TODO link) to save your work and quit.
+
+### Exporting Outlines
+You can export printable multi-page documents with marking for nails by the using `outline/out SIZE MARGIN [FORMAT]` command.
+The idea is that you would stick the cut-outs over your canvas, plant your nails and tear it off.
+* `SIZE`: desired size of the drawing in cm. 
+* `MARGIN`: size of the margin in cm. (i.e. the canvas is a `SIZE + MARGIN` sized square)
+* `FORMAT`: paper format. (A4 if left blank; supported: `a4`, `us-letter`)
+
+The outline will be written in the `out.ps` file. (TODO working dir problems?)  
+Your printer/document-viewer may or may not natively support `postscript` (`.ps`) files.  
+To convert postscript to pdf files either install `ghostscript` and use the `ps2pdf` command (recommended for linux and mac) or use one of the many online postscript to pdf converters (recommended for windows).
 
 # Configuration 
-Conf files must be located `$YOURHOME/.qwerasdf` and have the `.conf` extension.
-The content has the `PARAM = VALUE` format, (1 param per line).
+In `$YOUR_HOME/.qwerasdfrc` you can write (1 per line) commands to be run every time you start the program.
+
+Some parameters can be tweaked by writing configuration files.  
+Conf files must be located in `$YOUR_HOME/.qwerasdf` and have the `.conf` extension.  
+The content has the `PARAM = VALUE` format, (1 param per line).  
+Colors can be written as `r, g, b` or `hhhhhh` (where h is an hex digit).  
+Some useful examples can be found in the `example.conf` file.  
 
 Params | value (; allowed range) | description
----|---|---|
+---|---|---
 `background` | color | background color
 `shape_color` | color | default color for shapes
 `select_color` | color | color for selected shapes
-`hint_color` | color | color for hints
-`grid_color` | color | grid color
+`hint_color` | color | color for visual hints
+`grid_color` | color | grid graduations color
 `grid_fade_factor` | float; [0.01, 0.99] | bigger = subdivisions levels get dimmer faster
-`grid_sparseness_scroll_speed` | int; [1, 25] | controls mouse|wheel speed for `Grid +/| sparse`
+`grid_sparseness_scroll_speed` | int; [1, 25] | controls mouse-wheel speed for `Grid +/- sparse`
 `point_color` | color | color of nails
-`point_radius` | int; [0, 5] | radius of nails (in pixels
+`point_radius` | int; [0, 5] | radius of nails (in pixels)
 `point_shape_radius` | int; [1, 10] | color of 'point' shapes and hints.
 `zoom_factor` | float [1.01, 4] | controls zooming speed. 
-`brightness_scroll_speed` | float; [0.05, 0.2] | controls mouse|wheel speed when in the color picker
+`brightness_scroll_speed` | float; [0.05, 0.2] | controls mouse-wheel speed when in the color picker
 `min_pick_saturation` | float; [0, 0.99] | controls the size of the gray band that is cut|off when rendering the color picker's rainbow
 `font_size` | int; [5, 30] | size of text
 `text_color` | color | default text color
 `error_text_color` | color | color of error messages
 `term_color` | color | color text of the commandline prompt
-`snap_radius` | int; [1, 100] | in pixels; min distance the cursor needs to be from a point to "snap" to it
-`bottom_margin` | int; [0, 50] | size of the band below the bottom text area
+`snap_radius` | int; [1, 100] | min distance (in pixels) the cursor needs to be from a point to "snap" to it
+`bottom_margin` | int; [0, 50] | size in pixels of the empty band below the bottom text area
 `menu_translate` | keymap (e.g. `QWAZ AZQW`) | specifies key mappings (from `qwerty` to your layout) to use when displaying menu labels
 
 # TODO
-saving/loading/exporting
-conf file (mention rc)
-
 Index and links
 note about layout problems
+proofread
 
