@@ -239,7 +239,7 @@ Parameter | Value (; allowed range) | Description
 
 # List of Commands
 
-[help](#help), [ls-cmd](#ls-cmd), [usage](#usage), [save](#save), [ls-saves](#ls-saves), [load]( #load), [exit](#exit), [new](#new), [import](#import), [recover](#recover), [outline](#outline), [set-color](#set-color), [menu](#menu), [palette](#palette), [div](#div), [default-divs](#defau lt-divs), [weavity](#weavity), [weaveback](#weaveback), [set-rotation](#set-rotation), [fullscre en](#fullscreen), [resize](#resize), [grid](#grid), [grid-rsubdiv](#grid-rsubdiv), [grid-asubdiv ](#grid-asubdiv), [set-phase](#set-phase), [session](#session), [clear](#clear), [select-all](#s elect-all), [translate-colors](#translate-colors), [highlight](#highlight), [source](#source), [\ debug](#_debug)
+[help](#help), [ls-cmd](#ls-cmd), [usage](#usage), [save](#save), [ls-saves](#ls-saves), [load](#load), [exit](#exit), [new](#new), [import](#import), [recover](#recover), [outline](#outline), [set-color](#set-color), [menu](#menu), [palette](#palette), [div](#div), [default-divs](#default-divs), [weavity](#weavity), [weaveback](#weaveback), [set-rotation](#set-rotation), [fullscreen](#fullscreen), [resize](#resize), [grid](#grid), [grid-rsubdiv](#grid-rsubdiv), [grid-asubdiv](#grid-asubdiv), [set-phase](#set-phase), [session](#session), [clear](#clear), [select-all](#select-all), [translate-colors](#translate-colors), [highlight](#highlight), [source](#source), [\_debug](#_debug)
 
 ### help
 aliases: `help`/`h`
