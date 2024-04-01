@@ -4,6 +4,10 @@ It is implemented in python and depends on `numpy` and `pygame`.
 It is distributed under an MIT license.
 
 ## Install & Run
+### Short Version (for people used to python)
+Install with `pip install .`  
+Run as `qwerasdf` or run the `qwerasdf.py` script which can be safely moved.  
+
 ### 1. Make sure `Python3` and `pip` are installed on your system
 On windows just downloaded [the official latest release of python](https://www.python.org/downloads/windows/)
 and launch the install wizard as you normally would.  
