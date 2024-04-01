@@ -54,16 +54,15 @@ def term_exec(cmd, cmd_map, usage_map, context):
         return 0
     except CmdExn as e: 
         post_error(str(e), context); return e.exit_code
-    except BaseException as e: raise
-#     except BaseException as e:
-#         try:
-#             eprint('debug info: term caught', type(e), e) # debug
-#             usage_msg = usage_map[cmd_map[cmd]].replace('$CMD', cmd)
-#             post_error(usage_msg, context)
-#         except BaseException as e:
-#             eprint('debug info: term REcaught', type(e), e) #debug
-#             post_error(str(e), context)
-#         return 1
+    except BaseException as e:
+        try:
+            eprint('debug info: term caught', type(e), e) # debug
+            usage_msg = usage_map[cmd_map[cmd]].replace('$CMD', cmd)
+            post_error(usage_msg, context)
+        except BaseException as e:
+            eprint('debug info: term REcaught', type(e), e) #debug
+            post_error(str(e), context)
+        return 1
 
 class CmdExn(Exception): 
     def __init__(self, *a, exit_code = 1, **ka):
@@ -158,7 +157,7 @@ def save_cmd(*a, _env):
         _env.context.last_save_buffer = buffer
         _last_save_filename = file
     except FileExistsError:
-        raise CmdExn(f"'{file}' exists. to allow overwrites, use: {_env.cmd} ! {file}")
+        raise CmdExn(f"'{file}' exists. to allow overwrites, use: {_env.cmd} {file} !")
 
 @miniter_command(('ls-saves', 'lsav'), "$CMD || $CMD SEARCH_TERM")
 def ls_saves_cmd(search = None, *, _env):

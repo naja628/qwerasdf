@@ -12,7 +12,7 @@ params.save_dir = os.path.join(_INSTALL, 'save')
 params.recover_filename = '_RECOVER_'
 params.autosave_dir = os.path.join(_INSTALL, 'autosave')
 #dotrc = os.path.expanduser('~/.qwerasdfrc')
-params.dotrc_path = ['.qwerasdfrc']
+params.dotrc_path = [os.path.expanduser('~/.qwerasdfrc'), '.qwerasdfrc']
 
 params.background = Color(0, 0, 0)
 # shape_color = Color(0, 128, 128)
