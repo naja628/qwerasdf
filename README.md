@@ -4,9 +4,10 @@ It is implemented in python and depends on `numpy` and `pygame`.
 It is distributed under an MIT license.
 
 ## Install & Run
+
 ### Short Version (for people used to python)
 Install with `pip install .`  
-Run as `qwerasdf` or run the `qwerasdf.py` script which can be safely moved.  
+Run as `qwerasdf` or run the `run_qwerasdf.py` script which can be safely moved.  
 
 ### 1. Make sure `Python3` and `pip` are installed on your system
 On windows just downloaded [the official latest release of python](https://www.python.org/downloads/windows/)
@@ -22,7 +23,7 @@ Note: you can then uninstall with `pip uninstall qwerasdf`.
 
 ### 3. Run
 After installation, you can run the progarm either from the commandline as `qwerasdf`,
-or launching the `qwerasdf.py` script with python. (You can move it wherever you like)  
+or launching the `run_qwerasdf.py` script with python. (You can move it wherever you like)  
 Note: Windows should let you double-click `.py` files to run them with python.
 
 ## How to Use

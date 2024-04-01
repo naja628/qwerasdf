@@ -165,8 +165,6 @@ The special session name `OFF` is used to indicate you want to disable undoing/a
 
 A session may only be used by one single running instance of the program at the any time. If you try to connect to a session that is currently being used, you will see an error message.
 
-Note: the raw data of the the autosave history is located at `$YOUR_HOME/.qwerasdf/autosave` 
-
 # The Grid
 You can activate/deactivate the grid either via `A: Grid`/`A: Grid on/off` or with the `grid` command.  
 When the grid is on, you will see a bunch of concentric circles and angle lines to help you place points precisely.  

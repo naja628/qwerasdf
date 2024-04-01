@@ -202,6 +202,7 @@ class Autosaver: # autosaves system
             elif d and isave % d == 0:
                 archive(k + 1, os.path.join(destdir, 'older'), dest)
             os.makedirs(destdir, exist_ok = True)
+            if os.path.isfile(dest): os.remove(dest)
             os.rename(src, dest)
             self.rotor[k] = (isave + 1) % n
         ###

@@ -270,5 +270,3 @@ def main():
         del_context(g)
         quit() # from pygame
 
-main()
-exit()
