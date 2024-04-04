@@ -100,6 +100,7 @@ To customize a color use `W: Color Picker`. When you modify a color this way, th
 In the color picker:
 * use one of the `QWERASDF` keys to select the color you want to modify.
 * left-click the big rainbow to choose the color to apply for this key.
+* adjust the brightness of the current color with the mouse-wheel.
 * repeat for every color you want to modify.
 * right-click when you're done. 
 
@@ -207,8 +208,10 @@ Your printer/document-viewer may or may not natively support `postscript` (`.ps`
 To convert postscript to pdf files either install `ghostscript` and use the `ps2pdf` command (recommended for linux and mac) or use one of the many online postscript to pdf converters (recommended for windows).
 
 # Configuration 
+### rc file
 In `$YOUR_HOME/.qwerasdfrc` you can write (1 per line) commands to be run every time you start the program.
 
+### Setting parameters
 Some parameters can be tweaked by writing configuration files.  
 Conf files must be located in `$YOUR_HOME/.qwerasdf` and have the `.conf` extension.  
 The content has the `PARAM = VALUE` format, (1 param per line).  
@@ -221,8 +224,8 @@ Parameter | Value (; allowed range) | Description
 `shape_color` | color | default color for shapes
 `select_color` | color | color for selected shapes
 `hint_color` | color | color for visual hints
-`grid_color` | color | grid graduations color
-`grid_fade_factor` | float; [0.01, 0.99] | bigger = subdivisions levels get dimmer faster
+`grid_color` | color | grid graduations color (brightest)
+`grid_fade_factor` | float; [0.01, 0.99] | smaller = subdivisions levels get dimmer faster
 `grid_sparseness_scroll_speed` | int; [1, 25] | controls mouse-wheel speed for `Grid +/- sparse`
 `point_color` | color | color of nails
 `point_radius` | int; [0, 5] | radius of nails (in pixels)
