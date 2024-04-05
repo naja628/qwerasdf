@@ -120,7 +120,7 @@ def _fuzzy_matches(search, candidates):
     def is_match(cdt):
         i = 0
         for ch in search:
-            try: i = cdt.index(ch, i)
+            try: i = cdt.index(ch, i) + 1
             except ValueError: return False 
         return True
     return filter(is_match, candidates)
@@ -148,7 +148,10 @@ def save_cmd(*a, _env):
     if not (1 <= len(a) <= 2): raise Exception()
     try:
         file = _last_save_filename if a == ('!',) else a[0]
-        if file == None: raise CmdExn("No previous savename")
+        if file == None: 
+            raise CmdExn("No previous savename")
+        if file.find('..') >= 0 or file.find('/') >= 0:
+            raise CmdExn("savenames can't contain '..' or '/'")
         overwrite_ok = (a[-1] == '!')
         #
         buffer = save_buffer(_env.context, extra = {'session'})
