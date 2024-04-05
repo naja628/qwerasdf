@@ -11,5 +11,6 @@ setup(name='qwerasdf',
           'console_script': [ 'qwerasdf=qwerasdf:main' ],
           'gui_scripts': [ 'qwerasdf=qwerasdf:main' ],
       },
+      data_files = [ ('data', ['icon.png']) ],
       zip_safe=False)
 

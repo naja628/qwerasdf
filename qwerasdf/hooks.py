@@ -770,11 +770,11 @@ def miniter_hook(hook, context, cmd = ''):
                 if state.cmd.strip() != '': 
                     miniter_exec(state.cmd, context)
                     state.cmd = ''
+                    if context.oneshot_commands: hook.finish()
                 else: 
                     hook.finish()
             case False, _:
                 state.cmd += ev.unicode
-                if params.term_xx_close and state.cmd[-2:].lower() == 'xx': hook.finish()
             #
         if hook.active():
             set_line(state.cmd)

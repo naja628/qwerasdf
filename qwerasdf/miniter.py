@@ -198,7 +198,7 @@ def load_cmd(search_file, bang = None, *, _env):
     except ParseError as e: raise CmdExn(str(e))
     except LoadError: raise CmdExn(f"Error loading {load}")
 
-@miniter_command( ('exit', 'quit', 'q'), "$CMD || $CMD ! || $CMD SAVE")
+@miniter_command( ('exit', 'quit', 'q'), "$CMD || $CMD ! || $CMD SAVENAME")
 def exit_cmd(save_or_bang = None, *, _env):
     '''$CMD   : quit program. forbids discarding unsaved changes.
        $CMD ! : quit program.
@@ -234,12 +234,20 @@ def new_design_cmd(save_or_bang = None, *, _env):
     redraw_weaves(cx)
 
 @miniter_command(('import', 'imp'), "$CMD SAVENAME")
-def import_cmd(file, *, _env):
-    "$CMD SAVENAME: load SAVENAME **on top** of existing drawing"
-    try:
-        import_to_context(_env.context, save_path(file))
-    except ParseError as e: raise CmdExn(str(e))
-    except LoadError: raise CmdExn(f"Error loading {file}")
+def import_cmd(search_save, *, _env):
+    '''$CMD SAVENAME: load SAVENAME **on top** of existing drawing
+       note: performs matching on the savename (cf load, ls-saves)'''
+    matches = [*_fuzzy_matches(search_save, _saves_list())]
+    match matches:
+        case [ matched ]: 
+            try:
+                import_to_context(_env.context, save_path(matched))
+            except ParseError as e: raise CmdExn(str(e))
+            except LoadError: raise CmdExn(f"Error loading {file}")
+        #
+        case []: raise CmdExn(f"no match for '{search_save}' found")
+        case matches: raise CmdExn(f"found several matches: {', '.join(matches)}")
+    ###
 
 @miniter_command(('recover',) )
 def recover_cmd(*, _env):
@@ -247,8 +255,6 @@ def recover_cmd(*, _env):
     load_cmd(params.recover_filename, '!',  _env = _env)
     os.remove(save_path(params.recover_filename))
     post_info(f"recovery succesful: '{params.recover_filename}' has been deleted", _env.context)
-    print('foo')
-    post_info('foo', _env.context)
 
 @miniter_command(('outline', 'out'), "$CMD WIDTH_CM MARGIN_CM [PAPER_FORMAT]")
 def export_outline_cmd(width, margin, paper = 'a4', *, _env):
@@ -414,7 +420,7 @@ def set_phase_cmd(*a, _env):
 
 ## Misc
 @miniter_command(('session', 'se'), "$CMD SESSIONNAME | $CMD OFF")
-def connect_session(session_name, *,  _env):
+def connect_session_cmd(session_name, *,  _env):
     '''$CMD SESSIONNAME: connect to session SESSIONNAME.
        $CMD OFF: disable undoing/autosaving. (literally type 'OFF' as the SESSIONNAME)'''
     try:
@@ -450,6 +456,14 @@ def translate_colors_cmd(src, dest, *, _env):
         except: pass
     redraw_weaves(_env.context)
 
+@miniter_command(('unweave-color', 'unco'), "$CMD COLORKEYS")
+def unweave_colors_cmd(*colorkeys, _env):
+    "$CMD COLORKEYS: remove all weaves of a color in colorkeys inside the selection"
+    cx = _env.context
+    for k in ''.join(colorkeys).upper():
+        if k in cx.palette:
+            unweave_inside_selection(cx, lambda we: cx.weave_colors[we] == k)
+
 @miniter_command(('highlight', 'hi'), "$CMD INDEX1 ...")
 def highlight_cmd(index, *more, _env):
     "$CMD INDEX1 ...: highlight the nails at the specified indices on all selected shapes"
@@ -475,6 +489,12 @@ def source_cmd(file, *, _env):
                     raise CmdExn(f"line {i + 1} | {line}")
     except: 
         raise CmdExn(f"Error reading {file}")
+
+@miniter_command(('oneshot-commands', 'one'))
+def toggle_oneshot_cmd(*, _env):
+    '''toggle oneshot commands.
+       when enabled: the commandline closes after every command'''
+    _env.context.oneshot_commands = not _env.context.oneshot_commands 
 
 # Debug
 @miniter_command(('_debug', '_db'))

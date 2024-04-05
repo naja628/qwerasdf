@@ -8,6 +8,7 @@ params = Rec()
 params.start_dimensions = (800, 800)
 
 _INSTALL = os.path.expanduser('~/.qwerasdf')
+params.homedir = _INSTALL
 params.save_dir = os.path.join(_INSTALL, 'save')
 params.recover_filename = '_RECOVER_'
 params.autosave_dir = os.path.join(_INSTALL, 'autosave')
@@ -42,9 +43,6 @@ params.text_color = Color(192, 192, 192)
 params.error_text_color = Color(200, 30, 60)
 params.term_color = Color(0, 160, 128)
 
-params.term_xx_close = True # typing 'xx' or 'XX' at the end of the prompt will close the terminal
-
-params.start_ndivs = 60 # TODO used anywhere?
 params.snap_radius = 9
 
 params.zoom_factor = 1.05
@@ -54,7 +52,7 @@ params.min_pick_saturation = 0.2
 
 params.bottom_margin = 15
 
-params.grid_color = Color(255, 255, 255)
+params.grid_color = Color(150, 150, 150)
 params.grid_fade_factor = 1 / 2
 params.grid_sparseness_scroll_speed = 3
 

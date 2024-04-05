@@ -242,7 +242,10 @@ Parameter | Value (; allowed range) | Description
 `menu_translate` | keymap (e.g. `QWAZ AZQW`) | specifies key mappings (from `qwerty` to your layout) to use when displaying menu labels
 
 # List of Commands
-[help](#help), [ls-cmd](#ls-cmd), [usage](#usage), [save](#save), [ls-saves](#ls-saves), [load](#load), [exit](#exit), [new](#new), [import](#import), [recover](#recover), [outline](#outline), [set-color](#set-color), [menu](#menu), [palette](#palette), [div](#div), [default-divs](#default-divs), [weavity](#weavity), [weaveback](#weaveback), [set-rotation](#set-rotation), [fullscreen](#fullscreen), [resize](#resize), [grid](#grid), [grid-rsubdiv](#grid-rsubdiv), [grid-asubdiv](#grid-asubdiv), [set-phase](#set-phase), [session](#session), [clear](#clear), [select-all](#select-all), [translate-colors](#translate-colors), [highlight](#highlight), [source](#source), [\_debug](#_debug)
+[help](#help), [ls-cmd](#ls-cmd), [usage](#usage), [save](#save), [ls-saves](#ls-saves), [load](#load), [exit](#exit), [new](#new), [import](#import), [recover](#recover), [outline](#outline), 
+[set-color](#set-color), [menu](#menu), [palette](#palette), [div](#div), [default-divs](#default-divs), [weavity](#weavity), [weaveback](#weaveback), [set-rotation](#set-rotation), [fullscreen
+](#fullscreen), [grid](#grid), [grid-rsubdiv](#grid-rsubdiv), [grid-asubdiv](#grid-asubdiv), [set-phase](#set-phase), [session](#session), [clear](#clear), [select-all](#select-all), [translate
+-colors](#translate-colors), [unweave-color](#unweave-color), [highlight](#highlight), [source](#source), [oneshot-commands](#oneshot-commands), [_debug](#_debug)
 
 ### help
 aliases: `help`/`h`
@@ -282,8 +285,7 @@ If the search term is a complete name, list only it (and not other matches)
 ### load
 aliases: `load`/`lo`
 ```
-load SEARCHSAVE ! : find matches for SEARCHSAVE according to 'ls-saves' rules, and load the save
- if a single match is found.
+load SEARCHSAVE ! : find matches for SEARCHSAVE according to 'ls-saves' rules, and load the save if a single match is found.
 load SEARCHTERM   : same as above but forbids discarding unsaved changes
 ```
 
@@ -307,6 +309,7 @@ new SAVENAME: save as savename, then clear canvas and start new drawing.
 aliases: `import`/`imp`
 ```
 import SAVENAME: load SAVENAME **on top** of existing drawing
+note: performs matching on the savename (cf load, ls-saves)
 ```
 
 ### recover
@@ -382,12 +385,6 @@ aliases: `fullscreen`/`fu`
 fullscreen: go fullscreen
 ```
 
-### resize
-aliases: `resize`/`res`
-```
-resize WIDTH HEIGHT: resize window
-```
-
 ### grid
 aliases: `grid`
 ```
@@ -440,6 +437,12 @@ translate-colors FROM TO: change the colors of the weaves inside the selection a
 ex: if FROM = Q and TO = A, weaves with color Q will turn to color A
 ```
 
+### unweave-color
+aliases: `unweave-color`/`unco`
+```
+unweave-color COLORKEYS: remove all weaves of a color in colorkeys inside the selection
+```
+
 ### highlight
 aliases: `highlight`/`hi`
 ```
@@ -452,8 +455,16 @@ aliases: `source`/`so`
 source CMDSFILE: read CMDSFILE, and execute its lines as commands
 ```
 
-### \_debug
+### oneshot-commands
+aliases: `oneshot-commands`/`one`
+```
+toggle oneshot commands.
+when enabled: the commandline closes after every command
+```
+
+### _debug
 aliases: `_debug`/`_db`
 ```
 _debug: go into python debugger
 ```
+

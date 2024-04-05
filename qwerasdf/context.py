@@ -38,8 +38,7 @@ def snappy_get_point(context, pos):
     shortest = sq_rrad + params.eps
     candidates = []
     def find_shortest(points):
-        if len(points) == 0:
-            raise RuntimeError
+        # if len(points) == 0 ... are shapes garantueed to have at least a div?
         rels = points - point
         rels **= 2
         [xs, ys] = np.split(rels, 2, axis = 1)
@@ -48,15 +47,14 @@ def snappy_get_point(context, pos):
         return i, sqdists[i]
     #
     for sh in cx.shapes:
-        try: i, d = find_shortest(sh.divs)
-        except RuntimeError: continue
+        i, d = find_shortest(sh.divs)
         #
         if d < min(sq_rrad, shortest):
             snappoint, shortest = sh.divs[i], d 
         if sqdist(snappoint, sh.divs[i]) < params.eps ** 2:
             candidates.append(Rec(s = sh, i = i))
     #filter candidates, they need to be equal to actual found
-    if cx.grid_on:
+    if cx.grid_on and cx.grid.point():
         i, d = find_shortest(cx.grid.points())
         if d < min(sq_rrad, shortest):
             snappoint = cx.grid.points()[i] 
@@ -103,12 +101,14 @@ def post_error(msg, context):
     context.text.write_section('error', [ 'Error: ' + msg ])
 
 # Selection actions
-def unweave_inside_selection(context):
+def unweave_inside_selection(context, filter_to_del = None):
     cx = context
     keep_weaves = []
     for we in cx.weaves:
         sh1, sh2 = (hg.s for hg in we.hangpoints)
-        if sh1 not in cx.selected or sh2 not in cx.selected:
+        if not (sh1 in cx.selected and sh2 in cx.selected):
+            keep_weaves.append(we)
+        if filter_to_del and not filter_to_del(we):
             keep_weaves.append(we)
     cx.weaves = keep_weaves
     redraw_weaves(cx)

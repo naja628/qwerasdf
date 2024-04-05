@@ -48,7 +48,7 @@ _menuaction_info = { # What the user has to do AFTER, not what it does
         "Move": "LCLICK -> confirm (shape will move) | RCLICK -> cancel",
         "Copy-Move": "LCLICK -> confirm (new copy will be created) | RCLICK -> cancel",
         "Transform": "LCLICK -> confirm (shape will change) | RCLICK -> cancel",
-        "Cp-Transform": "LCLICK -> confirm (new copy will be created) | RCLICK -> cancel",
+        "Copy-Transform": "LCLICK -> confirm (new copy will be created) | RCLICK -> cancel",
         "Visual": "LCLICK -> apply change | RCLICK -> put copy",
         "Color Picker": f"LCLICK -> apply | RCLICK -> close | {_QWERASDF} -> change affected color | WHEEL -> adjust brightness",
         # TODO grid 
@@ -117,12 +117,18 @@ def menu_hook(hook, context):
             case "Grid recenter": set_hook(grid_recenter_hook, context)
             case "Grid phase": set_hook(grid_phase_hook, context)
             #
-            case _: set_hook(None) # Necessary? Good?
+#             case _: set_hook(None) # Necessary? Good?
+            case _: pass
     #
     hook.event_loop(inner)
 
 def init_context(dimensions):
     cx = Rec()
+    #
+    icon = image.load( path.join(params.homedir, 'icon.png') )
+    display.set_icon(icon)
+    display.set_caption('QWERASDF')
+    cx.screen = display.set_mode(params.start_dimensions)
     #
     cx.dispatch = EvDispatch()
     #
@@ -157,8 +163,7 @@ def init_context(dimensions):
     #
     cx.view = View(corner = (-1, 1))
     cx.weave_layer = Surface(dimensions)
-    cx.screen = display.set_mode(params.start_dimensions)
-    display.set_caption('QWERASDF')
+    #
     #
     cx.default_rotation = 2 * pi / 6
     #
@@ -177,6 +182,8 @@ def init_context(dimensions):
     #
     cx.grid = Grid()
     cx.grid_on = False
+    #
+    cx.oneshot_commands = False
     return cx
 
 def del_context(context):
@@ -212,7 +219,8 @@ def main():
             evs = event.get()
             # TODO maybe do several `event.get` calls: 
             # 1: things we don't care about, 2: MOUSEMOTION, keep only last, 3: send latter + rest to `dispatch`
-            # point: avoid computing `snappy_get_point` for every intermediate MOUSEMOTION
+            # point: avoid computing `snappy_get_point` (and others) for every intermediate MOUSEMOTION
+            # q?: maybe pygame is smart enough to already only generate 1 MOUSEMOTION (test)
             g.dispatch.dispatch(evs)
             g.dispatch.dispatch([event.Event(LOOP)])
             #
@@ -229,7 +237,6 @@ def main():
                 g.weaves.append(we)
             g.weave_layer.unlock()
             g.pending_weaves = []
-            #g.screen.fill(params.background) # not needed?
             g.screen.blit(g.weave_layer, (0, 0))
             #
             # Draw Rest: (on top)

@@ -79,7 +79,7 @@ class Grid:
         #
         arc = tau
         agrads = []
-        bound = v.ptord(self.smallest_grad) / rmax * 2 # * 2 is arbitrary
+        bound = v.ptord(self.smallest_grad) / rmax * 2 # * 2 is arbitrary (looks nicer)
         for d in iter_subdiv(self.asubdivs):
             if bound > arc: break # impossible 1st time (should be)
             agrads.append(arc)

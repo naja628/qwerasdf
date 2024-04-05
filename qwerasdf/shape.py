@@ -25,7 +25,7 @@ class Shape:
     def set_divs(self, ndivs):
         raise NotImplementedError()
     #####
-    def __init__(self, *keypoints, ndivs = params.start_ndivs):
+    def __init__(self, *keypoints, ndivs = 60): # 60: arbitrary fallback
         self.keypoints = np.array([farr(p) for p in keypoints])
         self.set_divs(ndivs)
     #
@@ -176,7 +176,7 @@ class Arc(Shape):
         if clockwise:
             start, end = end, start
         Shape.__init__(self, center, start, end, ndivs = ndivs)
-        #
+    #
     def set_divs(self, ndivs):
         if almost_equal(self.center, self.start):
             self.divs = np.array( ndivs * [self.center] )
@@ -344,7 +344,6 @@ def is_subdict(sub, sup, values_must_match = True):
         if not k in sup: return False
         if values_must_match and sup[k] != v: return False
     return True
-
 
 def subshape_to_prefix(subshape):
     candidates = _subtype_to_prefix_candidates[ type(subshape) ]
