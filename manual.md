@@ -462,7 +462,7 @@ toggle oneshot commands.
 when enabled: the commandline closes after every command
 ```
 
-### _debug
+### \_debug
 aliases: `_debug`/`_db`
 ```
 _debug: go into python debugger
