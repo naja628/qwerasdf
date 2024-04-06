@@ -768,9 +768,10 @@ def miniter_hook(hook, context, cmd = ''):
                 state.cmd = state.cmd[:-1]
             case False, pg.K_RETURN:
                 if state.cmd.strip() != '': 
-                    miniter_exec(state.cmd, context)
+                    exit_code = miniter_exec(state.cmd, context)
                     state.cmd = ''
-                    if context.oneshot_commands: hook.finish()
+                    if context.oneshot_commands and not exit_code: 
+                        hook.finish()
                 else: 
                     hook.finish()
             case False, _:
