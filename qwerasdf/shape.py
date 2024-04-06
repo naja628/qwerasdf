@@ -167,14 +167,13 @@ class Arc(Shape):
     def __init__(self, center, start, end, ndivs = 30, clockwise = False):
         center, start, end = (farr(p) for p in (center, start, end))
         self.loopy = False
+        self.clockwise = clockwise
         rs, re = dist(center, start), dist(center, end)
         if near_zero(rs) or near_zero(re):
             start = end = center
         else: # make start - center and end - center be the same size
             rel = end - center
             end = center + rel * rs / re
-        if clockwise:
-            start, end = end, start
         Shape.__init__(self, center, start, end, ndivs = ndivs)
     #
     def set_divs(self, ndivs):
@@ -184,7 +183,11 @@ class Arc(Shape):
         #
         t1, t2 = (atan2(p[1], p[0])
                   for p in (self.start - self.center, self.end - self.center))
-        t1, t2 = t1, t1 + ((t2 - t1) % (2*np.pi)) # ensure ordering
+        diff = (t2 - t1) % (2*np.pi)
+        if self.clockwise:
+            t1, t2 = t1, t1 + diff - (2*np.pi)
+        else:
+            t1, t2 = t1, t1 + diff
         rr = dist(self.center, self.start)
         #
         dts = np.linspace(t1, t2, ndivs)
@@ -203,7 +206,9 @@ class Arc(Shape):
         #
         t1, t2 = (atan2(p[1], p[0])
                   for p in (self.start - self.center, self.end - self.center))
-        t1, t2 = t1, t1 + ((t2 - t1) % (2*np.pi)) # ensure ordering
+        t1, t2 = t1, t1 + ((t2 - t1) % (2*np.pi))
+        if self.clockwise:
+            t1, t2 = t2, t1
         #
         draw.arc(screen, color, bound, t1, t2)
         Shape.draw_divs(self, screen, view)
@@ -212,7 +217,7 @@ class Arc(Shape):
         [[a, b], [c, d]] = matrix
         det = a * d - b * c
         if det < 0: 
-            self.start, self.end = (np.copy(p) for p in (self.end, self.start))
+            self.clockwise = not self.clockwise
         return Shape.transform(self, matrix, center)
     #
     def merger(self, to):
@@ -328,7 +333,8 @@ _prefix_to_initializer = {
         'ls' : (PolyLine, {'loopy': False}),
         'po' : (PolyLine, {'loopy': True}),
         'p' : (Point, {}),
-        'ar': (Arc, {}),
+        'ar': (Arc, {'clockwise': False}),
+        'car': (Arc, {'clockwise': True})
         }
 
 def subshape_prefix_to_initializer(prefix):

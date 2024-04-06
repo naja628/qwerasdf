@@ -3,8 +3,6 @@
 For hints, translate QWERASDF
 
 ## Bugs
-* wrong flip for weaves on arcs (eg jelly draft)
-	* it's bc we swap endpoints instead of keeping track of clockwise-ness
 
 * (can't reproduce) saw interactive_transform/merge/weave bug
 * weird event bugs in miniter (rctl or ctl-bksp) (MATE specific?)
@@ -15,6 +13,7 @@ For hints, translate QWERASDF
 * wasn't there another needlessly inconsistent thing I wanted to fix?
 
 * visual rotate + scale simultaneously
+
 * option where to put out.ps
 * auto ps2pdf?
 

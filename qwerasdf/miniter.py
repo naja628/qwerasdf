@@ -181,6 +181,7 @@ def load_cmd(search_file, bang = None, *, _env):
     '''$CMD SEARCHSAVE ! : find matches for SEARCHSAVE according to 'ls-saves' rules, and load the save if a single match is found.
        $CMD SEARCHTERM   : same as above but forbids discarding unsaved changes'''
     #
+    global _last_save_filename
     if bang != '!' and bang is not None: raise Exception()
     #
     same, _ = _cmp_buff(_env.context)
@@ -197,6 +198,7 @@ def load_cmd(search_file, bang = None, *, _env):
         load_to_context(_env.context, loaded_data, extra)
         #
         _env.context.last_save_buffer = save_buffer(_env.context, extra = {'session'})
+        _last_save_filename = matches[0]
         reset_menu(_env.context)
     except ParseError as e: raise CmdExn(str(e))
     except LoadError: raise CmdExn(f"Error loading {load}")
