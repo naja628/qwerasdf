@@ -1,4 +1,4 @@
-from os import environ, path
+from os import environ, path, makedirs
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 
 # apparently `os` doesn't have a `copy` or something function
@@ -12,6 +12,7 @@ def fcopy(src, dest):
 
 _install_icon = path.expanduser('~/.qwerasdf/icon.png')
 if not path.isfile(_install_icon):
+    makedirs( path.dirname(_install_icon), exist_ok=True )
     icon = path.join(path.dirname(__file__), '../data/icon.png')
     fcopy(icon, _install_icon)
 

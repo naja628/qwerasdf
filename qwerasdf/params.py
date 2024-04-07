@@ -45,7 +45,7 @@ params.term_color = Color(0, 160, 128)
 
 params.snap_radius = 9
 
-params.zoom_factor = 1.05
+params.zoom_factor = 1.1
 
 params.brightness_scroll_speed = 0.025
 params.min_pick_saturation = 0.2

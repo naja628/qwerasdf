@@ -54,7 +54,7 @@ def snappy_get_point(context, pos):
         if sqdist(snappoint, sh.divs[i]) < params.eps ** 2:
             candidates.append(Rec(s = sh, i = i))
     #filter candidates, they need to be equal to actual found
-    if cx.grid_on and cx.grid.point():
+    if cx.grid_on and len(cx.grid.points()) != 0:
         i, d = find_shortest(cx.grid.points())
         if d < min(sq_rrad, shortest):
             snappoint = cx.grid.points()[i] 

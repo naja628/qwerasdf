@@ -108,8 +108,8 @@ In the color picker:
 Select and edit form the `S: Selection` submenu
 
 ### Selection basics
-Left-click any nail to select all the shapes the nail belongs to (there can be several shapes if the nail is at an intersection)
-Similarly, right-click a nail to "toggle the select state" of all the shapes under it. (i.e. selected shapes become unselected and vice-versa)
+Left-click any nail to select all the shapes the nail belongs to (there can be several shapes if the nail is at an intersection)  
+Similarly, right-click a nail to "toggle the select state" of all the shapes under it. (i.e. selected shapes become unselected and vice-versa)  
 Selected shapes will be highlighted in blue.  
 
 Notes: 
@@ -135,7 +135,7 @@ There are two main ways to move or transform (e.g. rotate or mirror) the current
 ### Using the visual transformation submenu
 Under `W: Visual`, you can sequentially apply several transformations to the shape.  
 Transformations are applied relative to a center (except move). Initially it is set to the center of the grid (if activated), or to the point under your cursor when you entered `W: visual`.  
-To change the center, use `R: recenter`. The center is set **immediately** to the point under your cursor.  
+To change the center, use `R: recenter`. After left-clicking, the center is set to the point under your cursor.  
 
 To apply transformations:
 * choose the type of transformation from the menu with the keyboard. This will **immediately** grab the point under the cursor.
@@ -231,7 +231,7 @@ Parameter | Value (; allowed range) | Description
 `point_radius` | int; [0, 5] | radius of nails (in pixels)
 `point_shape_radius` | int; [1, 10] | color of 'point' shapes and hints.
 `zoom_factor` | float [1.01, 4] | controls zooming speed. 
-`brightness_scroll_speed` | float; [0.05, 0.2] | controls mouse-wheel speed when in the color picker
+`brightness_scroll_speed` | float; [0.005, 0.2] | controls mouse-wheel speed when in the color picker
 `min_pick_saturation` | float; [0, 0.99] | controls the size of the gray band that is cut-off when rendering the color picker's rainbow
 `font_size` | int; [5, 30] | size of text
 `text_color` | color | default text color

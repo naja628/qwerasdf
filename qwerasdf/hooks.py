@@ -651,8 +651,8 @@ def interactive_transform_hook(hook, context):
     cx = context
     actions = { 
             ms.LCLICK: "apply change", ms.RCLICK: "put copy",
-            'Q': "cancel change", 'W': "done",                'R': "recenter",
-            'A': "scale",         'S': "move", 'D': "rotate", 'F': "flip",
+            'Q': "cancel change", 'W': "done", 'E': "scale/rotate", 'R': "recenter",
+            'A': "scale",         'S': "move", 'D': "rotate"      , 'F': "flip",
             }
     stolen_keys = { k: v for k, v in actions.items() 
                     if (type(k) is str and k in 'QWERASDF') }
@@ -696,7 +696,7 @@ def interactive_transform_hook(hook, context):
         def apply_matrix(f):
             nonlocal pendingT
             def wrapped(to, sh, copy = True):
-                try: matrix = f(to, sh)
+                try: matrix = f(to)
                 except ZeroDivisionError: matrix = np.identity(2)
                 #
                 if copy: return sh.transformed(matrix, center)
@@ -713,7 +713,7 @@ def interactive_transform_hook(hook, context):
             case "rotate":
                 start = pos
                 @apply_matrix
-                def rot_matrix(to, sh):
+                def rot_matrix(to):
                     [c1, s1] = unit(start - center)
                     [c2, s2] = unit(to - center)
                     return rot(c1 * c2 + s1 * s2, s2 * c1 - s1 * c2)
@@ -724,7 +724,7 @@ def interactive_transform_hook(hook, context):
 #                     [x, y] = unit(unit(to - center) - unit(start - center))
 #                     [c, s] = y, -x
 #                     return rot(c ** 2 - s ** 2, 2 * c * s) @ hflip
-                def flip_matrix(to, sh):
+                def flip_matrix(to):
                     v = unit(to - center) - unit(start - center)
                     try: 
                         [x, y] = unit(v)
@@ -735,12 +735,24 @@ def interactive_transform_hook(hook, context):
             case "scale":
                 start = pos
                 @apply_matrix
-                def do_scale(to, sh, copy = True):
+                def do_scale(to, copy = True):
                     rstart = dist(center, start)
                     if near_zero(rstart):
                         raise ZeroDivisionError
                     rend = dist(center, to)
                     return rend / rstart * np.identity(2)
+            case "scale/rotate":
+                start = pos
+                @apply_matrix
+                def similitude_matrix(to):
+                    rstart = dist(center, start)
+                    rend = dist(center, to)
+                    if near_zero(rstart) or near_zero(rend):
+                        raise ZeroDivisionError
+                    #
+                    [c1, s1] = (start - center) / rstart
+                    [c2, s2] = (to - center) / rend
+                    return rend / rstart * rot(c1 * c2 + s1 * s2, s2 * c1 - s1 * c2)
         # Set hints (show pending change)
         if pendingT: set_hints(cx, *[pendingT(pos, sh, copy = True) for sh in cx.selected])
         else: set_hints(cx, Point(pos))

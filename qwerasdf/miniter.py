@@ -236,6 +236,8 @@ def new_design_cmd(save_or_bang = None, *, _env):
     cx.weave_colors = {}
     reset_menu(cx)
 #     cx.menu.go_path('')
+    _env.context.last_save_buffer = ''
+    _last_save_filename = None
     redraw_weaves(cx)
 
 @miniter_command(('import', 'imp'), "$CMD SAVENAME")
@@ -467,7 +469,7 @@ def unweave_colors_cmd(*colorkeys, _env):
     cx = _env.context
     for k in ''.join(colorkeys).upper():
         if k in cx.palette:
-            unweave_inside_selection(cx, lambda we: cx.weave_colors[we] == k)
+            unweave_inside_selection(cx, lambda we: cx.weave_colors[we] == ltop(k))
 
 @miniter_command(('highlight', 'hi'), "$CMD INDEX1 ...")
 def highlight_cmd(index, *more, _env):
