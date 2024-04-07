@@ -257,7 +257,7 @@ help CMD: show documentation for CMD
 aliases: `ls-cmd`/`ls`
 ```
 ls-cmd: list available commands
-ls-cmd SEARCH: list commands matching SEARCH (by-name)'''
+ls-cmd SEARCH: list commands matching SEARCH (by-name)
 ```
 
 ### usage
