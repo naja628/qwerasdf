@@ -97,22 +97,6 @@ def help_cmd(cmd_name, *, _env):
     #
     post_info(f"{miniter_command_map[cmd_name].__doc__.replace('$CMD', cmd_name)}", _env.context)
 
-@miniter_command(('ls-cmd', 'ls'))
-def list_cmd(*, _env):
-    "$CMD: list available commands"
-    #
-    post_info( ', '.join([ aliases[0] for aliases in miniter_aliases_map.values() ]), _env.context )
-
-@miniter_command(('usage', 'us'), "$CMD CMDNAME")
-def usage_cmd(cmd_name, *, _env):
-    "$CMD CMD: show command usage"
-    #
-    cmd_names = '/'.join(miniter_aliases_map[miniter_command_map[cmd_name]])
-    usage_str = miniter_usage_map[miniter_command_map[cmd_name]]
-    post_info(usage_str.replace('$CMD', cmd_names), _env.context)
-
-
-## Quit and Save
 def _fuzzy_matches(search, candidates):
     if search in candidates: # prioritize exact match
         return [ search ]
@@ -125,6 +109,29 @@ def _fuzzy_matches(search, candidates):
         return True
     return filter(is_match, candidates)
 
+@miniter_command(('ls-cmd', 'ls'), "$CMD || $CMD SEARCH")
+def list_cmd(search = None, *, _env):
+    '''$CMD: list available commands
+       $CMD SEARCH: list commands matching SEARCH (by-name)'''
+    #
+    cmd_names = [ aliases[0] for aliases in miniter_aliases_map.values() ]
+    if not search:
+        post_info( ', '.join(cmd_names), _env.context )
+    else:
+        matches = [*_fuzzy_matches(search, cmd_names)]
+        if matches: post_info( ', '.join(matches), _env.context )
+        else: post_info( f"no match for '{search}'", _env.context )
+
+@miniter_command(('usage', 'us'), "$CMD CMDNAME")
+def usage_cmd(cmd_name, *, _env):
+    "$CMD CMD: show command usage"
+    #
+    cmd_names = '/'.join(miniter_aliases_map[miniter_command_map[cmd_name]])
+    usage_str = miniter_usage_map[miniter_command_map[cmd_name]]
+    post_info(usage_str.replace('$CMD', cmd_names), _env.context)
+
+
+## Quit and Save
 def _saves_list(ext = False):
     def no_ext(f):
         i = f.rfind('.')

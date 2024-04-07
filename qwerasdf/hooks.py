@@ -395,7 +395,7 @@ def create_weaves_hook(hook, context):
                 case [hg]: return hg
                 case []: assert False
                 case cdt: 
-                    post_error("several shapes match. LCLICK -> disambiguate", cx)
+                    post_info("several shapes match. LCLICK on wanted shape -> disambiguate", cx)
                     def disambiguated(ev):
                         _, cdt2 = snappy_get_point(cx, ev.pos)
                         try: 
