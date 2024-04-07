@@ -51,7 +51,9 @@ _menuaction_info = { # What the user has to do AFTER, not what it does
         "Copy-Transform": "LCLICK -> confirm (new copy will be created) | RCLICK -> cancel",
         "Visual": "LCLICK -> apply change | RCLICK -> put copy",
         "Color Picker": f"LCLICK -> apply | RCLICK -> close | {_QWERASDF} -> change affected color | WHEEL -> adjust brightness",
-        # TODO grid 
+        "Grid +/- sparse": "WHEEL -> adjust sparseness | CLICK -> done",
+        "Grid phase": "LCILCK -> set phase | RCLICK -> cancel",
+        "Grid recenter": "LCLICK -> place center | RCLICK -> center",
         }
 
 
@@ -125,8 +127,10 @@ def menu_hook(hook, context):
 def init_context(dimensions):
     cx = Rec()
     #
-    icon = image.load( path.join(params.homedir, 'icon.png') )
-    display.set_icon(icon)
+    try:
+        icon = image.load( path.join(params.homedir, 'data/icon.png') )
+        display.set_icon(icon)
+    except: pass
     display.set_caption('QWERASDF')
     cx.screen = display.set_mode(params.start_dimensions)
     #

@@ -1,6 +1,3 @@
-## Min for v2
-* Grid hints.
-For hints, translate QWERASDF
 
 ## Bugs
 
@@ -12,8 +9,6 @@ For hints, translate QWERASDF
 * rename menu buttons (more consistent / make more sense)
 * wasn't there another needlessly inconsistent thing I wanted to fix?
 
-* visual rotate + scale simultaneously
-
 * option where to put out.ps
 * auto ps2pdf?
 
@@ -22,6 +17,7 @@ For hints, translate QWERASDF
 * command line args: 
 	basic: open first arg --norc --noconf --session= --cl --wd=
 * pinned commands
+* macros
 
 * rectangle or polygon selection
 
