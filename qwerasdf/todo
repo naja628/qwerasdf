@@ -1,0 +1,47 @@
+
+## Bugs
+
+* (can't reproduce) saw interactive_transform/merge/weave bug
+* weird event bugs in miniter (rctl or ctl-bksp) (MATE specific?)
+* crash due to 0 points grid? (fixed I think)
+
+# Extra
+* rename menu buttons (more consistent / make more sense)
+* wasn't there another needlessly inconsistent thing I wanted to fix?
+
+* option where to put out.ps
+* auto ps2pdf?
+
+# Extra+
+
+* macros
+* rectangle or polygon selection
+* bezier curves, ellipses?
+
+* allow setting line width, alias
+* command line args: 
+	basic: open first arg --norc --noconf --session= --cl --wd=
+* pinned commands
+
+# Extra++
+
+* connect shapes ( is saving 2 clicks worth it?)
+* cartesian grid
+
+* view show/hide options (for nails, shapes etc)
+* export images
+
+* sync with save file ( I don't think this really works )
+* refactor terminal, (autocomplete, history, types, etc)
+
+# Extra+++
+* select weaves individually 
+* (drawing weaves) in subview, split ambiguous shapes
+* adjust fontsize to winsize
+
+# details:
+* grid sparseness adjustment should be exponential
+* be able to set params + show/hide some types of thing (kinda done)
+* only consider the last MOUSEMOTION every frame ?
+* maybe don't draw circle-center on existing shapes, merge points into shapes? (problem: when?)
+* refactor: should have a math_utils module (put some of the shape helper funs, + some utils)
