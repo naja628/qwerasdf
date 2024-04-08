@@ -242,7 +242,6 @@ def new_design_cmd(save_or_bang = None, *, _env):
     cx.weaves = []
     cx.weave_colors = {}
     reset_menu(cx)
-#     cx.menu.go_path('')
     _env.context.last_save_buffer = ''
     _last_save_filename = None
     redraw_weaves(cx)

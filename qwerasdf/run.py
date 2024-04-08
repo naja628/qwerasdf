@@ -53,7 +53,7 @@ _menuaction_info = { # What the user has to do AFTER, not what it does
         "Color Picker": f"LCLICK -> apply | RCLICK -> close | {_QWERASDF} -> change affected color | WHEEL -> adjust brightness",
         "Grid +/- sparse": "WHEEL -> adjust sparseness | CLICK -> done",
         "Grid phase": "LCILCK -> set phase | RCLICK -> cancel",
-        "Grid recenter": "LCLICK -> place center | RCLICK -> center",
+        "Grid recenter": "LCLICK -> place center | RCLICK -> cancel",
         }
 
 

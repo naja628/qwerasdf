@@ -1,6 +1,7 @@
 # problem this all merge thing doesn't handle the case when 2 weaves overlap
 # too hard to detect
 def merge_into(dest, src, weaves):
+    dest = [ sh for sh in dest if sh not in src ]
     to_append, touched = [], []
     for sh in src:
         for target in dest:

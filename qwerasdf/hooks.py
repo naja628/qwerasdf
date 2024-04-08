@@ -351,8 +351,9 @@ def create_poly_hook(hook, context):
                 else:
                     points.append(_evpos(context, ev))
             case ms.RCLICK:
-                create_shapes(context, _Poly(*points, loopy = False))
-                reset()
+                if points:
+                    create_shapes(context, _Poly(*points, loopy = False))
+                    reset()
             case _:
                 set_hints(context, _Poly(*points, pos, loopy = False))
     ###
@@ -581,7 +582,7 @@ def move_selection_hook(hook, context, want_copy = False):
                 else:
                     for sh in cx.selected:
                         sh.move(pos - start_pos)
-                    merge_into(cx.shapes, cx.selected, cx.weaves)
+                    cx.shapes, cx.selected = merge_into(cx.shapes, cx.selected, cx.weaves)
                 redraw_weaves(cx)
                 hook.finish()
             case ms.MOTION:
@@ -630,7 +631,7 @@ def transform_selection_hook(hook, context, want_copy = False):
                     else:
                         for sh in cx.selected:
                             sh.transform(matrix, center);
-                        merge_into(cx.shapes, cx.selected, cx.weaves)
+                        cx.shapes, cx.selected = merge_into(cx.shapes, cx.selected, cx.weaves)
                     redraw_weaves(cx);
                     hook.finish()
                 case ms.MOTION:
@@ -683,7 +684,7 @@ def interactive_transform_hook(hook, context):
                 if pendingT:
                     for sh in cx.selected:
                         pendingT(pos, sh, copy = False)
-                    merge_into(cx.shapes, cx.selected, cx.weaves)
+                    cx.shapes, cx.selected = merge_into(cx.shapes, cx.selected, cx.weaves)
                     redraw_weaves(cx)
                     pendingT = None
             case "put copy":
@@ -691,6 +692,7 @@ def interactive_transform_hook(hook, context):
                     new_shapes = [pendingT(pos, sh, copy = True) for sh in cx.selected]
                     new_weaves = copy_weaves_inside(new_shapes, cx.selected, cx.weaves, cx)
                     cx.shapes, cx.selected = merge_into(cx.shapes, new_shapes, new_weaves)
+                    redraw_weaves(cx)
                     pendingT = None
         ##
         def apply_matrix(f):
@@ -720,10 +722,6 @@ def interactive_transform_hook(hook, context):
             case "flip":
                 start = pos
                 @apply_matrix
-#                 def flip_matrix(to, sh):
-#                     [x, y] = unit(unit(to - center) - unit(start - center))
-#                     [c, s] = y, -x
-#                     return rot(c ** 2 - s ** 2, 2 * c * s) @ hflip
                 def flip_matrix(to):
                     v = unit(to - center) - unit(start - center)
                     try: 
@@ -735,7 +733,7 @@ def interactive_transform_hook(hook, context):
             case "scale":
                 start = pos
                 @apply_matrix
-                def do_scale(to, copy = True):
+                def scale_matrix(to):
                     rstart = dist(center, start)
                     if near_zero(rstart):
                         raise ZeroDivisionError

@@ -244,7 +244,7 @@ Parameter | Value (; allowed range) | Description
 # List of Commands
 [help](#help), [ls-cmd](#ls-cmd), [usage](#usage), [save](#save), [ls-saves](#ls-saves), [load](#load), [exit](#exit), [new](#new), [import](#import), [recover](#recover), [outline](#outline), 
 [set-color](#set-color), [menu](#menu), [palette](#palette), [div](#div), [default-divs](#default-divs), [weavity](#weavity), [weaveback](#weaveback), [set-rotation](#set-rotation), [fullscreen
-](#fullscreen), [grid](#grid), [grid-rsubdiv](#grid-rsubdiv), [grid-asubdiv](#grid-asubdiv), [set-phase](#set-phase), [session](#session), [clear](#clear), [select-all](#select-all), [translate
+](#fullscreen), [resize](#resize), [grid](#grid), [grid-rsubdiv](#grid-rsubdiv), [grid-asubdiv](#grid-asubdiv), [set-phase](#set-phase), [session](#session), [clear](#clear), [select-all](#select-all), [translate
 -colors](#translate-colors), [unweave-color](#unweave-color), [highlight](#highlight), [source](#source), [oneshot-commands](#oneshot-commands), [_debug](#_debug)
 
 ### help
@@ -384,6 +384,13 @@ set-rotation P / Q : set the default rotation to P Qth of a turn. (spaces around
 aliases: `fullscreen`/`fu`
 ```
 fullscreen: go fullscreen
+```
+
+### resize
+
+aliases: `resize`/`res`
+```
+$CMD WIDTH HEIGHT: resize window
 ```
 
 ### grid
