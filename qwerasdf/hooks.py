@@ -351,10 +351,11 @@ def create_poly_hook(hook, context):
                 else:
                     points.append(_evpos(context, ev))
             case ms.RCLICK:
-                if points:
-                    create_shapes(context, _Poly(*points, loopy = False))
-                    reset()
+                if not points: continue
+                create_shapes(context, _Poly(*points, loopy = False))
+                reset()
             case _:
+                if not points: continue
                 set_hints(context, _Poly(*points, pos, loopy = False))
     ###
 
@@ -411,27 +412,6 @@ def create_weaves_hook(hook, context):
                         else: continue
                     subloop = save_loop
                     return ret
-#         while True:
-#             match candidates, filter_cdt(candidates, cx.selected):
-#                 case ([ hg ], _) | (_, [ hg ]): return hg
-#                 case [], []: assert False
-#                 case (cdt, []) | (_, cdt) :
-#                     post_error("several shapes match. LCLICK -> disambiguate", cx)
-#                     # highlight shape
-#                     def disambiguated(ev):
-#                         _, cdt2 = snappy_get_point(cx, ev.pos)
-#                         try: 
-#                             [ hg ] = filter_cdt(cdt, [hg.s for hg in cdt2])
-#                             return hg
-#                         except: return None
-#                     save_loop = subloop
-#                     subloop = lambda ev: (hg := disambiguated(ev)) and set_hints(cx, hg.s)
-#                     while True:
-#                         ev = yield
-#                         if ret := disambiguated(ev): break
-#                         else: continue
-#                     subloop = save_loop
-#                     return ret
     #
     while True:
         subloop = lambda ev: set_hints(cx, Point(_evpos(cx, ev)))
@@ -606,6 +586,7 @@ def transform_selection_hook(hook, context, want_copy = False):
     #
     rot_angle = 0
     mirror = False
+    set_hints(cx, *cx.selected)
     def inner(ev):
         center, _ = snappy_get_point(cx, pg.mouse.get_pos())
         nonlocal rot_angle
@@ -615,27 +596,25 @@ def transform_selection_hook(hook, context, want_copy = False):
                 case 'S': rot_angle += cx.default_rotation
                 case 'D': rot_angle -= cx.default_rotation
                 case 'F': mirror = not mirror
-        else:
-            pos, _ = snappy_get_point(cx, ev.pos)
-            matrix = rot_matrix(rot_angle)
-            if mirror: matrix = matrix @ mirror_matrix
-            match mouse_subtype(ev):
-                case ms.RCLICK:
-                    hook.finish()
-                case ms.LCLICK:
-                    if want_copy:
-                        new_shapes = [ sh.transformed(matrix, center) for sh in cx.selected ]
-                        new_weaves = copy_weaves_inside(
-                                new_shapes, cx.selected, cx.weaves, cx)
-                        cx.shapes, cx.selected = merge_into(cx.shapes, new_shapes, new_weaves)
-                    else:
-                        for sh in cx.selected:
-                            sh.transform(matrix, center);
-                        cx.shapes, cx.selected = merge_into(cx.shapes, cx.selected, cx.weaves)
-                    redraw_weaves(cx);
-                    hook.finish()
-                case ms.MOTION:
-                    cx.hints = [ sh.transformed(matrix, center) for sh in cx.selected ]
+        matrix = rot_matrix(rot_angle)
+        if mirror: matrix = matrix @ mirror_matrix
+        match mouse_subtype(ev):
+            case ms.RCLICK:
+                hook.finish()
+            case ms.LCLICK:
+                if want_copy:
+                    new_shapes = [ sh.transformed(matrix, center) for sh in cx.selected ]
+                    new_weaves = copy_weaves_inside(
+                            new_shapes, cx.selected, cx.weaves, cx)
+                    cx.shapes, cx.selected = merge_into(cx.shapes, new_shapes, new_weaves)
+                else:
+                    for sh in cx.selected:
+                        sh.transform(matrix, center);
+                    cx.shapes, cx.selected = merge_into(cx.shapes, cx.selected, cx.weaves)
+                redraw_weaves(cx);
+                hook.finish()
+        if hook.active():
+            cx.hints = [ sh.transformed(matrix, center) for sh in cx.selected ]
     #
     hook.event_loop(inner)
 

@@ -1,13 +1,26 @@
-
-## Bugs
-
+## Old bugs
 * (can't reproduce) saw interactive_transform/merge/weave bug
 * weird event bugs in miniter (rctl or ctl-bksp) (MATE specific?)
 * crash due to 0 points grid? (fixed I think)
 
+## Bugs
+* when not moving after import
+	* either random offset or force move then merge
+
+* saves can't start with num (maybe in cmd int is only digits only)
+* bug computing divs for polys: wrong size
+* ensure weave ordering (new on top even when copying, merging etc)
+* arcs div too far (slightly)?
+
 # Extra
 * rename menu buttons (more consistent / make more sense)
 * wasn't there another needlessly inconsistent thing I wanted to fix?
+
+* stash/unstash ("clipboard" for selection)
+* `sym r`/`sym s`
+* rectangle selection
+
+----- counts as "finished" (v0.2)
 
 * option where to put out.ps
 * auto ps2pdf?
@@ -15,18 +28,20 @@
 # Extra+
 
 * macros
-* rectangle or polygon selection
-* bezier curves, ellipses?
+* cartesian grid, triangle grid
+* bezier curves, ellipses (+ arcs)?
+* polygon selection?
 
-* allow setting line width, alias
+* allow setting line width, antialias
 * command line args: 
 	basic: open first arg --norc --noconf --session= --cl --wd=
 * pinned commands
 
 # Extra++
 
-* connect shapes ( is saving 2 clicks worth it?)
-* cartesian grid
+* several canvas, move shapes between them.
+* connect shapes
+* set params from the terminal, all params are dynamic
 
 * view show/hide options (for nails, shapes etc)
 * export images
@@ -37,11 +52,13 @@
 # Extra+++
 * select weaves individually 
 * (drawing weaves) in subview, split ambiguous shapes
-* adjust fontsize to winsize
+* arbitrary linear transforms
+* gradient weaves (rainbow or lerp, maybe multipoint)
+* multiweaves
+* some scripting?
 
 # details:
 * grid sparseness adjustment should be exponential
-* be able to set params + show/hide some types of thing (kinda done)
 * only consider the last MOUSEMOTION every frame ?
 * maybe don't draw circle-center on existing shapes, merge points into shapes? (problem: when?)
 * refactor: should have a math_utils module (put some of the shape helper funs, + some utils)

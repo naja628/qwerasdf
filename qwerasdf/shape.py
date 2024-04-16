@@ -6,6 +6,7 @@ from math import atan2
 
 from .params import params
 from .util import farr, dist, Rec, sqdist
+from .math_utils import ar
 
 def near_zero(x):
     return -params.eps < x < params.eps
@@ -267,44 +268,35 @@ class Line(Shape):
     ###
 
 class PolyLine(Shape):
-    def __init__(self, point1, *points, ndivs = 120, loopy = False):
+    def __init__(self, point1, point2, *points, ndivs = 120, loopy = False):
         self.loopy = loopy
-        Shape.__init__(self, point1, *points, ndivs = ndivs)
-    #
-    def _compute_len(self):
-        self.len = sum([dist(a, b) for a, b in zip(self.keypoints[:-1], self.keypoints[1:])])
-        if self.loopy:
-            self.len += dist(self.keypoints[-1], self.keypoints[0])
+        Shape.__init__(self, point1, point2, *points, ndivs = ndivs)
     #
     def set_divs(self, ndivs):
-        if not hasattr(self, 'len'):
-            self._compute_len()
-        #
         if ndivs == 1: 
             self.divs = np.array([self.keypoints[0]])
             return
-        if near_zero(self.len):
-            self.divs = np.array(ndivs * [self.keypoints[0]])
+        #
+        keypoints = [*self.keypoints] + ([self.keypoints[0]] if self.loopy else [])
+        kp_dists = [0]
+        for i in range(len(keypoints) - 1):
+            [a, b] = keypoints[i:i+2]
+            kp_dists.append( kp_dists[-1] + dist(a, b) )
+        #
+        if near_zero(kp_dists[-1]):
+            self.divs = np.array([keypoints[0]])
             return
         #
-        offset, divs = 0, []
-        spacing = self.len / (ndivs - 1)
-        n = len(self.keypoints)
-        for i in range(n + int(self.loopy) - 1):
-            seglen = dist(self.keypoints[i], self.keypoints[(i + 1) % n])
-            if near_zero(seglen): 
-                continue
-            #
-            dir_vec = 1.0 / seglen * (self.keypoints[(i + 1) % n] - self.keypoints[i])
-            new_divs = [ self.keypoints[i] + t * dir_vec
-                    for t in np.arange(offset, seglen, spacing) ]
-            divs.extend(new_divs)
-            #
-            r = (seglen - offset) % spacing
-            offset = spacing - r
-        if len(divs) == ndivs - 1:
-            divs.append(self.keypoints[0] if self.loopy else self.keypoints[-1])
-        assert len(divs) == ndivs
+        k, D = 0, kp_dists[-1]
+        ts = np.linspace(0, D, ndivs, endpoint = not self.loopy)
+        divs = []
+        for t in ts:
+            while t > kp_dists[k + 1]:
+                k += 1
+            if k == len(keypoints):
+                k -= 1
+            t = (t - kp_dists[k]) / (kp_dists[k+1] - kp_dists[k])
+            divs.append( (1 - t) * keypoints[k] + t * keypoints[k+1] )
         self.divs = np.array(divs)
     #
     def draw(self, screen, view, color = params.shape_color):
