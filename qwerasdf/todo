@@ -2,13 +2,13 @@
 * (can't reproduce) saw interactive_transform/merge/weave bug
 * weird event bugs in miniter (rctl or ctl-bksp) (MATE specific?)
 * crash due to 0 points grid? (fixed I think)
+* bug computing divs for polys: wrong size (fixed by rewrite?)
 
 ## Bugs
 * when not moving after import
 	* either random offset or force move then merge
 
 * saves can't start with num (maybe in cmd int is only digits only)
-* bug computing divs for polys: wrong size
 * ensure weave ordering (new on top even when copying, merging etc)
 * arcs div too far (slightly)?
 

@@ -74,8 +74,8 @@ def ltop(k):
 # touch at own risk
 params.eps = 0.0000001 # distance under which two points are considered "the same"
 params.max_div = 1000
-params.max_ppu = 1e6
-params.min_ppu = 1e-5
+params.max_ppu = 1e4
+params.min_ppu = 10
 
 params.autosave_pulse = 2
 params.autosave_rotorctl = [ (30, 3) ] * 5 + [ 30 ]
