@@ -27,7 +27,7 @@
 
 * rectangle selection
 
-* command to set line-width/alias
+* allow setting line width, antialias
 
 * erase hint messages when hooks close
 
@@ -44,6 +44,8 @@
 * option where to put out.ps
 * auto ps2pdf?
 
+* set params from the terminal, all params are dynamic
+
 # Extra+
 
 * macros
@@ -51,7 +53,6 @@
 * bezier curves, ellipses (+ arcs)?
 * polygon selection?
 
-* allow setting line width, antialias
 * command line args: 
 	basic: open first arg --norc --noconf --session= --cl --wd=
 * pinned commands
@@ -62,7 +63,6 @@
 
 * several canvas, move shapes between them.
 * connect shapes
-* set params from the terminal, all params are dynamic
 
 * sync with save file ( I don't think this really works )
 * refactor terminal, (autocomplete, history, types, etc)

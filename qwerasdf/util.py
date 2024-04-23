@@ -22,13 +22,6 @@ def constants(n):
     return range(n)
 # use case K1, K2, K3 = constants(3)
 
-def masks(n):
-    return [2 ** i for i in range(n)]
-# use case opt1, opt2 = masks(2)
-
-def farr(seq):
-    return np.array([float(x_i) for x_i in seq])
-
 def sqdist(a, b):
     d = 0.0
     for (a_i, b_i) in zip(a, b):

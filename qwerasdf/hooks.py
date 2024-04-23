@@ -8,6 +8,7 @@ from .miniter import miniter_exec
 from .context import *
 from .util import expr, param_decorator, clamp
 from .merge import merge_into # TODO restructure module
+from .math_utils import *
 from . import save
 
 ######### EVENT AND DISPATCH ##########
@@ -297,35 +298,89 @@ def create_circles_hook(hook, context):
                 Point(point1 if center_first else _evpos(context, ev)))
         reset_hints(context)
 
+# @iter_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, 
+#             filter = lambda ev: mouse_subtype(ev) == ms.LCLICK,
+#             cleanup = lambda context: reset_hints(context) )
+# def create_arcs_hook(hook, context):
+#     def _Arc(*a, **ka): return Arc(*a, **ka, ndivs = context.df_divs['arc'])
+#     def _Circle(*a, **ka): return Circle(*a, **ka, ndivs = context.df_divs['arc'])
+#     #
+#     cx, clockwise, subloop = context, False, None
+#     def loop(ev):
+#         nonlocal clockwise
+#         if mouse_subtype(ev) == ms.RCLICK:
+#             clockwise = not clockwise
+#         if subloop: subloop(ev)
+#     hook.event_loop(loop)
+#     #
+#     while True:
+#         subloop = lambda ev: set_hints(cx, Point(_evpos(cx, ev)))
+#         ev = yield
+#         center = _evpos(cx, ev)
+#         #
+#         subloop = lambda ev: set_hints(cx, _Circle(center, _evpos(cx, ev)))
+#         ev = yield
+#         start = _evpos(cx, ev)
+#         #
+#         subloop = lambda ev: set_hints(cx, _Arc(center, start, _evpos(cx, ev), clockwise = clockwise))
+#         ev = yield
+#         end = _evpos(cx, ev)
+#         #
+#         create_shapes(cx, _Arc(center, start, end, clockwise = clockwise))
+# 
 @iter_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, 
             filter = lambda ev: mouse_subtype(ev) == ms.LCLICK,
             cleanup = lambda context: reset_hints(context) )
 def create_arcs_hook(hook, context):
     def _Arc(*a, **ka): return Arc(*a, **ka, ndivs = context.df_divs['arc'])
-    def _Circle(*a, **ka): return Circle(*a, **ka, ndivs = context.df_divs['circle'])
+    def _Circle(*a, **ka): return Circle(*a, **ka, ndivs = context.df_divs['arc'])
+    def _Line(*a, **ka): return Line(*a, **ka, ndivs = context.df_divs['arc'])
     #
-    cx, clockwise, subloop = context, False, None
-    def loop(ev):
+    center_first, clockwise = True, False
+    cx, points = context, []
+    def loop_first2(ev):
+        nonlocal center_first
+        if mouse_subtype(ev) == ms.RCLICK:
+            center_first = not center_first
+        #
+        _points = points + [_evpos(cx, ev)]
+        match _points, center_first:
+            case [one], _:
+                set_hints(cx, Point(one))
+            case [center, perim], True:
+                set_hints(cx, _Circle(center, perim))
+            case [start, end], False:
+                set_hints(cx, _Line(start, end))
+            case _: assert False
+    #
+    def make_arc(*points):
+        if center_first: 
+            [center, start, end] = points
+        else: 
+            [start, end, center] = points
+            # center = orthogonal projection TODO
+        return _Arc(center, start, end, clockwise = clockwise)
+    #
+    def loop_last(ev):
         nonlocal clockwise
         if mouse_subtype(ev) == ms.RCLICK:
             clockwise = not clockwise
-        if subloop: subloop(ev)
-    hook.event_loop(loop)
+        #
+        set_hints(cx, make_arc(*points, _evpos(cx, ev)))
     #
     while True:
-        subloop = lambda ev: set_hints(cx, Point(_evpos(cx, ev)))
-        ev = yield
-        center = _evpos(cx, ev)
+        hook.event_loop(loop_first2)
+        for i in range(2):
+            ev = yield
+            points.append(_evpos(cx, ev))
         #
-        subloop = lambda ev: set_hints(cx, _Circle(center, _evpos(cx, ev)))
+        print(f'{points=}')
+        hook.event_loop(loop_last)
         ev = yield
-        start = _evpos(cx, ev)
+        points.append(_evpos(cx, ev))
         #
-        subloop = lambda ev: set_hints(cx, _Arc(center, start, _evpos(cx, ev), clockwise = clockwise))
-        ev = yield
-        end = _evpos(cx, ev)
-        #
-        create_shapes(cx, _Arc(center, start, end, clockwise = clockwise))
+        create_shapes(cx, make_arc(*points))
+        points = []
 
 @iter_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, 
             cleanup = lambda context: reset_hints(context) )
@@ -623,10 +678,6 @@ def transform_selection_hook(hook, context, want_copy = False):
 def interactive_transform_hook(hook, context):
     hflip = np.array( [ [ 1, 0 ], [0, -1]] )
     def rot(cos, sin): return np.array( [[cos, -sin], [sin, cos]] )
-    def unit(u): 
-        d = dist(u, [0, 0])
-        if near_zero(d): raise ZeroDivisionError
-        return np.array(u) / dist(u, [0, 0])
     #
     cx = context
     actions = { 

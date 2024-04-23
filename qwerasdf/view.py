@@ -3,12 +3,9 @@ import numpy as np
 from .params import params
 from .util import clamp
 
-def farr(seq):
-    return np.array([float(x_i) for x_i in seq])
-
 class View:
     def __init__(self, corner = (0,0), ppu = 500):
-        self.corner = farr(corner)
+        self.corner = ar(corner)
         self.ppu = int(ppu)
     #
     def __str__(self):
@@ -19,7 +16,7 @@ class View:
         (px, py) = pp
         rx = self.corner[0] + px / self.ppu
         ry = self.corner[1] - py / self.ppu
-        return farr((rx, ry))
+        return ar((rx, ry))
     #
     def rtop(self, rp):
         "real to pixel"

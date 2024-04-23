@@ -5,14 +5,8 @@ from pygame import draw, Color, Rect
 from math import atan2
 
 from .params import params
-from .util import farr, dist, Rec, sqdist
-from .math_utils import ar
-
-def near_zero(x):
-    return -params.eps < x < params.eps
-
-def almost_equal(x, y):
-    return sqdist(x, y) < params.eps ** 2
+from .util import dist, Rec, sqdist
+from .math_utils import *
 
 def draw_point(screen, point, color = params.div_color, rad = params.point_radius):
     draw.circle(screen, color, point, rad)
@@ -27,13 +21,13 @@ class Shape:
         raise NotImplementedError()
     #####
     def __init__(self, *keypoints, ndivs = 60): # 60: arbitrary fallback
-        self.keypoints = np.array([farr(p) for p in keypoints])
+        self.keypoints = np.array([ar(p) for p in keypoints])
         self.set_divs(ndivs)
     #
     def __setattr__(self, key, val):
         try:
             i = type(self)._KEYPOINT_NAMES.index(key)
-            self.keypoints[i] = farr(val)
+            self.keypoints[i] = ar(val)
         except ValueError:
             self.__dict__[key] = val
     #
@@ -166,7 +160,7 @@ class Circle(Shape):
 class Arc(Shape):
     _KEYPOINT_NAMES = ('center', 'start', 'end')
     def __init__(self, center, start, end, ndivs = 30, clockwise = False):
-        center, start, end = (farr(p) for p in (center, start, end))
+        center, start, end = (ar(p) for p in (center, start, end))
         self.loopy = False
         self.clockwise = clockwise
         rs, re = dist(center, start), dist(center, end)

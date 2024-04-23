@@ -12,3 +12,14 @@ def sqdist(a, b):
 def dist(a, b):
     return sqrt(sqdist(a, b))
 
+def near_zero(x):
+    return -params.eps < x < params.eps
+
+def almost_equal(x, y):
+    return sqdist(x, y) < params.eps ** 2
+
+def unit(u): 
+    d = dist(u, [0, 0])
+    if near_zero(d): raise ZeroDivisionError
+    return np.array(u) / d
+
