@@ -5,20 +5,39 @@
 * bug computing divs for polys: wrong size (fixed by rewrite?)
 
 ## Bugs
-* when not moving after import
+(1) when not moving after import
 	* either random offset or force move then merge
 
-* saves can't start with num (maybe in cmd int is only digits only)
-* ensure weave ordering (new on top even when copying, merging etc)
-* arcs div too far (slightly)?
+(2) saves can't start with num (maybe in cmd int are digits only)
+(3) arcs div too far (slightly)? ("solved" by restricting max zoom)
 
 # Extra
+* arc other order
+
+* modify quick transforms
+
 * rename menu buttons (more consistent / make more sense)
 * wasn't there another needlessly inconsistent thing I wanted to fix?
 
 * stash/unstash ("clipboard" for selection)
+	* use with imports (bug 1)
+
+* refactor with math util (dup details)
 * `sym r`/`sym s`
+
 * rectangle selection
+
+* command to set line-width/alias
+
+* erase hint messages when hooks close
+
+* ensure weave ordering (new on top even when copying, merging etc)
+* raise colors
+
+* view show/hide options (for nails, shapes etc)
+* export images (svg?)
+
+* read **both** dotrc if they exist
 
 ----- counts as "finished" (v0.2)
 
@@ -36,15 +55,14 @@
 * command line args: 
 	basic: open first arg --norc --noconf --session= --cl --wd=
 * pinned commands
+* remappable menu?
+* menu actions via commands?
 
 # Extra++
 
 * several canvas, move shapes between them.
 * connect shapes
 * set params from the terminal, all params are dynamic
-
-* view show/hide options (for nails, shapes etc)
-* export images
 
 * sync with save file ( I don't think this really works )
 * refactor terminal, (autocomplete, history, types, etc)
@@ -56,6 +74,7 @@
 * gradient weaves (rainbow or lerp, maybe multipoint)
 * multiweaves
 * some scripting?
+* weave string can bend around nails?
 
 # details:
 * grid sparseness adjustment should be exponential

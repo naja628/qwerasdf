@@ -163,6 +163,7 @@ def save_cmd(*a, _env):
         #
         buffer = save_buffer(_env.context, extra = {'session'})
         write_save(save_path(file), buffer, overwrite_ok = overwrite_ok, header = True)
+        post_info( f"successfully saved as '{file}'", _env.context )
         #
         _env.context.last_save_buffer = buffer
         _last_save_filename = file
@@ -433,11 +434,20 @@ def set_phase_cmd(*a, _env):
 
 ## Misc
 @miniter_command(('session', 'se'), "$CMD SESSIONNAME | $CMD OFF")
-def connect_session_cmd(session_name, *,  _env):
-    '''$CMD SESSIONNAME: connect to session SESSIONNAME.
-       $CMD OFF: disable undoing/autosaving. (literally type 'OFF' as the SESSIONNAME)'''
+def connect_session_cmd(session_name = None, *,  _env):
+    '''$CMD            : tell current session.
+       $CMD SESSIONNAME: connect to session SESSIONNAME.
+       $CMD OFF        : disable undoing/autosaving. (literally type 'OFF' as the SESSIONNAME)'''
+    cx = _env.context
+    if not session_name:
+        if not cx.autosaver:
+            post_info("no current session", cx)
+        else:
+            post_info(f"session: {os.path.basename(cx.autosaver.root)}", cx) # TODO eh 
+        return
+    #
     try:
-        reload_session(_env.context, session_name)
+        reload_session(cx, session_name)
     except Autosaver.DirectoryBusyError:
         post_error("already in use.", cx)
 
