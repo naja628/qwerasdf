@@ -358,7 +358,9 @@ def create_arcs_hook(hook, context):
             [center, start, end] = points
         else: 
             [start, end, center] = points
-            # center = orthogonal projection TODO
+            mediatrix = ortho(end - start)
+            proj_center = (start + end) / 2
+            center = proj_center + projection_matrix(mediatrix) @ (center - proj_center)
         return _Arc(center, start, end, clockwise = clockwise)
     #
     def loop_last(ev):
@@ -374,7 +376,6 @@ def create_arcs_hook(hook, context):
             ev = yield
             points.append(_evpos(cx, ev))
         #
-        print(f'{points=}')
         hook.event_loop(loop_last)
         ev = yield
         points.append(_evpos(cx, ev))
@@ -596,45 +597,45 @@ def copy_weaves_into(dest_shapes, src_shapes, weave_superset, context):
         new_weaves.append( new )
     return new_weaves
 
-def move_selection_hook(hook, context, want_copy = False):
+def move_selection_hook(hook, context):
     setup_hook(hook, {pg.MOUSEMOTION, pg.MOUSEBUTTONDOWN}, (reset_hints, context))
     cx = context
     start_pos, _ = snappy_get_point(cx, pg.mouse.get_pos()) # want snappy? (i think yes but unsure)
-    steal_menu_keys(hook, cx.menu, 'QWRASDF', {}) # Just to suppress, keep E = Unweave only
+    steal_menu_keys(hook, cx.menu, 'QWASDF', {'F': "Put Copy"}) 
     #
     def inner(ev):
-        if (ev.type == pg.KEYDOWN): return
-        pos, _ = snappy_get_point(cx, ev.pos);
+        nonlocal start_pos
+        pos, _ = snappy_get_point(cx, getattr(ev, 'pos', pg.mouse.get_pos()))
         match mouse_subtype(ev):
             case ms.RCLICK:
                 hook.finish()
             case ms.LCLICK:
-                if want_copy:
-                    new_shapes = [ sh.moved(pos - start_pos) for sh in cx.selected ]
-                    new_weaves = copy_weaves_inside( new_shapes, cx.selected, cx.weaves, cx)
-                    #
-                    cx.shapes, cx.selected = merge_into(cx.shapes, new_shapes, new_weaves)
-                else:
-                    for sh in cx.selected:
-                        sh.move(pos - start_pos)
-                    cx.shapes, cx.selected = merge_into(cx.shapes, cx.selected, cx.weaves)
+                for sh in cx.selected:
+                    sh.move(pos - start_pos)
+                cx.shapes, cx.selected = merge_into(cx.shapes, cx.selected, cx.weaves)
+                #
                 redraw_weaves(cx)
                 hook.finish()
             case ms.MOTION:
                 cx.hints = [ sh.moved(pos - start_pos) for sh in cx.selected ]
+            case pg.KEYDOWN:
+                if alpha_scan(ev) == 'F':
+                    new_shapes = [ sh.moved(pos - start_pos) for sh in cx.selected ]
+                    new_weaves = copy_weaves_inside( new_shapes, cx.selected, cx.weaves, cx)
+                    cx.shapes, cx.selected = merge_into(cx.shapes, new_shapes, new_weaves)
+                    start_pos = pos
     #
     hook.event_loop(inner)
 
-def transform_selection_hook(hook, context, want_copy = False):
-    mirror_matrix = np.array([ [-1, 0], [0, 1] ])
-    #
+def transform_selection_hook(hook, context):
     cx = context
     setup_hook( hook, {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, (reset_hints, cx) )
-    steal_menu_keys(hook, cx.menu, 'QWERASDF', {'S': "+Rotation", 'D': "-Rotation", 'F': "Flip"})
+    steal_menu_keys(hook, cx.menu, 'QWASDF', 
+            {'A': "Flip", 'S': "+Rotation", 'D': "-Rotation", 'F': "Put Copy"})
     def transformed_selection(matrix, center):
         return [ sh.transformed(matrix, center) for sh in cx.selected ]
     #
-    rot_angle = 0
+    rot_angle = 0.
     mirror = False
     set_hints(cx, *cx.selected)
     def inner(ev):
@@ -643,25 +644,27 @@ def transform_selection_hook(hook, context, want_copy = False):
         nonlocal mirror
         if ev.type == pg.KEYDOWN:
             match alpha_scan(ev):
+                case 'A': mirror = not mirror
                 case 'S': rot_angle += cx.default_rotation
                 case 'D': rot_angle -= cx.default_rotation
-                case 'F': mirror = not mirror
         matrix = rot_matrix(rot_angle)
-        if mirror: matrix = matrix @ mirror_matrix
+        if mirror: matrix = matrix @ vt_mirror_matrix
+        #
         match mouse_subtype(ev):
-            case ms.RCLICK:
-                hook.finish()
-            case ms.LCLICK:
-                if want_copy:
+            case ms.RCLICK: hook.finish()
+            case pg.KEYDOWN:
+                if alpha_scan(ev) == 'F':
                     new_shapes = [ sh.transformed(matrix, center) for sh in cx.selected ]
                     new_weaves = copy_weaves_inside(
                             new_shapes, cx.selected, cx.weaves, cx)
                     cx.shapes, cx.selected = merge_into(cx.shapes, new_shapes, new_weaves)
-                else:
-                    for sh in cx.selected:
-                        sh.transform(matrix, center);
-                    cx.shapes, cx.selected = merge_into(cx.shapes, cx.selected, cx.weaves)
-                redraw_weaves(cx);
+                    redraw_weaves(cx)
+            case ms.LCLICK:
+                for sh in cx.selected:
+                    sh.transform(matrix, center);
+                cx.shapes, cx.selected = merge_into(cx.shapes, cx.selected, cx.weaves)
+                #
+                redraw_weaves(cx)
                 hook.finish()
         if hook.active():
             cx.hints = [ sh.transformed(matrix, center) for sh in cx.selected ]

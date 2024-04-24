@@ -99,9 +99,9 @@ def menu_hook(hook, context):
             case "Remove": delete_selection(context)
             case "Unweave": unweave_inside_selection(context)
             case "Move": overhook(move_selection_hook, context)
-            case "Copy-Move": overhook(move_selection_hook, context, want_copy = True)
+            case "Copy-Move": overhook(move_selection_hook, context)
             case "Transform": overhook(transform_selection_hook, context)
-            case "Copy-Transform": overhook(transform_selection_hook, context, want_copy = True)
+            case "Copy-Transform": overhook(transform_selection_hook, context)
             case "Visual": overhook(interactive_transform_hook, context)
             # Shapes
             case "New Point": set_hook(create_points_hook, context)
@@ -209,7 +209,6 @@ def main():
                 for line in rc:
                     if line.strip() == '' or line.strip()[0] == '#': continue
                     miniter_exec(line, g)
-            break
         except: continue
     # Main loop:
     clock = time.Clock()

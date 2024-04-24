@@ -11,21 +11,27 @@
 (2) saves can't start with num (maybe in cmd int are digits only)
 (3) arcs div too far (slightly)? ("solved" by restricting max zoom)
 
-# Extra
-* arc other order
+#DONE
+* modify quick transforms 
+* refactor with math util (dup details) (mostly)
 
-* modify quick transforms
+# Current batch
+
+* arc other order (ortho proj)
+* `sym r`/`sym s`
+
+* refactor interactive transforms with math_utils
+
+* place quick transforms in menu
+* in Select submenu: toggle all, rectangle-selection, stash?
 
 * rename menu buttons (more consistent / make more sense)
-* wasn't there another needlessly inconsistent thing I wanted to fix?
 
 * stash/unstash ("clipboard" for selection)
 	* use with imports (bug 1)
 
-* refactor with math util (dup details)
-* `sym r`/`sym s`
-
 * rectangle selection
+* to move view: lclick (there was no longer a good reason to use rclick)
 
 * allow setting line width, antialias
 
@@ -36,8 +42,6 @@
 
 * view show/hide options (for nails, shapes etc)
 * export images (svg?)
-
-* read **both** dotrc if they exist
 
 ----- counts as "finished" (v0.2)
 
@@ -80,4 +84,3 @@
 * grid sparseness adjustment should be exponential
 * only consider the last MOUSEMOTION every frame ?
 * maybe don't draw circle-center on existing shapes, merge points into shapes? (problem: when?)
-* refactor: should have a math_utils module (put some of the shape helper funs, + some utils)
