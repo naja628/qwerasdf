@@ -6,7 +6,7 @@ from .view import View
 from .menu import Menu
 from .miniter import miniter_exec
 from .context import *
-from .util import expr, param_decorator, clamp
+from .util import param_decorator, clamp
 from .merge import merge_into # TODO restructure module
 from .math_utils import *
 from . import save
@@ -627,11 +627,6 @@ def move_selection_hook(hook, context, want_copy = False):
 
 def transform_selection_hook(hook, context, want_copy = False):
     mirror_matrix = np.array([ [-1, 0], [0, 1] ])
-    def rot_matrix(angle):
-        return np.array([
-            [np.cos(angle), -np.sin(angle)],
-            [np.sin(angle),  np.cos(angle)]
-            ])
     #
     cx = context
     setup_hook( hook, {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, (reset_hints, cx) )

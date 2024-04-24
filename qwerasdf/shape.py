@@ -5,7 +5,7 @@ from pygame import draw, Color, Rect
 from math import atan2
 
 from .params import params
-from .util import dist, Rec, sqdist
+from .util import Rec
 from .math_utils import *
 
 def draw_point(screen, point, color = params.div_color, rad = params.point_radius):

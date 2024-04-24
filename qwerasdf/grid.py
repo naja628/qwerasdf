@@ -2,7 +2,7 @@ import numpy as np
 import pygame as pg
 from math import atan2
 
-from .util import dist 
+from .math_utils import dist 
 from .params import params
 
 eps = params.eps

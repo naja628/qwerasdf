@@ -2,6 +2,7 @@ import numpy as np
 
 from .params import params
 from .util import clamp
+from .math_utils import ar
 
 class View:
     def __init__(self, corner = (0,0), ppu = 500):

@@ -3,9 +3,10 @@ import os
 
 from pygame import Surface, event
 
-from .util import Rec, sqdist
+from .util import Rec
 from .params import params
 from .save import Autosaver, load
+from .math_utils import *
 
 # def snappy_get_point(context, pos):
 #     cx = context

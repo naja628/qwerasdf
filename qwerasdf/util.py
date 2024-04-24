@@ -2,6 +2,8 @@ import numpy as np
 from math import sqrt
 import sys
 
+def id(x): return x
+
 def take(seq, n):
     seq = iter(seq)
     ret = []
@@ -21,15 +23,6 @@ def sprint(*a, sep = ' ', end = '\n'):
 def constants(n):
     return range(n)
 # use case K1, K2, K3 = constants(3)
-
-def sqdist(a, b):
-    d = 0.0
-    for (a_i, b_i) in zip(a, b):
-        d += (b_i - a_i) ** 2
-    return d
-
-def dist(a, b):
-    return sqrt(sqdist(a, b))
 
 class Rec:
     def __init__(self, **kwargs):
@@ -71,23 +64,8 @@ def param_decorator(wrapped_deco):
 # def add(a, b): return a + b
 
 
-## Consider deletion (not that useful)
-def returned(decorated):
-    return decorated()
-# Useful for things like unique closures, fake "singletons", ...
-### eg:
-# @returned
-# def unique_counter():
-#     ref = Rec(n = 0)
-#     def ret(): ref.update(n = ref.n + 1); return ref.n
-#     return ret
-# 
-
 def do_chain(fun, *more):
     return lambda: [ fun() for fun in [fun, *more]][-1]
 
 class EarlyExit(BaseException): pass
-
-def expr(*a, **ka): ## usage example: lambda: expr(do_thing())
-    return a[-1] if a else None
 
