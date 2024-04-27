@@ -1,3 +1,5 @@
+## 
+Poly overlapping points + in Area select
 ## Old bugs
 * (can't reproduce) saw interactive_transform/merge/weave bug
 * weird event bugs in miniter (rctl or ctl-bksp) (MATE specific?)
@@ -13,11 +15,16 @@
 
 #DONE
 * modify quick transforms 
-* refactor with math util (dup details) (mostly)
+* refactor with math util (mostly)
+* arc other order (ortho proj)
 
 # Current batch
 
-* arc other order (ortho proj)
+* fix bug with overlapping points in poly (+ double lclick when creating)
+
+* rectangle selection
+* place in menu / controller hook
+
 * `sym r`/`sym s`
 
 * refactor interactive transforms with math_utils
@@ -30,12 +37,7 @@
 * stash/unstash ("clipboard" for selection)
 	* use with imports (bug 1)
 
-* rectangle selection
-* to move view: lclick (there was no longer a good reason to use rclick)
-
 * allow setting line width, antialias
-
-* erase hint messages when hooks close
 
 * ensure weave ordering (new on top even when copying, merging etc)
 * raise colors
@@ -44,6 +46,8 @@
 * export images (svg?)
 
 ----- counts as "finished" (v0.2)
+
+* erase hint messages when hooks close
 
 * option where to put out.ps
 * auto ps2pdf?

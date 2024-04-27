@@ -20,7 +20,7 @@ _nested_menu = {
             {   'A': "Grid on/off", 'S': "Grid +/- sparse", 'D': "Grid recenter", 'F': "Grid phase"}),
         'S': ("Selection", 
             {   'W': "Visual", 'E': "Unweave", 'R': "Remove",
-                'A': "Transform", 'S': "Copy-Transform", 'D': "Move", 'F': "Copy-Move" }),
+                'A': "Area", 'S': "Transform", 'D': "Move", 'F': "Copy-Move" }),
         'D': ("Create Shapes",
             {   'Q': "New Point", 'W': "New Polyline",
                 'A': "New Arc",   'S': "New Segment", 'D': "New Circle", 'F': ("Draw Weaves", _sho('F'))}),
@@ -103,6 +103,7 @@ def menu_hook(hook, context):
             case "Transform": overhook(transform_selection_hook, context)
             case "Copy-Transform": overhook(transform_selection_hook, context)
             case "Visual": overhook(interactive_transform_hook, context)
+            case "Area": set_hook(rectangle_select_hook, context)
             # Shapes
             case "New Point": set_hook(create_points_hook, context)
             case "New Segment": set_hook(create_lines_hook, context)

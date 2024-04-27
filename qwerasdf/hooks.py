@@ -547,20 +547,66 @@ def color_picker_hook(hook, ev, context, *, _state):
             cx.palette[cx.color_key] = color
     redraw_weaves(cx)
 
+
 # Selection 
+def toggle_select(context, shapes):
+    keep = [sh for sh in context.selected if not sh in shapes]
+    add = [sh for sh in shapes if not sh in context.selected]
+    context.selected = keep + add
+
 @loop_hook({ pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION }, lambda context: reset_hints(context))
 def select_hook(hook, ev, context):
         cur_pos, matches = snappy_get_point(context, ev.pos)
         shapes = [ m.s for m in matches ]
         match mouse_subtype(ev):
-            case ms.LCLICK:
-                context.selected = shapes
-            case ms.RCLICK:
-                keep = [sh for sh in context.selected if not sh in shapes]
-                add = [sh for sh in shapes if not sh in context.selected]
-                context.selected = keep + add
-            case ms.MOTION:
-                set_hints(context, *shapes)
+            case ms.LCLICK: context.selected = shapes
+            case ms.RCLICK: toggle_select(context, shapes)
+            case ms.MOTION: set_hints(context, *shapes)
+
+@iter_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION },
+            filter = lambda ev: mouse_subtype(ev) in [ms.RCLICK, ms.LCLICK],
+            cleanup = lambda context: reset_hints(context))
+def rectangle_select_hook(hook, context):
+    cx, v = context, context.view
+    def rectangle(corners):
+        [x1, y1] = corners[0]
+        [x2, y2] = corners[1]
+        corners_clockwise = ar([ [x1, y1], [x2, y1], [x2, y2], [x1, y2] ])
+        return PolyLine(*corners_clockwise, loopy = True, ndivs = 2)
+    #
+    def find_touched(corners, needs_every = True):
+        # assume all divs, but could be any (TODO)
+        [[x1, y1], [x2, y2]] = corners
+        vmin = [min(x1, x2), min(y1, y2)]
+        vmax = [max(x1, x2), max(y1, y2)]
+        def criterion(sh):
+            post_min = (vmin <= sh.divs).all(1)
+            pre_max =  (sh.divs <= vmax).all(1)
+            if needs_every: return np.all( post_min & pre_max)
+            else:           return np.any( post_min & pre_max)
+        #
+        return [ sh for sh in cx.shapes if criterion(sh) ]
+    #
+    def hints(corners):
+        return find_touched(corners) + [rectangle(corners)]
+    #
+    while True:
+        corner1, toggle = None, False
+        hook.event_loop(None)
+        reset_hints(cx)
+        #
+        ev = yield # 1st click
+        pos = _evpos(cx, ev)
+        corner1 = pos
+        toggle = (mouse_subtype(ev) == ms.RCLICK)
+        hook.event_loop(lambda ev: set_hints(cx, *hints( [corner1, _evpos(cx, ev)] )) )
+        #
+        ev = yield # 2nd click
+        pos = _evpos(cx, ev)
+        if toggle == (mouse_subtype(ev) == ms.RCLICK): # cancel if click types mismatch
+            shapes = find_touched([corner1, pos])
+            if not toggle: cx.selected = shapes 
+            else: toggle_select(cx, shapes)
 
 ## TRANSFORMATIONS
 def copy_weaves_inside(dest_shapes, src_shapes, weave_superset, context):
