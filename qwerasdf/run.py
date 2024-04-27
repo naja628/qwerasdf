@@ -20,7 +20,7 @@ _nested_menu = {
             {   'A': "Grid on/off", 'S': "Grid +/- sparse", 'D': "Grid recenter", 'F': "Grid phase"}),
         'S': ("Selection", 
             {   'W': "Visual", 'E': "Unweave", 'R': "Remove",
-                'A': "Area", 'S': "Transform", 'D': "Move", 'F': "Copy-Move" }),
+                                               'D': "Transform", 'F': "Move" }),
         'D': ("Create Shapes",
             {   'Q': "New Point", 'W': "New Polyline",
                 'A': "New Arc",   'S': "New Segment", 'D': "New Circle", 'F': ("Draw Weaves", _sho('F'))}),
@@ -35,6 +35,7 @@ _space_action = "Menu Start"
 _QWERASDF = ''.join(ptol(k) for k in 'QWERASDF')
 _menuaction_info = { # What the user has to do AFTER, not what it does
         "New Arc": "LCLICK * 3: place center, start, end | RCLICK: invert rotation",
+        # Todo update Arc
         "Rewind": "WHEEL -> rewind | CLICK -> done",
         "Change View": "WHEEL -> zoom | RCLICK, RCLICK: grab, then release canvas | LCLICK -> Done",
         "Command": "Commandline. 'ls' -> list available commands | CTRL-C -> close",
@@ -45,10 +46,8 @@ _menuaction_info = { # What the user has to do AFTER, not what it does
         "Draw Weaves": "LCLICK on 1st shape then LCLICK * 2 on 2nd shape. | RCLICK: cycle through alternatives",
         "Select Color": f"{_QWERASDF} (keyboard) -> pick color",
         "Selection": "LCLICK -> select under cursor | RCLICK -> toggle-selected under cursor",
-        "Move": "LCLICK -> confirm (shape will move) | RCLICK -> cancel",
-        "Copy-Move": "LCLICK -> confirm (new copy will be created) | RCLICK -> cancel",
-        "Transform": "LCLICK -> confirm (shape will change) | RCLICK -> cancel",
-        "Copy-Transform": "LCLICK -> confirm (new copy will be created) | RCLICK -> cancel",
+        "Move": "LCLICK -> confirm (shape will move) | RCLICK -> back",
+        "Transform": "LCLICK -> confirm (shape will change) | RCLICK -> back",
         "Visual": "LCLICK -> apply change | RCLICK -> put copy",
         "Color Picker": f"LCLICK -> apply | RCLICK -> close | {_QWERASDF} -> change affected color | WHEEL -> adjust brightness",
         "Grid +/- sparse": "WHEEL -> adjust sparseness | CLICK -> done",
@@ -99,11 +98,8 @@ def menu_hook(hook, context):
             case "Remove": delete_selection(context)
             case "Unweave": unweave_inside_selection(context)
             case "Move": overhook(move_selection_hook, context)
-            case "Copy-Move": overhook(move_selection_hook, context)
             case "Transform": overhook(transform_selection_hook, context)
-            case "Copy-Transform": overhook(transform_selection_hook, context)
             case "Visual": overhook(interactive_transform_hook, context)
-            case "Area": set_hook(rectangle_select_hook, context)
             # Shapes
             case "New Point": set_hook(create_points_hook, context)
             case "New Segment": set_hook(create_lines_hook, context)

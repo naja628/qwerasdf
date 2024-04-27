@@ -285,12 +285,16 @@ class PolyLine(Shape):
         ts = np.linspace(0, D, ndivs, endpoint = not self.loopy)
         divs = []
         for t in ts:
-            while t > kp_dists[k + 1]:
+            while t > kp_dists[k + 1]: 
                 k += 1
             if k == len(keypoints):
                 k -= 1
+            segment_len = (kp_dists[k+1] - kp_dists[k])
+            if near_zero(segment_len):
+                k += 1
             t = (t - kp_dists[k]) / (kp_dists[k+1] - kp_dists[k])
-            divs.append( (1 - t) * keypoints[k] + t * keypoints[k+1] )
+            t = max(t, 0.)
+            divs.append( (1. - t) * keypoints[k] + t * keypoints[k+1] )
         self.divs = np.array(divs)
     #
     def draw(self, screen, view, color = params.shape_color):

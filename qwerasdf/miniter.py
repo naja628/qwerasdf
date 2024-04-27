@@ -320,7 +320,7 @@ def show_palette_cmd(*, _env):
     #
     _env.context.show_palette = not _env.context.show_palette
 
-@miniter_command( ('div', 'nails'), "$CMD N   (N = new number of nails)")
+@miniter_command( ('div', 'nails', 'n'), "$CMD N   (N = new number of nails)")
 def set_div_cmd(n, *, _env):
     "$CMD N: set the number of nails on all selected shapes to N. (evenly spaced)"
     #

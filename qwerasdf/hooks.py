@@ -371,6 +371,7 @@ def create_poly_hook(hook, context):
         match mouse_subtype(ev):
             case ms.LCLICK:
                 if points and (pos == points[0]).all():
+                    if len(points) < 2: continue
                     create_shapes(context, _Poly(*points, loopy = True))
                     reset()
                 else:
@@ -536,7 +537,7 @@ def select_hook(hook, ev, context):
             filter = lambda ev: mouse_subtype(ev) in [ms.RCLICK, ms.LCLICK],
             cleanup = lambda context, **ka: reset_hints(context))
 def rectangle_select_hook(hook, context, strict = False):
-    cx, v = context, context.view
+    cx, eps = context, params.eps
     def rectangle(corners):
         [x1, y1] = corners[0]
         [x2, y2] = corners[1]
@@ -545,8 +546,8 @@ def rectangle_select_hook(hook, context, strict = False):
     #
     def find_touched(corners, needs_every = strict):
         [[x1, y1], [x2, y2]] = corners
-        vmin = [min(x1, x2), min(y1, y2)]
-        vmax = [max(x1, x2), max(y1, y2)]
+        vmin = [min(x1, x2) - eps, min(y1, y2) - eps]
+        vmax = [max(x1, x2) + eps, max(y1, y2) + eps]
         def criterion(sh):
             post_min = (vmin <= sh.divs).all(1)
             pre_max =  (sh.divs <= vmax).all(1)
@@ -559,8 +560,8 @@ def rectangle_select_hook(hook, context, strict = False):
         return find_touched(corners) + [rectangle(corners)]
     #
     while True:
+        hook.event_loop( lambda ev: set_hints(cx, Point(_evpos(cx, ev))) )
         corner1, toggle = None, False
-        hook.event_loop(None)
         reset_hints(cx)
         #
         ev = yield # 1st click
@@ -579,7 +580,7 @@ def rectangle_select_hook(hook, context, strict = False):
 @iter_hook(set())
 def select_controller_hook(hook, context):
     normal_to_rect = {'A': "Toggle All", 'S': "Rectangle"}
-    rect_to_normal = {'A': "Strict Within", 'S': "Normal"}
+    rect_to_normal = {'A': "Fully Within", 'S': "Normal"}
     submenu = {**normal_to_rect}
     #
     cx = context
@@ -608,7 +609,7 @@ def select_controller_hook(hook, context):
                 set_hook(select_hook, cx)
                 submenu.update(normal_to_rect)
             case False, 'A':
-                submenu['A'] = "Strict Within" if strict else "Loose Within"
+                submenu['A'] = "Fully Within" if strict else "Partly Within"
                 strict = not strict
                 set_hook(rectangle_select_hook, cx, strict = strict)
 

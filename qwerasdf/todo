@@ -20,10 +20,7 @@ Poly overlapping points + in Area select
 
 # Current batch
 
-* fix bug with overlapping points in poly (+ double lclick when creating)
-
-* rectangle selection
-* place in menu / controller hook
+* stricter int detection commands
 
 * `sym r`/`sym s`
 
@@ -56,6 +53,7 @@ Poly overlapping points + in Area select
 
 # Extra+
 
+* pinned commands
 * macros
 * cartesian grid, triangle grid
 * bezier curves, ellipses (+ arcs)?
@@ -63,7 +61,6 @@ Poly overlapping points + in Area select
 
 * command line args: 
 	basic: open first arg --norc --noconf --session= --cl --wd=
-* pinned commands
 * remappable menu?
 * menu actions via commands?
 
