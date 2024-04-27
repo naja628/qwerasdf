@@ -31,6 +31,10 @@ from .math_utils import *
 #     return np.copy(snappoint), candidates
 # 
 
+# TODO:
+# the way we currently get snappy points for the grid is kinda dumb, bc we generate 
+# all the points and iterate over them,
+# whereas we could do complicated-ish arithmetic in O1 i think, (in a method of Grid)
 def snappy_get_point(context, pos):
     cx = context
     sq_rrad = cx.view.ptord(params.snap_radius) ** 2

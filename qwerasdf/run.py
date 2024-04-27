@@ -95,7 +95,7 @@ def menu_hook(hook, context):
             case "Undo": undo_n(context, 1)
             case "Redo": undo_n(context, -1)
             # Selection
-            case "Selection": set_hook(select_hook, context)
+            case "Selection": set_hook(select_controller_hook, context)
             case "Remove": delete_selection(context)
             case "Unweave": unweave_inside_selection(context)
             case "Move": overhook(move_selection_hook, context)

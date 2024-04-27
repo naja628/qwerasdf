@@ -241,7 +241,6 @@ def change_view_hook(hook, context):
     #
     ev = yield # Terminate on first event (ie LCLICK = done)
 
-
 # Create Shapes
 def _evpos(context, ev): return snappy_get_point(context, ev.pos)[0]
 
@@ -298,36 +297,6 @@ def create_circles_hook(hook, context):
                 Point(point1 if center_first else _evpos(context, ev)))
         reset_hints(context)
 
-# @iter_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, 
-#             filter = lambda ev: mouse_subtype(ev) == ms.LCLICK,
-#             cleanup = lambda context: reset_hints(context) )
-# def create_arcs_hook(hook, context):
-#     def _Arc(*a, **ka): return Arc(*a, **ka, ndivs = context.df_divs['arc'])
-#     def _Circle(*a, **ka): return Circle(*a, **ka, ndivs = context.df_divs['arc'])
-#     #
-#     cx, clockwise, subloop = context, False, None
-#     def loop(ev):
-#         nonlocal clockwise
-#         if mouse_subtype(ev) == ms.RCLICK:
-#             clockwise = not clockwise
-#         if subloop: subloop(ev)
-#     hook.event_loop(loop)
-#     #
-#     while True:
-#         subloop = lambda ev: set_hints(cx, Point(_evpos(cx, ev)))
-#         ev = yield
-#         center = _evpos(cx, ev)
-#         #
-#         subloop = lambda ev: set_hints(cx, _Circle(center, _evpos(cx, ev)))
-#         ev = yield
-#         start = _evpos(cx, ev)
-#         #
-#         subloop = lambda ev: set_hints(cx, _Arc(center, start, _evpos(cx, ev), clockwise = clockwise))
-#         ev = yield
-#         end = _evpos(cx, ev)
-#         #
-#         create_shapes(cx, _Arc(center, start, end, clockwise = clockwise))
-# 
 @iter_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, 
             filter = lambda ev: mouse_subtype(ev) == ms.LCLICK,
             cleanup = lambda context: reset_hints(context) )
@@ -563,10 +532,10 @@ def select_hook(hook, ev, context):
             case ms.RCLICK: toggle_select(context, shapes)
             case ms.MOTION: set_hints(context, *shapes)
 
-@iter_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION },
+@iter_hook( { pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION },
             filter = lambda ev: mouse_subtype(ev) in [ms.RCLICK, ms.LCLICK],
-            cleanup = lambda context: reset_hints(context))
-def rectangle_select_hook(hook, context):
+            cleanup = lambda context, **ka: reset_hints(context))
+def rectangle_select_hook(hook, context, strict = False):
     cx, v = context, context.view
     def rectangle(corners):
         [x1, y1] = corners[0]
@@ -574,16 +543,15 @@ def rectangle_select_hook(hook, context):
         corners_clockwise = ar([ [x1, y1], [x2, y1], [x2, y2], [x1, y2] ])
         return PolyLine(*corners_clockwise, loopy = True, ndivs = 2)
     #
-    def find_touched(corners, needs_every = True):
-        # assume all divs, but could be any (TODO)
+    def find_touched(corners, needs_every = strict):
         [[x1, y1], [x2, y2]] = corners
         vmin = [min(x1, x2), min(y1, y2)]
         vmax = [max(x1, x2), max(y1, y2)]
         def criterion(sh):
             post_min = (vmin <= sh.divs).all(1)
             pre_max =  (sh.divs <= vmax).all(1)
-            if needs_every: return np.all( post_min & pre_max)
-            else:           return np.any( post_min & pre_max)
+            if needs_every: return np.all( post_min & pre_max )
+            else:           return np.any( post_min & pre_max )
         #
         return [ sh for sh in cx.shapes if criterion(sh) ]
     #
@@ -607,6 +575,42 @@ def rectangle_select_hook(hook, context):
             shapes = find_touched([corner1, pos])
             if not toggle: cx.selected = shapes 
             else: toggle_select(cx, shapes)
+
+@iter_hook(set())
+def select_controller_hook(hook, context):
+    normal_to_rect = {'A': "Toggle All", 'S': "Rectangle"}
+    rect_to_normal = {'A': "Strict Within", 'S': "Normal"}
+    submenu = {**normal_to_rect}
+    #
+    cx = context
+    subhook = cx.dispatch.add_hook(select_hook, cx)
+    normal, strict = True, False
+    #
+    hook.cleanup = lambda: subhook.finish()
+    steal_menu_keys(hook, cx.menu, 'AS', submenu)
+    #
+    def set_hook(hookfun, *a, **ka):
+        nonlocal subhook
+        subhook.finish()
+        subhook = cx.dispatch.add_hook(hookfun, *a, **ka)
+    #
+    while True:
+        ev = yield
+        match normal, alpha_scan(ev):
+            case True, 'S':
+                strict, normal = False, False
+                set_hook(rectangle_select_hook, cx, strict = False)
+                submenu.update(rect_to_normal)
+            case True, 'A':
+                toggle_select(cx, cx.shapes)
+            case False, 'S':
+                normal = True
+                set_hook(select_hook, cx)
+                submenu.update(normal_to_rect)
+            case False, 'A':
+                submenu['A'] = "Strict Within" if strict else "Loose Within"
+                strict = not strict
+                set_hook(rectangle_select_hook, cx, strict = strict)
 
 ## TRANSFORMATIONS
 def copy_weaves_inside(dest_shapes, src_shapes, weave_superset, context):
