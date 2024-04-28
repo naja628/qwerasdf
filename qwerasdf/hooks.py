@@ -699,7 +699,7 @@ def transform_selection_hook(hook, context):
                 case 'S': rot_angle += cx.default_rotation
                 case 'D': rot_angle -= cx.default_rotation
         matrix = rot_matrix(rot_angle)
-        if mirror: matrix = matrix @ vt_mirror_matrix
+        if mirror: matrix = matrix @ hz_mirror_matrix
         #
         match mouse_subtype(ev):
             case ms.RCLICK: hook.finish()
@@ -725,9 +725,6 @@ def transform_selection_hook(hook, context):
 @iter_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, 
             cleanup = lambda context: reset_hints(context))
 def interactive_transform_hook(hook, context):
-    hflip = np.array( [ [ 1, 0 ], [0, -1]] )
-    def rot(cos, sin): return np.array( [[cos, -sin], [sin, cos]] )
-    #
     cx = context
     actions = { 
             ms.LCLICK: "apply change", ms.RCLICK: "put copy",
@@ -787,32 +784,28 @@ def interactive_transform_hook(hook, context):
         match action(ev):
             case "move":
                 start = pos
-                def do_move(to, sh, copy = True):
+                def _do_move(to, sh, copy = True):
                     if copy: return sh.moved(to - start)
                     else: sh.move(to - start)
                 pendingT = do_move
             case "rotate":
                 start = pos
                 @apply_matrix
-                def rot_matrix(to):
-                    [c1, s1] = unit(start - center)
-                    [c2, s2] = unit(to - center)
-                    return rot(c1 * c2 + s1 * s2, s2 * c1 - s1 * c2)
+                def _rot_matrix(to):
+                    vangle = angle_diff_vec(to - center, start - center)
+                    return rot_matrix(vangle, assume_unit = True)
             case "flip":
                 start = pos
                 @apply_matrix
-                def flip_matrix(to):
-                    v = unit(to - center) - unit(start - center)
-                    try: 
-                        [x, y] = unit(v)
-                        [c, s] = y, -x
-                    except ZeroDivisionError:
-                        [c, s] = unit(to - center)
-                    return rot(c ** 2 - s ** 2, 2 * c * s) @ hflip
+                def _flip_matrix(to):
+                    uto, ufrom = unit(to - center), unit(start - center)
+                    try: vangle = unit(ortho( uto - ufrom ))
+                    except ZeroDivisionError: vangle = uto
+                    return mirror_matrix(vangle, assume_unit = True)
             case "scale":
                 start = pos
                 @apply_matrix
-                def scale_matrix(to):
+                def _scale_matrix(to):
                     rstart = dist(center, start)
                     if near_zero(rstart):
                         raise ZeroDivisionError
@@ -827,9 +820,11 @@ def interactive_transform_hook(hook, context):
                     if near_zero(rstart) or near_zero(rend):
                         raise ZeroDivisionError
                     #
-                    [c1, s1] = (start - center) / rstart
-                    [c2, s2] = (to - center) / rend
-                    return rend / rstart * rot(c1 * c2 + s1 * s2, s2 * c1 - s1 * c2)
+                    vangle = angle_diff_vec( 
+                            (to - center) / rend, 
+                            (start - center) / rstart,
+                            assume_unit = True)
+                    return rend / rstart * rot_matrix(vangle, assume_unit = True)
         # Set hints (show pending change)
         if pendingT: set_hints(cx, *[pendingT(pos, sh, copy = True) for sh in cx.selected])
         else: set_hints(cx, Point(pos))

@@ -26,9 +26,9 @@ def term_exec(cmd, cmd_map, usage_map, context):
         # maybe allow some quoting 
         def naive_autocast(s):
             assert len(s) > 0 # ok bc comes from `split`
-            if re.fullmatch('[+-]?[0-9]+', s):
+            if re.fullmatch(r'[+-]?[0-9]+', s):
                 return int(s)
-            elif re.fullmatch('[+-]?[0-9]+\.[0-9]*', s)
+            elif re.fullmatch(r'[+-]?[0-9]+\.[0-9]*', s):
                 return float(s)
             else:
                 return s
