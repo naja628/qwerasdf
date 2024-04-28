@@ -3,6 +3,7 @@ import pygame as pg
 from math import atan2
 
 from .math_utils import dist 
+from .util import take
 from .params import params
 
 eps = params.eps
@@ -19,7 +20,6 @@ def iter_subdiv(subdiv):
 #
 
 class Grid:
-    # center, phase, view, dims or surface, subdiv, sm
     def __init__(self):
         self.center = np.array([0, 0])
         self.phase = 0
@@ -32,6 +32,12 @@ class Grid:
         #
         self._render = None
         self._points = np.array([]).reshape((-1, 2))
+    #
+    def asubdiv(self, index):
+        return take( iter_subdiv(self.asubdivs), index + 1)[-1]
+    #
+    def rsubdiv(self, index):
+        return take( iter_subdiv(self.rsubdivs), index + 1)[-1]
     #
     def update(self, view, dims):
         ar, v, tau, ph = np.array, view, 2 * np.pi, self.phase # abbrevs

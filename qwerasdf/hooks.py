@@ -381,8 +381,8 @@ def create_poly_hook(hook, context):
                 create_shapes(context, _Poly(*points, loopy = False))
                 reset()
             case _:
-                if not points: continue
-                set_hints(context, _Poly(*points, pos, loopy = False))
+                if not points: set_hints(context, Point(pos))
+                else: set_hints(context, _Poly(*points, pos, loopy = False))
     ###
 
 # Weaves
@@ -614,40 +614,6 @@ def select_controller_hook(hook, context):
                 set_hook(rectangle_select_hook, cx, strict = strict)
 
 ## TRANSFORMATIONS
-def copy_weaves_inside(dest_shapes, src_shapes, weave_superset, context):
-    # context needed for colors
-    new_weaves = []
-    for we in weave_superset:
-        [s1, s2] = [ hg.s for hg in we.hangpoints]
-        try: i1, i2 = src_shapes.index(s1), src_shapes.index(s2)
-        except: continue
-        #
-        new = we.copy()
-        new.hangpoints[0].s, new.hangpoints[1].s = dest_shapes[i1], dest_shapes[i2]
-        if context:
-            create_weave(context, new, context.weave_colors[we])
-        new_weaves.append( new )
-    return new_weaves
-
-def copy_weaves_into(dest_shapes, src_shapes, weave_superset, context):
-    # context needed for colors
-    new_weaves = []
-    def find_list(l, item):
-        try: return l.index(item)
-        except: return -1
-    for we in weave_superset:
-        [s1, s2] = [ hg.s for hg in we.hangpoints]
-        i1, i2 = find_list(src_shapes, s1), find_list(src_shapes, s2)
-        if (i1, i2) == (-1, -1): continue
-        #
-        new = we.copy()
-        if i1 >= 0: new.hangpoints[0].s = dest_shapes[i1]
-        if i2 >= 0: new.hangpoints[1].s = dest_shapes[i2]
-        if context:
-            create_weave(context, new, context.weave_colors[we])
-        new_weaves.append( new )
-    return new_weaves
-
 def move_selection_hook(hook, context):
     setup_hook(hook, {pg.MOUSEMOTION, pg.MOUSEBUTTONDOWN}, (reset_hints, context))
     cx = context

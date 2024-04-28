@@ -1,5 +1,6 @@
 from pygame import display, FULLSCREEN
 from numpy import pi
+import copy
 import os
 import re
 
@@ -8,6 +9,8 @@ from .util import Rec, param_decorator, eprint
 from .save import *
 from .context import *
 from . import printpoints
+from .math_utils import *
+from .merge import merge_into
 
 # set by `miniter_command` decorator
 miniter_aliases_map = {} # cmd funs to aliases (ie command names)
@@ -63,7 +66,7 @@ def term_exec(cmd, cmd_map, usage_map, context):
             eprint('debug info: term REcaught', type(e), e) #debug
             post_error(str(e), context)
         return 1
-
+ 
 class CmdExn(Exception): 
     def __init__(self, *a, exit_code = 1, **ka):
         self.exit_code = exit_code
@@ -462,21 +465,26 @@ def select_all_cmd(*, _env):
     "$CMD: select all shapes"
     _env.context.selected = _env.context.shapes[:]
 
-@miniter_command(('translate-colors', 'trans'), "$CMD FROM TO  (example: $CMD qw az)")
-def translate_colors_cmd(src, dest, *, _env):
-    '''$CMD FROM TO: change the colors of the weaves inside the selection according to conversion rule
-       ex: if FROM = Q and TO = A, weaves with color Q will turn to color A'''
-    cx = _env.context
+def _translate_colors(src, dest, weaves, selected, cx):
     src, dest = (''.join(ltop(k) for k in ks) for ks in (src.upper(), dest.upper()))
-    for i, we in enumerate(cx.weaves):
+    for i, we in enumerate(weaves):
         [s1, s2] = [hg.s for hg in we.hangpoints]
-        if not (s1 in cx.selected and s2 in cx.selected):
+        if not (s1 in selected and s2 in selected):
             continue
         #
         try:
             key_index = src.index(cx.weave_colors[we])
             cx.weave_colors[we] = dest[key_index]
         except: pass
+#         except BaseException as e: raise e # DEBUG
+
+@miniter_command(('translate-colors', 'trans'), "$CMD FROM TO  (example: $CMD qw az)")
+def translate_colors_cmd(src, dest, *, _env):
+    '''$CMD FROM TO: change the colors of the weaves inside the selection according to conversion rule
+       ex: if FROM = Q and TO = A, weaves with color Q will turn to color A'''
+    cx = _env.context
+    print(f'trans {src, dest=}')
+    _translate_colors(src, dest, cx.weaves, cx.selected, cx)
     redraw_weaves(_env.context)
 
 @miniter_command(('unweave-color', 'unco'), "$CMD COLORKEYS")
@@ -486,6 +494,57 @@ def unweave_colors_cmd(*colorkeys, _env):
     for k in ''.join(colorkeys).upper():
         if k in cx.palette:
             unweave_inside_selection(cx, lambda we: cx.weave_colors[we] == ltop(k))
+
+@miniter_command(('symmetrize', 'sym'), "$CMD PATTERN? COLORSFROM? COLORSTO?")
+def symmetrize_cmd(*a, _env):
+    '''TODO''' # TODO
+    cx = _env.context
+    if not _env.context.grid_on: raise CmdExn("Grid must be activated")
+    #
+    pattern, src, dest = '', '', ''
+    match a:
+        case (): pass
+        case _pattern,  : pattern = str(_pattern)
+        case _src, _dest: src, dest = _src, _dest
+        case _pattern, _src, _dest: pattern, src, dest = _pattern, _src, _dest
+        case _: raise Exception()
+    #
+    try: rs, k = re.fullmatch('([sSrR]?)([0-9]*)', pattern).groups()
+    except: CmdExn("Bad symmetry pattern")
+    rs, k = (rs.lower() or 'r'), int(k) if k else 1
+    #
+    # if s: mirror (hz) once, square colors permutation
+    if rs == 's':
+        mat = mirror_matrix(float(cx.grid.phase))
+        new_shapes = [ sh.transformed(mat, cx.grid.center) for sh in cx.selected ]
+        new_weaves = copy_weaves_inside(
+                new_shapes, cx.selected, all_weaves(cx), cx)
+        cx.shapes, new_shapes = merge_into(cx.shapes, new_shapes, new_weaves)
+        #
+        _translate_colors(src, dest, all_weaves(cx), new_shapes, cx)
+        cx.selected += new_shapes
+        #
+        colormap = { x: y for x, y in zip(src, dest) }
+        dest = ''.join([ colormap.get(k, k) for k in dest])
+    # for r: rotate, apply color translation
+    n = cx.grid.asubdiv(0)
+    touched = [*cx.selected]
+    rot = rot_matrix( tau / n * k )
+    i = 1
+    while (i * k % n != 0):
+        i += 1
+        new_shapes = [ sh.transformed(rot, cx.grid.center) for sh in cx.selected ]
+        new_weaves = copy_weaves_inside(
+                new_shapes, cx.selected, all_weaves(cx), cx)
+        # ^^ possible optimisation, pass previous new_weaves
+        cx.shapes, cx.selected = merge_into(cx.shapes, new_shapes, new_weaves)
+        #
+        touched.extend(cx.selected)
+        #
+        _translate_colors(src, dest, all_weaves(cx), cx.selected, cx)
+    #
+    cx.selected = touched
+    redraw_weaves(cx)
 
 @miniter_command(('highlight', 'hi'), "$CMD INDEX1 ...")
 def highlight_cmd(index, *more, _env):
