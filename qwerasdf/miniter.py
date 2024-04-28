@@ -1,6 +1,7 @@
 from pygame import display, FULLSCREEN
 from numpy import pi
 import os
+import re
 
 from .params import params, ltop, ptol
 from .util import Rec, param_decorator, eprint
@@ -25,11 +26,10 @@ def term_exec(cmd, cmd_map, usage_map, context):
         # maybe allow some quoting 
         def naive_autocast(s):
             assert len(s) > 0 # ok bc comes from `split`
-            if s[0] == '-' or '0' <= s[0] <= '9':
-                if '.' in s:
-                    return float(s)
-                else:
-                    return int(s)
+            if re.fullmatch('[+-]?[0-9]+', s):
+                return int(s)
+            elif re.fullmatch('[+-]?[0-9]+\.[0-9]*', s)
+                return float(s)
             else:
                 return s
         #

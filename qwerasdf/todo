@@ -7,10 +7,6 @@ Poly overlapping points + in Area select
 * bug computing divs for polys: wrong size (fixed by rewrite?)
 
 ## Bugs
-(1) when not moving after import
-	* either random offset or force move then merge
-
-(2) saves can't start with num (maybe in cmd int are digits only)
 (3) arcs div too far (slightly)? ("solved" by restricting max zoom)
 
 #DONE
@@ -20,14 +16,10 @@ Poly overlapping points + in Area select
 
 # Current batch
 
-* stricter int detection commands
-
+* refactor interactive transforms with math_utils
 * `sym r`/`sym s`
 
-* refactor interactive transforms with math_utils
-
-* place quick transforms in menu
-* in Select submenu: toggle all, rectangle-selection, stash?
+* in Select submenu: stash?
 
 * rename menu buttons (more consistent / make more sense)
 
