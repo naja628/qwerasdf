@@ -419,12 +419,18 @@ def _parse_subdiv(*a):
 
 @miniter_command(('grid-rsubdiv', 'grsub'), "$CMD DIV1 ... : REPEAT1 ...")
 def grid_rsubdiv_cmd(*divs, _env):
-    "$CMD DIV1 ... : REPEAT1 ...: set the 'radial subdivison' of the grid. (cf manual)"
+    '''$CMD DIV1 ... : REPEAT1 ... -> set the 'radial subdivison' of the grid. 
+       $CMD N -> divide the central circle into N rings
+       $CMD N M -> subdivide each ring further into M subrings
+       ...'''
     _env.context.grid.rsubdivs = _parse_subdiv(*divs)
 
 @miniter_command(('grid-asubdiv', 'gasub'), "$CMD DIV1 ... : REPEAT1 ...")
 def grid_asubdiv_cmd(*divs, _env):
-    "$CMD DIV1 ... : REPEAT1 ...: set the 'angular subdivison' of the grid. (cf manual)"
+    '''$CMD DIV1 ... : REPEAT1 ...-> set the 'angular subdivison' of the grid. 
+       $CMD N -> divide the canvas into N equal angle subsectors
+       $CMD N M -> divide each of the above sectors further into M subsectors
+       ...'''
     _env.context.grid.asubdivs = _parse_subdiv(*divs)
 
 @miniter_command(('set-phase', 'phase', 'ph'), "$CMD new_phase")
@@ -497,7 +503,11 @@ def unweave_colors_cmd(*colorkeys, _env):
 
 @miniter_command(('symmetrize', 'sym'), "$CMD PATTERN? COLORSFROM? COLORSTO?")
 def symmetrize_cmd(*a, _env):
-    '''TODO''' # TODO
+    '''$CMD PATTERN COLORSFROM COLORSTO: complete a circle around the grid, making rotated copies of the selection
+       example of patterns: r, r1 (same as r), r2, s, s3, 2 (same as r2), (nothing) (same as r1)...
+       rn: create copies by rotating by n * the grid sector angle
+       sn: same as rn, but make an horizontally mirrored copy before rotating
+       if COLORSFROM and COLORSTO are specified, change colors as if by translate-colors after every transform'''
     cx = _env.context
     if not _env.context.grid_on: raise CmdExn("Grid must be activated")
     #
@@ -574,7 +584,7 @@ def source_cmd(file, *, _env):
 
 @miniter_command(('oneshot-commands', 'one'))
 def toggle_oneshot_cmd(*, _env):
-    '''toggle oneshot commands.
+    '''$CMD: toggle oneshot commands.
        when enabled: the commandline closes after every command'''
     _env.context.oneshot_commands = not _env.context.oneshot_commands 
 

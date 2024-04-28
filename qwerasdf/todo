@@ -15,8 +15,6 @@ Poly overlapping points + in Area select
 * arc other order (ortho proj)
 
 # Current batch
-* sym doc
-
 (stash)
 * in Select submenu: stash?
 * stash/unstash ("clipboard" for selection)

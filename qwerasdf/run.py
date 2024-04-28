@@ -157,7 +157,7 @@ def init_context(dimensions):
             'menu': ((0, 4), params.text_color, False),
             'term': ((0, 1), params.term_color, False),
             'error': ((0,2), params.error_text_color, True),
-            'info': ((0, 4), params.text_color, True),
+            'info': ((0, 7), params.text_color, True),
             }
     cx.text = TextArea(params.font_size, params.start_dimensions[0], params.background)
     cx.text.set_sections_abcw(sections)
