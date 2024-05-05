@@ -20,8 +20,8 @@ _nested_menu = {
         'A': ("Grid", 
             {   'A': "Grid on/off", 'S': "Grid +/- sparse", 'D': "Grid recenter", 'F': "Grid phase"}),
         'S': ("Selection", 
-            { 'Q': "Stash", 'W': "Visual", 'E': "Unweave", 'R': "Remove",
-                                               'D': "Transform", 'F': "Move" }),
+            {                                   'E': "Unweave", 'R': "Remove",
+                'A': "Stash",  'S': "Interact", 'D': "Quick Transform", 'F': "Move" }),
         'D': ("Create Shapes",
             {   'Q': "New Point", 'W': "New Polyline",
                 'A': "New Arc",   'S': "New Segment", 'D': "New Circle", 'F': ("Draw Weaves", _sho('F'))}),
@@ -29,7 +29,8 @@ _nested_menu = {
             {   'W': "Color Picker", 'E': "Select Color",
                                      'D': ("Create Shape", _sho('D')), 'F': ("Draw Weaves", _sho('F'))}),
         'R': "Rewind",
-        'W': "Unstash",
+        'W': ("Unstash",
+            { 'A': ("Selection", _sho('S')),  'S': "Interact", 'D': "Quick Transform", 'F': "Move" }),
         }
 _pinned_menu = {'Z': "Undo", 'X': "Redo", 'C': "Command", 'V': "Change View"}
 _space_action = "Menu Start"
@@ -102,10 +103,11 @@ def menu_hook(hook, context):
             case "Remove": delete_selection(context)
             case "Unweave": unweave_inside_selection(context)
             case "Move": overhook(move_selection_hook, context)
-            case "Transform": overhook(transform_selection_hook, context)
-            case "Visual": overhook(interactive_transform_hook, context)
+            case "Quick Transform": overhook(transform_selection_hook, context)
+            case "Interact": overhook(interactive_transform_hook, context)
             case "Stash": context.stash.push_shapes(context.selected, context)
             # Shapes
+            case "Create Shape": set_hook(None)
             case "New Point": set_hook(create_points_hook, context)
             case "New Segment": set_hook(create_lines_hook, context)
             case "New Circle": set_hook(create_circles_hook, context)

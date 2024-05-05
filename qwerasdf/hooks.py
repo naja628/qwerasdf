@@ -580,8 +580,8 @@ def rectangle_select_hook(hook, context, strict = False):
 
 @iter_hook(set())
 def select_controller_hook(hook, context):
-    normal_to_rect = {'A': "Toggle All", 'S': "Rectangle"}
-    rect_to_normal = {'A': "Fully Within", 'S': "Normal"}
+    normal_to_rect = {'Q': "Toggle All", 'W': "Rectangle"}
+    rect_to_normal = {'Q': "Fully Within", 'W': "Normal"}
     submenu = {**normal_to_rect}
     #
     cx = context
@@ -589,7 +589,7 @@ def select_controller_hook(hook, context):
     normal, strict = True, False
     #
     hook.cleanup = lambda: subhook.finish()
-    steal_menu_keys(hook, cx.menu, 'AS', submenu)
+    steal_menu_keys(hook, cx.menu, 'QW', submenu)
     #
     def set_hook(hookfun, *a, **ka):
         nonlocal subhook
@@ -599,18 +599,18 @@ def select_controller_hook(hook, context):
     while True:
         ev = yield
         match normal, alpha_scan(ev):
-            case True, 'S':
+            case True, 'W':
                 strict, normal = False, False
                 set_hook(rectangle_select_hook, cx, strict = False)
                 submenu.update(rect_to_normal)
-            case True, 'A':
+            case True, 'Q':
                 toggle_select(cx, cx.shapes)
-            case False, 'S':
+            case False, 'W':
                 normal = True
                 set_hook(select_hook, cx)
                 submenu.update(normal_to_rect)
-            case False, 'A':
-                submenu['A'] = "Fully Within" if strict else "Partly Within"
+            case False, 'Q':
+                submenu['W'] = "Fully Within" if strict else "Partly Within"
                 strict = not strict
                 set_hook(rectangle_select_hook, cx, strict = strict)
 
@@ -695,8 +695,8 @@ def interactive_transform_hook(hook, context):
     cx = context
     actions = { 
             ms.LCLICK: "apply change", ms.RCLICK: "put copy",
-            'Q': "cancel change", 'W': "done", 'E': "scale/rotate", 'R': "recenter",
-            'A': "scale",         'S': "move", 'D': "rotate"      , 'F': "flip",
+            'Q': "cancel change", 'W': "scale", 'E': "scale/rotate", 'R': "flip",
+            'A': "recenter",      'S': "done" , 'D': "rotate"      , 'F': "move",
             }
     stolen_keys = { k: v for k, v in actions.items() 
                     if (type(k) is str and k in 'QWERASDF') }
@@ -754,7 +754,7 @@ def interactive_transform_hook(hook, context):
                 def _do_move(to, sh, copy = True):
                     if copy: return sh.moved(to - start)
                     else: sh.move(to - start)
-                pendingT = do_move
+                pendingT = _do_move
             case "rotate":
                 start = pos
                 @apply_matrix
@@ -803,6 +803,7 @@ def unstash_hook(hook, context):
     cx = context
     if len(cx.stash) == 0:
         post_error("Stash is empty", cx)
+        cx.menu.go_path('')
         hook.finish()
         return
     submenu = { 'W': " <=", 'E': " =>", 'R': " =>>|" }
