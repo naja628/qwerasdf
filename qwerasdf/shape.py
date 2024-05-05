@@ -99,6 +99,13 @@ class Shape:
         ##
     ####
 
+def bounding_rect(shape0, *shapes):
+    vmin, vmax = np.amin(shape0.divs, 0), np.amax(shape0.divs, 0)
+    for sh in shapes:
+        vmin = np.amin(ar([vmin, np.amin(sh.divs, 0)]), 0)
+        vmax = np.amax(ar([vmax, np.amax(sh.divs, 0)]), 0)
+    return vmin, vmax
+
 class Circle(Shape):
     _KEYPOINT_NAMES = ('center', 'other')
     def __init__(self, center, other, ndivs = 120, clockwise = False):

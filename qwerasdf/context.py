@@ -184,9 +184,11 @@ def reset_menu(context, path = None):
 def toggle_grid(context):
     context.grid_on = not context.grid_on
 
-def copy_weaves_inside(dest_shapes, src_shapes, weave_superset, context):
+def copy_weaves_inside(dest_shapes, src_shapes, weave_superset, context,
+        create = True, return_colors = False):
     # context needed for colors
     new_weaves = []
+    if return_colors: colors = {}
     for we in weave_superset:
         [s1, s2] = [ hg.s for hg in we.hangpoints]
         try: i1, i2 = src_shapes.index(s1), src_shapes.index(s2)
@@ -194,14 +196,20 @@ def copy_weaves_inside(dest_shapes, src_shapes, weave_superset, context):
         #
         new = we.copy()
         new.hangpoints[0].s, new.hangpoints[1].s = dest_shapes[i1], dest_shapes[i2]
-        if context:
-            create_weave(context, new, context.weave_colors[we])
+        if context: 
+            if create: create_weave(context, new, context.weave_colors[we])
+            if return_colors: colors[new] = context.weave_colors[we]
         new_weaves.append( new )
-    return new_weaves
+    #
+    if return_colors: return new_weaves, colors 
+    else: return new_weaves
 
-def copy_weaves_into(dest_shapes, src_shapes, weave_superset, context):
+def copy_weaves_into(dest_shapes, src_shapes, weave_superset, context, 
+        create = True, return_colors = False):
     # context needed for colors
     new_weaves = []
+    if return_colors: colors = {}
+    #
     def find_list(l, item):
         try: return l.index(item)
         except: return -1
@@ -214,7 +222,14 @@ def copy_weaves_into(dest_shapes, src_shapes, weave_superset, context):
         if i1 >= 0: new.hangpoints[0].s = dest_shapes[i1]
         if i2 >= 0: new.hangpoints[1].s = dest_shapes[i2]
         if context:
-            create_weave(context, new, context.weave_colors[we])
+            if create: create_weave(context, new, context.weave_colors[we])
+            if return_colors: colors[new] = context.weave_colors[we]
         new_weaves.append( new )
-    return new_weaves
+    #
+    if return_colors: return new_weaves, colors 
+    else: return new_weaves
+
+def stash_selection(context):
+    cx = context
+    cx.stash.push_shapes(cx.selected, cx)
 

@@ -18,6 +18,7 @@ Poly overlapping points + in Area select
 (stash)
 * in Select submenu: stash?
 * stash/unstash ("clipboard" for selection)
+---
 	* use with imports (bug 1)
 
 (details)
@@ -35,11 +36,13 @@ Poly overlapping points + in Area select
 * option where to put out.ps/ images
 * auto ps2pdf?
 
+* set params from the terminal, all params are dynamic
+* not-in-use command
+
 ----- counts as "finished" (v0.2)
 
 * erase hint messages when hooks close
 
-* set params from the terminal, all params are dynamic
 
 # Extra+
 

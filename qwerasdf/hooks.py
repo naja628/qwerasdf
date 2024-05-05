@@ -33,7 +33,8 @@ class EvHook:
     def event_iter(self, event_iter, filter = lambda ev: True):
         self.ev_iter = event_iter
         self.iter_filter = filter
-        next(self.ev_iter)
+        try: next(self.ev_iter)
+        except StopIteration: self.finish()
     #
     def call_once(self, ev):
         assert ev.type in self.watched
@@ -796,6 +797,67 @@ def interactive_transform_hook(hook, context):
         else: set_hints(cx, Point(pos))
     ###
 
+@iter_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION, pg.MOUSEWHEEL}, 
+            cleanup = lambda context: reset_hints(context))
+def unstash_hook(hook, context):
+    cx = context
+    if len(cx.stash) == 0:
+        post_error("Stash is empty", cx)
+        hook.finish()
+        return
+    submenu = { 'W': " <=", 'E': " =>", 'R': " =>>|" }
+    # bottom row (real hooks): Select (shortcut), vis, transfo, mv
+    steal_menu_keys(hook, cx.menu, 'QWER', submenu)
+    def mousetype_or_key(ev):
+        ty = mouse_subtype(ev)
+        if ty == pg.KEYDOWN: return alpha_scan(ev) 
+        else: return ty
+    #
+    st = Rec(i = 0, grabbed = None, reload = True)
+    def get_pos(ev):
+        if not ev or ev.type == pg.KEYDOWN:
+            return cx.view.ptor( pg.mouse.get_pos() )
+        elif st.grabbed is None:
+            return snappy_get_point(stash_context, ev.pos)[0]
+        else:
+            return _evpos(cx, ev)
+    def draw_hints():
+        if st.grabbed is None:
+            set_hints(cx, *stash_context.shapes, Point(pos))
+        else:
+            set_hints(cx, *[sh.moved(pos - st.grabbed) for sh in stash_context.shapes])
+    def incr_pos(incr):
+        st.i = clamp(st.i + incr, 0, len(cx.stash) - 1)
+        st.grabbed, st.reload = None, True
+    #
+    ev = None
+    stash_context = Rec(grid_on = False, view = cx.view) # expected by snappy
+    while True:
+        pos = get_pos(ev)
+        if st.reload:
+            stash_context.update(cx.stash[st.i])
+            weave_source = stash_context.shapes
+            stash_context.shapes = [ sh.moved(pos) for sh in stash_context.shapes ]
+            st.reload = False
+        draw_hints()
+        ev = yield
+        match mousetype_or_key(ev):
+            case 'W': incr_pos(1)
+            case 'E': incr_pos(-1)
+            case 'R': incr_pos(-st.i)
+            case ms.RCLICK: st.grabbed, st.reload = None, True
+            case ms.LCLICK:
+                if st.grabbed is None:
+                    st.grabbed = pos
+                else:
+                    new_shapes = [ sh.moved(pos - st.grabbed) for sh in stash_context.shapes ]
+                    new_weaves, new_colors = copy_weaves_inside( 
+                            new_shapes, weave_source, 
+                            stash_context.weaves, stash_context,
+                            create = False, return_colors = True )
+                    for we in new_weaves:
+                        create_weave(cx, we, new_colors[we])
+                    cx.shapes, cx.selected = merge_into(cx.shapes, new_shapes, new_weaves)
 
 # Miniter
 def miniter_hook(hook, context, cmd = ''):
