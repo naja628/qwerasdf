@@ -37,8 +37,7 @@ _space_action = "Menu Start"
 
 _QWERASDF = ''.join(ptol(k) for k in 'QWERASDF')
 _menuaction_info = { # What the user has to do AFTER, not what it does
-        "New Arc": "LCLICK * 3: place center, start, end | RCLICK: invert rotation",
-        # Todo update Arc
+        "New Arc": "LCLICK * 3: place center, start, end | RCLICK: start with endpoints/center OR (contextually) invert clockwiseness",
         "Rewind": "WHEEL -> rewind | CLICK -> done",
         "Change View": "WHEEL -> zoom | RCLICK, RCLICK: grab, then release canvas | LCLICK -> Done",
         "Command": "Commandline. 'ls' -> list available commands | CTRL-C -> close",
@@ -50,12 +49,13 @@ _menuaction_info = { # What the user has to do AFTER, not what it does
         "Select Color": f"{_QWERASDF} (keyboard) -> pick color",
         "Selection": "LCLICK -> select under cursor | RCLICK -> toggle-selected under cursor",
         "Move": "LCLICK -> confirm (shape will move) | RCLICK -> back",
-        "Transform": "LCLICK -> confirm (shape will change) | RCLICK -> back",
-        "Visual": "LCLICK -> apply change | RCLICK -> put copy",
+        "Quick Transform": "LCLICK -> confirm (shape will change) | RCLICK -> back",
+        "Interact": "LCLICK -> apply change | RCLICK -> put copy",
         "Color Picker": f"LCLICK -> apply | RCLICK -> close | {_QWERASDF} -> change affected color | WHEEL -> adjust brightness",
         "Grid +/- sparse": "WHEEL -> adjust sparseness | CLICK -> done",
         "Grid phase": "LCILCK -> set phase | RCLICK -> cancel",
         "Grid recenter": "LCLICK -> place center | RCLICK -> cancel",
+        "Unstash": "LCLICK, LCLICK -> grab, put | RCLICK -> reload",
         }
 
 

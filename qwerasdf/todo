@@ -15,11 +15,9 @@ Poly overlapping points + in Area select
 * arc other order (ortho proj)
 
 # Current batch
-(stash)
-* in Select submenu: stash?
-* stash/unstash ("clipboard" for selection)
----
-	* use with imports (bug 1)
+* use stash with imports (bug 1)
+* in stash, option to use wheel for <=>
+* tips
 
 (details)
 * rename menu buttons (more consistent / make more sense)

@@ -602,12 +602,14 @@ def select_controller_hook(hook, context):
             case True, 'W':
                 strict, normal = False, False
                 set_hook(rectangle_select_hook, cx, strict = False)
+                post_info("LCLICK * 2: select within rectangle | RCLICK * 2: toggle within rectangle", context)
                 submenu.update(rect_to_normal)
             case True, 'Q':
                 toggle_select(cx, cx.shapes)
             case False, 'W':
                 normal = True
                 set_hook(select_hook, cx)
+                post_info("LCLICK: select | RCLICK: toggle", cx)
                 submenu.update(normal_to_rect)
             case False, 'Q':
                 submenu['W'] = "Fully Within" if strict else "Partly Within"
