@@ -14,6 +14,7 @@ params.recover_filename = '_RECOVER_'
 params.autosave_dir = os.path.join(_INSTALL, 'autosave')
 #dotrc = os.path.expanduser('~/.qwerasdfrc')
 params.dotrc_path = [os.path.expanduser('~/.qwerasdfrc'), '.qwerasdfrc']
+params.exports_directory = os.path.realpath('.')
 
 params.background = Color(0, 0, 0)
 # shape_color = Color(0, 128, 128)
@@ -79,6 +80,7 @@ params.min_ppu = 1
 params.autosave_pulse = 2
 params.autosave_rotorctl = [ (30, 3) ] * 5 + [ 30 ]
 
+params.initial_stash_cap = 8
 ### CODE to read from conf
 
 def cast(f):
@@ -137,8 +139,14 @@ def rkeymap(s):
     except:
         CastExn("keymap (FROM TO)")
 
+@cast
+def rpath(s):
+    return os.path.expanduser(s)
+
 def _read_conf():
     setable_to_type = {
+            'exports_directory': rpath(),
+            #
             'background': rcolor(),
             #
             'shape_color': rcolor(),
@@ -193,18 +201,6 @@ def _read_conf():
                     eprint("Unexpected error reading conf")
         finally:
             f.close()
-#     home = os.path.expanduser('~')
-#     allowed_names = ['qwerasdf.conf', '.qwerasdf.conf']
-#     for filename in [*allowed_names, *[os.path.join(home, f) for f in allowed_names]]:
-#         try: 
-#             f = open(filename)
-#             break
-#         except:
-#             continue
-#     else: 
-#         eprint("no conf file found")
-#         return
-#         ###
     ##
     
 _read_conf() # read conf when initing module

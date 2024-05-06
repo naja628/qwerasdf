@@ -7,6 +7,7 @@ from .util import Rec
 from .params import params
 from .save import Autosaver, load
 from .math_utils import *
+from .shape import bounding_rect
 
 # def snappy_get_point(context, pos):
 #     cx = context
@@ -170,12 +171,10 @@ def load_to_context(context, loaded, extra = {}):
 
 def import_to_context(context, file):
     loaded, _ = load(file)
-    context.shapes += loaded.shapes
-    context.selected = loaded.shapes
-    context.weaves += loaded.weaves
-    context.weave_colors.update(loaded.weave_colors)
+    stash_frame = Rec()
+    stash_frame.update(loaded)
+    context.stash.push_shapes(stash_frame.shapes, stash_frame)
     #
-    redraw_weaves(context)
 
 MENU_RESET = event.custom_type()
 def reset_menu(context, path = None):
@@ -204,32 +203,28 @@ def copy_weaves_inside(dest_shapes, src_shapes, weave_superset, context,
     if return_colors: return new_weaves, colors 
     else: return new_weaves
 
-def copy_weaves_into(dest_shapes, src_shapes, weave_superset, context, 
-        create = True, return_colors = False):
-    # context needed for colors
-    new_weaves = []
-    if return_colors: colors = {}
-    #
-    def find_list(l, item):
-        try: return l.index(item)
-        except: return -1
-    for we in weave_superset:
-        [s1, s2] = [ hg.s for hg in we.hangpoints]
-        i1, i2 = find_list(src_shapes, s1), find_list(src_shapes, s2)
-        if (i1, i2) == (-1, -1): continue
-        #
-        new = we.copy()
-        if i1 >= 0: new.hangpoints[0].s = dest_shapes[i1]
-        if i2 >= 0: new.hangpoints[1].s = dest_shapes[i2]
-        if context:
-            if create: create_weave(context, new, context.weave_colors[we])
-            if return_colors: colors[new] = context.weave_colors[we]
-        new_weaves.append( new )
-    #
-    if return_colors: return new_weaves, colors 
-    else: return new_weaves
-
 def stash_selection(context):
     cx = context
     cx.stash.push_shapes(cx.selected, cx)
 
+## IMAGES
+def export_image_window(context, img_conf = None):
+    scr, v = context.screen, context.view
+    w, h = scr.get_size()
+    corners = [v.ptor([0, h -1]), v.ptor( [w - 1, 0] )] # y inversion weirdness
+    img_conf = img_conf or context.img_conf
+    file = img_conf.save_image(corners, context)
+    post_info(f"image successfully exported to '{file}'", context)
+
+def export_image_whole(context, img_conf = None, margin = 0.025):
+    corners = ar(bounding_rect(*context.shapes))
+    [left, bottom], [right, top] = corners
+    margin_x = margin * (right - left)
+    margin_y = margin * (top - bottom)
+    #
+    corners[0] -= ar([margin_x, margin_y])
+    corners[1] += ar([margin_x, margin_y])
+    #
+    img_conf = img_conf or context.img_conf
+    file = img_conf.save_image(corners, context)
+    post_info(f"image successfully exported to '{file}'", context)

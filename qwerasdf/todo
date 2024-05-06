@@ -1,3 +1,10 @@
+* cmds:
+	image_extension
+	image_height
+	export_image win|drawing height format
+
+* box image hook
+
 ## 
 Poly overlapping points + in Area select
 ## Old bugs
@@ -15,32 +22,23 @@ Poly overlapping points + in Area select
 * arc other order (ortho proj)
 
 # Current batch
-* use stash with imports (bug 1)
-* in stash, option to use wheel for <=>
-* tips
 
 (details)
 * rename menu buttons (more consistent / make more sense)
-* allow setting line width, antialias
 
 (z ordering)
 * ensure weave ordering (new on top even when copying, merging etc)
 * raise colors
 
-(export images)
-* view show/hide options (for nails, shapes etc)
-* export images (svg?)
-
-* option where to put out.ps/ images
-* auto ps2pdf?
-
-* set params from the terminal, all params are dynamic
 * not-in-use command
 
 ----- counts as "finished" (v0.2)
 
+* set params from the terminal, all params are dynamic
+* auto ps2pdf?
 * erase hint messages when hooks close
-
+* export image: rectangle
+* in stash, option to use wheel for <=>
 
 # Extra+
 
@@ -56,7 +54,6 @@ Poly overlapping points + in Area select
 * menu actions via commands?
 
 # Extra++
-
 * several canvas, move shapes between them.
 * connect shapes
 
@@ -77,3 +74,5 @@ Poly overlapping points + in Area select
 * grid sparseness adjustment should be exponential
 * only consider the last MOUSEMOTION every frame ?
 * maybe don't draw circle-center on existing shapes, merge points into shapes? (problem: when?)
+* (PITA refactor): corner of view should be bottom-left for real (which get converted to top-left for pixel)
+* view logic unclever: corner should be **bottom** left (real) which is top-left (pixels)

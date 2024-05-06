@@ -13,6 +13,7 @@ from .save import Autosaver, save_path, save, save_buffer
 from .params import params, ptol
 from .grid import Grid
 from .stash import Stash
+from .image import ImageConf
 
 _sho = Menu.Shortcut
 _menu_layout = ['QWER', 'ASDF', 'ZXCV']
@@ -29,6 +30,8 @@ _nested_menu = {
             {   'W': "Color Picker", 'E': "Select Color",
                                      'D': ("Create Shape", _sho('D')), 'F': ("Draw Weaves", _sho('F'))}),
         'R': "Rewind",
+        'E': ("Export Image", 
+            { 'E': "Whole Drawing", 'R': "Window"}),
         'W': ("Unstash",
             { 'A': ("Selection", _sho('S')),  'S': "Interact", 'D': "Quick Transform", 'F': "Move" }),
         }
@@ -98,6 +101,9 @@ def menu_hook(hook, context):
             case "Redo": undo_n(context, -1)
             # Unstash
             case "Unstash": set_hook(unstash_hook, context)
+            # Image
+            case "Whole Drawing": export_image_whole(context)
+            case "Window": export_image_window(context)
             # Selection
             case "Selection": set_hook(select_controller_hook, context)
             case "Remove": delete_selection(context)
@@ -144,18 +150,22 @@ def init_context(dimensions):
     cx.selected = []
     cx.hints = []
     #
-    cx.palette = params.start_palette
-    cx.color_key = 'Q'
-    cx.show_palette = True
-    cx.color_picker = ColorPicker(dimensions[0], dimensions[0] // 8, (0, 0), params.min_pick_saturation) 
-    cx.show_picker = False
-    #
     cx.weaves = []
     cx.weave_colors = {}
     cx.pending_weaves = []
     cx.redraw_weaves = True
     cx.weavity = (1, 1)
     cx.weaveback = True
+    #
+    cx.hide = set()
+    cx.antialias = True
+    cx.draw_width = 1
+    #
+    cx.palette = params.start_palette
+    cx.color_key = 'Q'
+    cx.show_palette = True
+    cx.color_picker = ColorPicker(dimensions[0], dimensions[0] // 8, (0, 0), params.min_pick_saturation) 
+    cx.show_picker = False
     #
     cx.menu = Menu(_nested_menu, _pinned_menu, _menu_layout, _space_action)
     #
@@ -171,7 +181,6 @@ def init_context(dimensions):
     #
     cx.view = View(corner = (-1, 1))
     cx.weave_layer = Surface(dimensions)
-    #
     #
     cx.default_rotation = 2 * pi / 6
     #
@@ -194,6 +203,8 @@ def init_context(dimensions):
     cx.oneshot_commands = False
     #
     cx.stash = Stash()
+    #
+    cx.img_conf = ImageConf(params.start_dimensions[1], 'png', params.exports_directory)
     return cx
 
 def del_context(context):
@@ -234,19 +245,24 @@ def main():
             g.dispatch.dispatch([event.Event(LOOP)])
             #
             # Draw Weaves :
-            g.weave_layer.lock()
-            if g.redraw_weaves:
-                g.weave_layer.fill(params.background)
-                g.pending_weaves += g.weaves
-                g.weaves = []
-                g.redraw_weaves = False
-            for we in g.pending_weaves:
-                ckey = g.weave_colors[we]
-                we.draw(g.weave_layer, g.view, color = g.palette[ckey])
-                g.weaves.append(we)
-            g.weave_layer.unlock()
-            g.pending_weaves = []
-            g.screen.blit(g.weave_layer, (0, 0))
+            if 'weaves' not in g.hide:
+                g.weave_layer.lock()
+                if g.redraw_weaves:
+                    g.weave_layer.fill(params.background)
+                    g.weaves += g.pending_weaves
+                    g.weaves, g.pending_weaves = [], g.weaves
+                    g.redraw_weaves = False
+                for we in g.pending_weaves:
+                    ckey = g.weave_colors[we]
+                    we.draw(
+                            g.weave_layer, g.view, color = g.palette[ckey], 
+                            antialias = g.antialias, width = g.draw_width)
+                    g.weaves.append(we)
+                g.weave_layer.unlock()
+                g.pending_weaves = []
+                g.screen.blit(g.weave_layer, (0, 0))
+            else:
+                g.screen.fill(params.background)
             #
             # Draw Rest: (on top)
             g.screen.lock()
@@ -257,7 +273,10 @@ def main():
                 g.grid.update(g.view, g.screen.get_size())
                 g.grid.render(g.screen, params.background, params.grid_color)
             # draw shapes, etc
-            for sh in g.shapes: sh.draw(g.screen, g.view, params.shape_color)
+            if 'shapes' not in g.hide:
+                for sh in g.shapes: sh.draw(g.screen, g.view, params.shape_color, draw_divs = False)
+            if 'nails' not in g.hide:
+                for sh in g.shapes: sh.draw_divs(g.screen, g.view)
             for sel in g.selected: sel.draw(g.screen, g.view, color = params.select_color)
             for hi in g.hints: hi.draw(g.screen, g.view, color = params.hint_color)
             g.screen.unlock()

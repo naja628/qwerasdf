@@ -14,9 +14,6 @@ def draw_point(screen, point, color = params.div_color, rad = params.point_radiu
 class Shape:
     _KEYPOINT_NAMES = ()
     #
-    def draw(self, screen, view, color):
-        raise NotImplementedError()
-    #
     def set_divs(self, ndivs):
         raise NotImplementedError()
     #####
@@ -50,6 +47,11 @@ class Shape:
     def draw_divs(self, screen, view, color = params.div_color):
         for div in self.divs:
             draw_point(screen, view.rtop(div), color)
+    #
+    def draw(self, screen, view, color, draw_divs = True):
+        # call at end of child method
+        if draw_divs:
+            self.draw_divs(screen, view)
     #
     def get_div(self, i):
         if self.loopy:
@@ -126,11 +128,11 @@ class Circle(Shape):
         except ZeroDivisionError:
             self.divs = np.array([self.center] * ndivs)
     #
-    def draw(self, screen, view, color = params.shape_color):
+    def draw(self, screen, view, color = params.shape_color, draw_divs = True):
         pcenter = view.rtop(self.center)
         pradius = view.rtopd(dist(self.center, self.other))
         draw.circle(screen, color, pcenter, pradius, width = 1)
-        Shape.draw_divs(self, screen, view)
+        super().draw(screen, view, color, draw_divs)
     #
     def transform(self, matrix, center):
         [[a, b], [c, d]] = matrix
@@ -196,7 +198,7 @@ class Arc(Shape):
         xs, ys = np.cos(dts), np.sin(dts)
         self.divs = self.center + rr * np.array([xs, ys]).transpose()
     #
-    def draw(self, screen, view, color = params.shape_color):
+    def draw(self, screen, view, color = params.shape_color, draw_divs = True):
         if almost_equal(self.center, self.start):
             Shape.draw_divs(self, screen, view)
             return
@@ -213,7 +215,7 @@ class Arc(Shape):
             t1, t2 = t2, t1
         #
         draw.arc(screen, color, bound, t1, t2)
-        Shape.draw_divs(self, screen, view)
+        super().draw(screen, view, color, draw_divs)
     #
     def transform(self, matrix, center):
         [[a, b], [c, d]] = matrix
@@ -239,7 +241,8 @@ class Point(Shape):
     def set_divs(self, ndivs):
         self.divs = np.array([self.p])
     #
-    def draw(self, screen, view, color = params.shape_color):
+    def draw(self, screen, view, color = params.shape_color, draw_divs = True):
+        # draw_divs ignored
         draw_point(screen, view.rtop(self.p), color, rad = params.point_shape_radius)
     #
     def merger(self, to):
@@ -259,10 +262,10 @@ class Line(Shape):
     def set_divs(self, ndivs):
         self.divs = np.linspace(self.start, self.end, ndivs)
     #
-    def draw(self, screen, view, color = params.shape_color):
+    def draw(self, screen, view, color = params.shape_color, draw_divs = True):
         pstart, pend = view.rtop(self.start), view.rtop(self.end)
         draw.line(screen, color, pstart, pend)
-        Shape.draw_divs(self, screen, view)
+        super().draw(screen, view, color, draw_divs)
     #
     def merger(self, to):
         return self._naive_merger(to)
@@ -304,13 +307,13 @@ class PolyLine(Shape):
             divs.append( (1. - t) * keypoints[k] + t * keypoints[k+1] )
         self.divs = np.array(divs)
     #
-    def draw(self, screen, view, color = params.shape_color):
+    def draw(self, screen, view, color = params.shape_color, draw_divs = True):
         if len(self.keypoints) == 1:
             draw_point(screen, self.keypoints[0], color)
             return
         ppoints = [view.rtop(rp) for rp in self.keypoints]
         draw.lines(screen, color, self.loopy, ppoints)
-        Shape.draw_divs(self, screen, view)
+        super().draw(screen, view, color, draw_divs)
     # 
     def merger(self, to):
         # Doesn't handle rotations of keypoints
@@ -408,7 +411,7 @@ class Weave:
         new_hangpoints = [Rec(s = hg1.s, i = hg1.i), Rec(s = hg2.s, i = hg2.i)]
         return Weave(new_hangpoints, self.nwires, self.incrs)
     #
-    def draw(self, screen, view, color):
+    def draw(self, screen, view, color, antialias = True, width = 1):
         def get_point(which, i):
             hg = self.hangpoints[which]
             return hg.s.get_div(hg.i + i * self.incrs[which])
@@ -418,7 +421,10 @@ class Weave:
             b = get_point(1, i)
             if (a is None or b is None):
                 return
-            draw.line(screen, color, view.rtop(a), view.rtop(b))
+            if width == 1 and antialias:
+                draw.aaline(screen, color, view.rtop(a), view.rtop(b))
+            else:
+                draw.line(screen, color, view.rtop(a), view.rtop(b), width = width)
     #
     def change_dir(self):
         inc0, inc1 = self.incrs

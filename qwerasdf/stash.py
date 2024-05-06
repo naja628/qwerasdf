@@ -3,12 +3,17 @@ from collections import deque
 from .util import Rec
 from .context import copy_weaves_inside
 from .shape import bounding_rect
+from .params import params
 
 class Stash:
     def __init__(self):
         self.items = deque()
-#         cap = params.stash_cap TODO
-        self.cap = 10
+        self.cap = params.initial_stash_cap
+    #
+    def set_cap(self, cap):
+        if cap < 0: cap = 0
+        self.cap = cap
+        self.items = self.items[:cap]
     #
     def most_recent(self):
         return self.items[0]

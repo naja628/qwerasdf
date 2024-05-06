@@ -11,6 +11,7 @@ from .context import *
 from . import printpoints
 from .math_utils import *
 from .merge import merge_into
+from .image import ImageConf
 
 # set by `miniter_command` decorator
 miniter_aliases_map = {} # cmd funs to aliases (ie command names)
@@ -252,7 +253,7 @@ def new_design_cmd(save_or_bang = None, *, _env):
 
 @miniter_command(('import', 'imp'), "$CMD SAVENAME")
 def import_cmd(search_save, *, _env):
-    '''$CMD SAVENAME: load SAVENAME **on top** of existing drawing
+    '''$CMD SAVENAME: load SAVENAME **on top** of the stash
        note: performs matching on the savename (cf load, ls-saves)'''
     matches = [*_fuzzy_matches(search_save, _saves_list())]
     match matches:
@@ -280,10 +281,37 @@ def export_outline_cmd(width, margin, paper = 'a4', *, _env):
     us_letter = (paper.lower() == 'us-letter')
     points = np.concatenate([sh.divs for sh in _env.context.shapes])
     ps_buffer = printpoints.generate(points, width, margin, us_letter)
-    with open('out.ps', 'w') as out:
+    file = os.path.join(params.exports_directory, 'out.ps')
+    with open(file, 'w') as out:
         out.write(ps_buffer)
-    post_info("outline written to 'out.ps'", _env.context)
+    post_info(f"outline written to '{file}'", _env.context)
 
+@miniter_command(("image-height", "imh"), "$CMD HEIGHT")
+def image_height_cmd(h, *, _env):
+    "$CMD EXTENSION: set height in pixel of exported images"
+    if not ( 8 <= h <= 17000 ):
+        CmdExn("height must be between 8 and 17000")
+    _env.context.img_conf.height = h
+
+@miniter_command(("image-extension", "image-format", "ext"), "$CMD EXTENSION")
+def image_extension_cmd(ext, *, _env):
+    "$CMD EXTENSION: set format to use when exporting images"
+    if ext not in {'png', 'jpeg', 'tga'}:
+        raise CmdExn("Supported formats: png, jpeg, tga")
+    _env.context.img_conf.extension = ext
+
+@miniter_command(("export-image", "exp"), "$CMD win|all HEIGHT [FORMAT]")
+def export_image_cmd(what = 'win', height = None, format = 'png', *, _env):
+    '''$CMD win HEIGHT: export an HEIGHT pixels high png image of the window
+       $CMD all HEIGHT: export an HEIGHT pixels high png image of the whole drawing
+       $CMD ... FORMAT: same as above, but FORMAT is the image format (png, jpeg, tga)'''
+    if what not in {'win', 'all'}: CmdExn("First argument must 'win' or 'all'")
+    if format not in {'png', 'jpeg', 'tga'}: CmdExn("Unrecognized formatt. Supported formats: png, jpeg, tga")
+    height = height or _env.context.screen.get_size()[1]
+    if not ( 8 <= height <= 17000): CmdExn("height must be between 8 and 17000")
+    img_conf = ImageConf(height, format, params.exports_directory)
+    if what == 'win': export_image_window(_env.context, img_conf)
+    elif what == 'all': export_image_whole(_env.context, img_conf)
 
 ## Set Params
 @miniter_command(('set-color', 'co'), "$CMD KEY || $CMD KEY R G B || $CMD KEY HHHHHH")
@@ -441,7 +469,39 @@ def set_phase_cmd(*a, _env):
     ph = _read_angle(*a)
     _env.context.grid.phase = ph
 
+## Drawing Config
+@miniter_command(('antialias', 'aa'))
+def antialias_cmd(*, _env):
+    "$CMD: toggle antialasing for drawing weave strings"
+    _env.context.antialias = not _env.context.antialias
+    redraw_weaves(_env.context)
+
+@miniter_command(('draw-width', 'width'), '$CMD WIDTH')
+def draw_width_cmd(width, *, _env):
+    "$CMD WIDTH: set width (in pixels) for drawing weave strings"
+    if width < 1: raise Exception()
+    _env.context.draw_width = int(width)
+    redraw_weaves(_env.context)
+
+@miniter_command(('show-hide', 'shi'), '$CMD THING_TO_HIDE1 ...')
+def show_hide_cmd(*a, _env):
+    "$CMD THING1 ...: show/hide certains types of elements (shapes, weaves, nails)"
+    for cat in a:
+        if cat not in {'weaves', 'shapes', 'nails'}:
+            raise CmdExn("Recognized terms: weaves, shapes, nails")
+        else:
+            hide_set = _env.context.hide
+            if cat in hide_set: hide_set.remove(cat)
+            else: hide_set.add(cat)
+
 ## Misc
+@miniter_command(('stash-capacity', 'stashcap'), "$CMD CAPACITY")
+def set_stash_cap_cmp(new_cap, * _env):
+    "$CMD CAPACITY: set stash capacity (ie max number of stashed items)"
+    if type(new_cap) != int or new_cap < 0: raise Exception()
+    #
+    _env.context.stash.cap.set_cap(new_cap)
+
 @miniter_command(('session', 'se'), "$CMD SESSIONNAME | $CMD OFF")
 def connect_session_cmd(session_name = None, *,  _env):
     '''$CMD            : tell current session.
@@ -457,6 +517,7 @@ def connect_session_cmd(session_name = None, *,  _env):
     #
     try:
         reload_session(cx, session_name)
+        post_info(f"'{session_name}' successfully connected", cx)
     except Autosaver.DirectoryBusyError:
         post_error("already in use.", cx)
 
