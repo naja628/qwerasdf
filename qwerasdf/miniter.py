@@ -297,7 +297,7 @@ def export_outline_cmd(width, margin, paper = 'a4', *, _env):
 
 @miniter_command(("image-height", "imh"), "$CMD HEIGHT")
 def image_height_cmd(h, *, _env):
-    "$CMD EXTENSION: set height in pixel of exported images"
+    "$CMD HEIGHT: set height in pixel of exported images"
     if not ( 8 <= h <= 17000 ):
         CmdExn("height must be between 8 and 17000")
     _env.context.img_conf.height = h

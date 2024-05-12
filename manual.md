@@ -265,17 +265,7 @@ Parameter | Value (; allowed range) | Description
 `image_margin` | float; [0, 0.99] | size of the margin when exporting image (proportion of total image size) 
 
 # List of Commands
-[help](#help), [ls-cmd](#ls-cmd), [usage](#usage), [save](#save), [remove-save](#remove-save), [
-ls-saves](#ls-saves), [load](#load), [exit](#exit), [new](#new), [import](#import), [recover](#r
-ecover), [outline](#outline), [image-height](#image-height), [image-format](#image-format), [exp
-ort-image](#export-image), [set-color](#set-color), [menu](#menu), [palette](#palette), [div](#d
-iv), [default-divs](#default-divs), [weavity](#weavity), [weaveback](#weaveback), [set-rotation]
-(#set-rotation), [fullscreen](#fullscreen), [resize](#resize), [grid](#grid), [grid-rsubdiv](#gr
-id-rsubdiv), [grid-asubdiv](#grid-asubdiv), [set-phase](#set-phase), [antialias](#antialias), [d
-raw-width](#draw-width), [show-hide](#show-hide), [stash-capacity](#stash-capacity), [session](#
-session), [clear](#clear), [select-all](#select-all), [translate-colors](#translate-colors), [un
-weave-color](#unweave-color), [raise](#raise), [symmetrize](#symmetrize), [highlight](#highlight
-), [source](#source), [oneshot-commands](#oneshot-commands), [_debug](#_debug)  
+[help](#help), [ls-cmd](#ls-cmd), [usage](#usage), [save](#save), [remove-save](#remove-save), [ls-saves](#ls-saves), [load](#load), [exit](#exit), [new](#new), [import](#import), [recover](#recover), [outline](#outline), [image-height](#image-height), [image-format](#image-format), [export-image](#export-image), [set-color](#set-color), [menu](#menu), [palette](#palette), [div](#div), [default-divs](#default-divs), [weavity](#weavity), [weaveback](#weaveback), [set-rotation](#set-rotation), [fullscreen](#fullscreen), [resize](#resize), [grid](#grid), [grid-rsubdiv](#grid-rsubdiv), [grid-asubdiv](#grid-asubdiv), [set-phase](#set-phase), [antialias](#antialias), [draw-width](#draw-width), [show-hide](#show-hide), [stash-capacity](#stash-capacity), [session](#session), [clear](#clear), [select-all](#select-all), [translate-colors](#translate-colors), [unweave-color](#unweave-color), [raise](#raise), [symmetrize](#symmetrize), [highlight](#highlight), [source](#source), [oneshot-commands](#oneshot-commands), [_debug](#_debug)  
 
 ### help
 aliases: `help`/`h`
@@ -366,7 +356,7 @@ outline WIDTH_CM MARGIN_CM: generate multi-page printable outline for drawing.
 ### image-height
 aliases: `image-height`/`imh`
 ```
-image-height EXTENSION: set height in pixel of exported images
+image-height HEIGHT: set height in pixel of exported images
 ```
 
 ### image-format
