@@ -302,7 +302,7 @@ def image_height_cmd(h, *, _env):
         CmdExn("height must be between 8 and 17000")
     _env.context.img_conf.height = h
 
-@miniter_command(("image-extension", "image-format", "ext"), "$CMD EXTENSION")
+@miniter_command(("image-format", "image-extension", "ext"), "$CMD EXTENSION")
 def image_extension_cmd(ext, *, _env):
     "$CMD EXTENSION: set format to use when exporting images"
     if ext not in {'png', 'jpeg', 'tga'}:
@@ -703,3 +703,5 @@ def _generate_markdown_doc():
         print(text)
         print('')
     print(', '.join(links))
+
+_generate_markdown_doc()

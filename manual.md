@@ -29,7 +29,7 @@ Some things are achieved through the command-line (i.e. by literally typing comm
 Use `C: Command`, to enter the command-line and start typing commands. A green command prompt will appear.  
 To quit the command-line use `Ctrl-C` or use `Enter` when the prompt is empty (i.e. no text was typed since the last command).  
 
-See list of available commands (look first at [`help`](#help) and [`ls-cmd`](#ls-cmd)). 
+See list of available commands [here](#list-of-commands) (look first at [`help`](#help) and [`ls-cmd`](#ls-cmd)). 
 
 Some commands have aliases. For example when this manual mentions the `help/h` command it means you can use either `help` or `h` as the command name to type.  
 Sometimes in this manual, some of the aliases will be ommitted for convenience.  
@@ -60,7 +60,10 @@ You do not need to select the shape type a second time in between drawing 2 shap
 To draw a:
 * circle: left-click on the center, then left-click on any point on the perimeter. You can use right-click to make it so the first point you clicked is on the perimeter, and the mouse controls the center.
 * segment: left-click on an endpoint, then the other
-* circle arc: left-click on the center, then left-click on an endpoint of the arc, then the other (total 3 clicks). Use right-click to toggle whether you're going clockwise.
+* circle arc: either:
+	* left-click on the center, then left-click on an endpoint of the arc, then the other (total 3 clicks). 
+	* right-click (to put endpoints first), left-click on both endpoints then click the center.
+	* **Note**: after placing at least 2 points (center and start or both endpoints), you can right-click to invert "clockwiseness". (which way we're going around from an endpoint to the other)
 * point: left-click on the point.
 * broken line: use `PolyLine` as the shape type; left-click on as many points as you want, and right-click when you're done.
 * polygon: use `PolyLine` as the shape type; left-click on all the vertices, then left-click the point you started on.
@@ -112,30 +115,36 @@ Left-click any nail to select all the shapes the nail belongs to (there can be s
 Similarly, right-click a nail to "toggle the select state" of all the shapes under it. (i.e. selected shapes become unselected and vice-versa)  
 Selected shapes will be highlighted in blue.  
 
+To select shapes within a rectangle, go to `W: Rectangle`  
+* left-click twice to select the shapes inside the rectangle
+* right-click to **toggle** the shapes inside the rectangle
+* you can if a shapes needs to be fully included within the rectangle or having at least a nail within is enough to be considered inside with `Q: Partly/Fully Within`
+* use `W: Normal` to go back to single shape select
+
 Notes: 
 * you will always select shapes. (i.e. you cannot select individual nails or weaves)
 * some terminal actions act on the selection
 * some actions (even outside the selection submenu) will set the selection. (e.g. new shapes are selected upon creation)
 
-`R: Remove` will delete all the currently selected shapes.
-`E: Unweave` will remove all the weaves between any two shapes that are **both** selected.
+`R: Remove` will delete all the currently selected shapes.  
+`E: Unweave` will remove all the weaves between any two shapes that are **both** selected.  
 
 There are two main ways to move or transform (e.g. rotate or mirror) the current selection. (detailed below)
 
-### Editing shapes via the quick edit shortcuts (under ASDF)
-* Use `D: Move` to move shapes: it will **immediately** grab the point under the cursor (snappiness applies; immediately = you do not need to click). Left-click to release.
-* Use `A: Transform` to rotate and/or mirror currently selected shapes.
+### Editing shapes via the quick transform shortcuts (under D or F)
+* Use `F: Move` to move shapes: it will **immediately** grab the point under the cursor (snappiness applies; immediately = you do not need to click). Left-click to release.
+* Use `D: Quick Transform` to rotate and/or mirror currently selected shapes.
 	* from there you can "stack" several transformation using the keyboard shortcuts (`S: +Rotation`, etc)
 	* the center of the transformation follows the mouse snappily (e.g. rotating turns the selection **around the cursor**)
 	* the angle of the rotation that is applied by `S: +Rotation` and `D: -Rotation` is configured via the `rot ANGLE` command
 	* flipping is horizontal. it doesn't apply "in order", but is always the first transformation. (e.g. after `S: +Rotation`, `F: Flip`, the selection is first mirrored horizontally, then turned, regardless of the order you pressed the keys)
 	* when you like the transformation (refer to the pink hints), left-click the desired center to apply
-* The `Copy-transform` and `Copy-move` variants work as above, but a copy of the selection with the transformation applied will be created.
+* You can put transformed copies of the current selection (instead of transforming it), by clicking `F: put copy` from either. You can click F several times in a row to repeat this effect.
 
-### Using the visual transformation submenu
-Under `W: Visual`, you can sequentially apply several transformations to the shape.  
+### Using the intractive transformation submenu
+Under `S: Interact`, you can sequentially apply several transformations to the shape.  
 Transformations are applied relative to a center (except move). Initially it is set to the center of the grid (if activated), or to the point under your cursor when you entered `W: visual`.  
-To change the center, use `R: recenter`. After left-clicking, the center is set to the point under your cursor.  
+To change the center, use `A: recenter`. After left-clicking, the center is set to the point under your cursor.  
 
 To apply transformations:
 * choose the type of transformation from the menu with the keyboard. This will **immediately** grab the point under the cursor.
@@ -144,7 +153,7 @@ To apply transformations:
 	* left-click to apply the transformation to the current selection. (The shapes will change)
 	* right-click to create a transformed copy. The copied shapes become the selection for the next transformation.
 * repeat as many times as needed
-* Use `W: done` to exit the visual transformation tool.
+* Use `S: done` to exit the visual transformation tool.
 * **Note**: You can use `Q: cancel change`, to cancel the pending change and select another type of transformation.
 
 # Undoing and Autosaves
@@ -191,6 +200,8 @@ For example, if the "angular subdivisions" is `5 2 : 3 2` this means:
 Similarly the "radial subdivisions" controls how the main concentric circles are divided into rings.  
 Use the `grid-rsubdiv/grsub SUB1 ...` command.  
 
+When the grid is activated, [`sym`](#symetrize) is a powerful command to create symetrical drawings.
+
 # Saving
 ### Saving and Loading
 Use the [`s/save`](#save), [`ls-saves/lsav`](#ls-saves), [`load/lo`](#load), and [`quit/q`](#quit) to save your work and quit.  
@@ -206,6 +217,17 @@ The idea is that you would stick the cut-outs over your canvas, plant your nails
 The outline will be written in the `out.ps` file. (TODO working dir problems?)  
 Your printer/document-viewer may or may not natively support `postscript` (`.ps`) files.  
 To convert postscript to pdf files either install `ghostscript` and use the `ps2pdf` command (recommended for linux and mac) or use one of the many online postscript to pdf converters (recommended for windows).
+
+### Exporting Images
+You can export images either via the [`export-image`](#export-image) command or via the menu in `E: Export Image`.  
+From the menu you can either export the current window (`R: Window`) or a centered picture of the whole drawing with a small margin (`E: Whole Drawing`).  
+Use the [`image-height`](#image-height) commad to set the height (in pixels) of exported images, the width is computed from the height depending on what you're doing.  
+The default format is `png` but you can set with the [`image-format`](#image-format) command.
+
+Note: 
+* The menu, current selection highlights, and other UI elements do not appear on exported images. (only shapes, nails and weaves are considered)
+* Currently [hidden](#show-hide) elements, [antialasing](#antialias) setting, etc, **are** taken into account.
+* Since weave strings do not have a "real" width, when exporting images with a large image height (ie higher resolution than your screen), you might want to set the drawing width higher temporarily (with [`drawing-width`](#drawing-width)) to avoid the color looking dull.    
 
 # Configuration 
 ### rc file
@@ -230,7 +252,7 @@ Parameter | Value (; allowed range) | Description
 `point_color` | color | color of nails
 `point_radius` | int; [0, 5] | radius of nails (in pixels)
 `point_shape_radius` | int; [1, 10] | color of 'point' shapes and hints.
-`zoom_factor` | float [1.01, 4] | controls zooming speed. 
+`zoom_factor` | float; [1.01, 4] | controls zooming speed. 
 `brightness_scroll_speed` | float; [0.005, 0.2] | controls mouse-wheel speed when in the color picker
 `min_pick_saturation` | float; [0, 0.99] | controls the size of the gray band that is cut-off when rendering the color picker's rainbow
 `font_size` | int; [5, 30] | size of text
@@ -240,12 +262,20 @@ Parameter | Value (; allowed range) | Description
 `snap_radius` | int; [1, 100] | min distance (in pixels) the cursor needs to be from a point to "snap" to it
 `bottom_margin` | int; [0, 50] | size in pixels of the empty band below the bottom text area
 `menu_translate` | keymap (e.g. `QWAZ AZQW`) | specifies key mappings (from `qwerty` to your layout) to use when displaying menu labels
+`image_margin` | float; [0, 0.99] | size of the margin when exporting image (proportion of total image size) 
 
 # List of Commands
-[help](#help), [ls-cmd](#ls-cmd), [usage](#usage), [save](#save), [ls-saves](#ls-saves), [load](#load), [exit](#exit), [new](#new), [import](#import), [recover](#recover), [outline](#outline), 
-[set-color](#set-color), [menu](#menu), [palette](#palette), [div](#div), [default-divs](#default-divs), [weavity](#weavity), [weaveback](#weaveback), [set-rotation](#set-rotation), [fullscreen
-](#fullscreen), [resize](#resize), [grid](#grid), [grid-rsubdiv](#grid-rsubdiv), [grid-asubdiv](#grid-asubdiv), [set-phase](#set-phase), [session](#session), [clear](#clear), [select-all](#select-all), [translate
--colors](#translate-colors), [unweave-color](#unweave-color), [highlight](#highlight), [source](#source), [oneshot-commands](#oneshot-commands), [_debug](#_debug)
+[help](#help), [ls-cmd](#ls-cmd), [usage](#usage), [save](#save), [remove-save](#remove-save), [
+ls-saves](#ls-saves), [load](#load), [exit](#exit), [new](#new), [import](#import), [recover](#r
+ecover), [outline](#outline), [image-height](#image-height), [image-format](#image-format), [exp
+ort-image](#export-image), [set-color](#set-color), [menu](#menu), [palette](#palette), [div](#d
+iv), [default-divs](#default-divs), [weavity](#weavity), [weaveback](#weaveback), [set-rotation]
+(#set-rotation), [fullscreen](#fullscreen), [resize](#resize), [grid](#grid), [grid-rsubdiv](#gr
+id-rsubdiv), [grid-asubdiv](#grid-asubdiv), [set-phase](#set-phase), [antialias](#antialias), [d
+raw-width](#draw-width), [show-hide](#show-hide), [stash-capacity](#stash-capacity), [session](#
+session), [clear](#clear), [select-all](#select-all), [translate-colors](#translate-colors), [un
+weave-color](#unweave-color), [raise](#raise), [symmetrize](#symmetrize), [highlight](#highlight
+), [source](#source), [oneshot-commands](#oneshot-commands), [_debug](#_debug)  
 
 ### help
 aliases: `help`/`h`
@@ -274,6 +304,12 @@ save SAVENAME   : same as above but forbid overwriting existing save.
 save !          : save (using the previous SAVENAME)
 ```
 
+### remove-save
+aliases: `remove-save`/`rm`
+```
+remove-save SAVE1 ...: delete saves
+```
+
 ### ls-saves
 aliases: `ls-saves`/`lsav`
 ```
@@ -286,7 +322,8 @@ If the search term is a complete name, list only it (and not other matches)
 ### load
 aliases: `load`/`lo`
 ```
-load SEARCHSAVE ! : find matches for SEARCHSAVE according to 'ls-saves' rules, and load the save if a single match is found.
+load SEARCHSAVE ! : find matches for SEARCHSAVE according to 'ls-saves' rules, and load the save
+ if a single match is found.
 load SEARCHTERM   : same as above but forbids discarding unsaved changes
 ```
 
@@ -309,7 +346,7 @@ new SAVENAME: save as savename, then clear canvas and start new drawing.
 ### import
 aliases: `import`/`imp`
 ```
-import SAVENAME: load SAVENAME **on top** of existing drawing
+import SAVENAME: load SAVENAME **on top** of the stash
 note: performs matching on the savename (cf load, ls-saves)
 ```
 
@@ -324,6 +361,26 @@ aliases: `outline`/`out`
 ```
 outline WIDTH_CM MARGIN_CM: generate multi-page printable outline for drawing.
 (cf. manual. (Saving section))
+```
+
+### image-height
+aliases: `image-height`/`imh`
+```
+image-height EXTENSION: set height in pixel of exported images
+```
+
+### image-format
+aliases: `image-format`/`image-extension`/`ext`
+```
+image-format EXTENSION: set format to use when exporting images
+```
+
+### export-image
+aliases: `export-image`/`exp`
+```
+export-image win HEIGHT: export an HEIGHT pixels high png image of the window
+export-image all HEIGHT: export an HEIGHT pixels high png image of the whole drawing
+export-image ... FORMAT: same as above, but FORMAT is the image format (png, jpeg, tga)
 ```
 
 ### set-color
@@ -347,7 +404,7 @@ palette: show/hide palette
 ```
 
 ### div
-aliases: `div`/`nails`
+aliases: `div`/`nails`/`n`
 ```
 div N: set the number of nails on all selected shapes to N. (evenly spaced)
 ```
@@ -355,7 +412,8 @@ div N: set the number of nails on all selected shapes to N. (evenly spaced)
 ### default-divs
 aliases: `default-divs`/`dfdiv`/`dfnails`
 ```
-default-divs SHAPE_TYPE1 DEFAULT_NAILS1 ...: all shapes of type SHAPE_TYPE1 will be initially drawn with DEFAULT_NAILS1 nails.
+default-divs SHAPE_TYPE1 DEFAULT_NAILS1 ...: all shapes of type SHAPE_TYPE1 will be initially dr
+awn with DEFAULT_NAILS1 nails.
 Shape types: 'circle', 'line', 'arc', 'poly'
 Can specify several (type, dfnails) pairs at once (after each other).
 ```
@@ -377,7 +435,8 @@ aliases: `set-rotation`/`rot`
 ```
 set-rotation DEG   : set the default rotation angle to DEG degrees
 set-rotation RAD pi: set the default rotation angle to RAD * pi radians. (literally type 'pi')
-set-rotation P / Q : set the default rotation to P Qth of a turn. (spaces around the slash mandatory)
+set-rotation P / Q : set the default rotation to P Qth of a turn. (spaces around the slash manda
+tory)
 ```
 
 ### fullscreen
@@ -387,10 +446,9 @@ fullscreen: go fullscreen
 ```
 
 ### resize
-
 aliases: `resize`/`res`
 ```
-$CMD WIDTH HEIGHT: resize window
+resize WIDTH HEIGHT: resize window
 ```
 
 ### grid
@@ -402,13 +460,19 @@ grid: enable/disable grid
 ### grid-rsubdiv
 aliases: `grid-rsubdiv`/`grsub`
 ```
-grid-rsubdiv DIV1 ... : REPEAT1 ...: set the 'radial subdivison' of the grid. (cf manual)
+grid-rsubdiv DIV1 ... : REPEAT1 ... -> set the 'radial subdivison' of the grid.
+grid-rsubdiv N -> divide the central circle into N rings
+grid-rsubdiv N M -> subdivide each ring further into M subrings
+...
 ```
 
 ### grid-asubdiv
 aliases: `grid-asubdiv`/`gasub`
 ```
-grid-asubdiv DIV1 ... : REPEAT1 ...: set the 'angular subdivison' of the grid. (cf manual)
+grid-asubdiv DIV1 ... : REPEAT1 ...-> set the 'angular subdivison' of the grid.
+grid-asubdiv N -> divide the canvas into N equal angle subsectors
+grid-asubdiv N M -> divide each of the above sectors further into M subsectors
+...
 ```
 
 ### set-phase
@@ -419,11 +483,36 @@ set-phase RAD pi: set the grid phase to RAD * pi radians. (literally type 'pi')
 set-phase P / Q : set the grid phase to P Qth of a turn. (spaces around the slash mandatory)
 ```
 
+### antialias
+aliases: `antialias`/`aa`
+```
+antialias: toggle antialasing for drawing weave strings
+```
+
+### draw-width
+aliases: `draw-width`/`width`
+```
+draw-width WIDTH: set width (in pixels) for drawing weave strings
+```
+
+### show-hide
+aliases: `show-hide`/`shi`
+```
+show-hide THING1 ...: show/hide certains types of elements (shapes, weaves, nails)
+```
+
+### stash-capacity
+aliases: `stash-capacity`/`stashcap`
+```
+stash-capacity CAPACITY: set stash capacity (ie max number of stashed items)
+```
+
 ### session
 aliases: `session`/`se`
 ```
+session            : tell current session.
 session SESSIONNAME: connect to session SESSIONNAME.
-session OFF: disable undoing/autosaving. (literally type 'OFF' as the SESSIONNAME)
+session OFF        : disable undoing/autosaving. (literally type 'OFF' as the SESSIONNAME)
 ```
 
 ### clear
@@ -441,7 +530,8 @@ select-all: select all shapes
 ### translate-colors
 aliases: `translate-colors`/`trans`
 ```
-translate-colors FROM TO: change the colors of the weaves inside the selection according to conversion rule
+translate-colors FROM TO: change the colors of the weaves inside the selection according to conv
+ersion rule
 ex: if FROM = Q and TO = A, weaves with color Q will turn to color A
 ```
 
@@ -449,6 +539,25 @@ ex: if FROM = Q and TO = A, weaves with color Q will turn to color A
 aliases: `unweave-color`/`unco`
 ```
 unweave-color COLORKEYS: remove all weaves of a color in colorkeys inside the selection
+```
+
+### raise
+aliases: `raise`
+```
+raise COLORS: raise weaves inside the selection of certain colors on top
+(last on top)
+```
+
+### symmetrize
+aliases: `symmetrize`/`sym`
+```
+symmetrize PATTERN COLORSFROM COLORSTO: complete a circle around the grid, making rotated copies
+ of the selection
+example of patterns: r, r1 (same as r), r2, s, s3, 2 (same as r2), (nothing) (same as r1)...
+rn: create copies by rotating by n * the grid sector angle
+sn: same as rn, but make an horizontally mirrored copy before rotating
+if COLORSFROM and COLORSTO are specified, change colors as if by translate-colors after every tr
+ansform
 ```
 
 ### highlight
@@ -466,11 +575,11 @@ source CMDSFILE: read CMDSFILE, and execute its lines as commands
 ### oneshot-commands
 aliases: `oneshot-commands`/`one`
 ```
-toggle oneshot commands.
+oneshot-commands: toggle oneshot commands.
 when enabled: the commandline closes after every command
 ```
 
-### \_debug
+### _debug
 aliases: `_debug`/`_db`
 ```
 _debug: go into python debugger

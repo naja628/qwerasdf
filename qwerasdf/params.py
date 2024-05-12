@@ -77,6 +77,8 @@ params.max_div = 1000
 params.max_ppu = 3e5
 params.min_ppu = 1
 
+params.image_margin = 0.05
+
 params.autosave_pulse = 2
 params.autosave_rotorctl = [ (30, 3) ] * 5 + [ 30 ]
 
@@ -173,6 +175,8 @@ def _read_conf():
             'snap_radius': rint(1, 100),
             #
             'bottom_margin': rint(0, 50),
+            'image_margin': rfloat(0, 0.99),
+            #
             'menu_translate': rkeymap()
             }
     #

@@ -218,11 +218,11 @@ def export_image_window(context, img_conf = None):
     file = img_conf.save_image(corners, context)
     post_info(f"image successfully exported to '{file}'", context)
 
-def export_image_whole(context, img_conf = None, margin = 0.025):
+def export_image_whole(context, img_conf = None, margin = params.image_margin):
     corners = ar(bounding_rect(*context.shapes))
     [left, bottom], [right, top] = corners
-    margin_x = margin * (right - left)
-    margin_y = margin * (top - bottom)
+    margin_x = margin / 2 * (right - left)
+    margin_y = margin / 2 * (top - bottom)
     #
     corners[0] -= ar([margin_x, margin_y])
     corners[1] += ar([margin_x, margin_y])
