@@ -214,7 +214,7 @@ The idea is that you would stick the cut-outs over your canvas, plant your nails
 * `MARGIN`: size of the margin in cm. (i.e. the canvas is a `SIZE + MARGIN` sized square)
 * `FORMAT`: paper format. (A4 if left blank; supported: `a4`, `us-letter`)
 
-The outline will be written in the `out.ps` file. (TODO working dir problems?)  
+The outline will be written in the `out.ps` file. (see `exports_directory` in [conf](#configuration))
 Your printer/document-viewer may or may not natively support `postscript` (`.ps`) files.  
 To convert postscript to pdf files either install `ghostscript` and use the `ps2pdf` command (recommended for linux and mac) or use one of the many online postscript to pdf converters (recommended for windows).
 
@@ -226,8 +226,8 @@ The default format is `png` but you can set with the [`image-format`](#image-for
 
 Note: 
 * The menu, current selection highlights, and other UI elements do not appear on exported images. (only shapes, nails and weaves are considered)
-* Currently [hidden](#show-hide) elements, [antialasing](#antialias) setting, etc, **are** taken into account.
-* Since weave strings do not have a "real" width, when exporting images with a large image height (ie higher resolution than your screen), you might want to set the drawing width higher temporarily (with [`drawing-width`](#drawing-width)) to avoid the color looking dull.    
+* Currently [hidden](#show-hide) elements, [antialasing](#antialias) settings, etc, **are** taken into account.
+* Since weave strings do not have a "real" width, when exporting images with a large image height (ie higher resolution than your screen), you might want to set the drawing width higher temporarily (with [`draw-width`](#draw-width)) to avoid colors looking dull when unzoomed.  
 
 # Configuration 
 ### rc file
@@ -263,6 +263,7 @@ Parameter | Value (; allowed range) | Description
 `bottom_margin` | int; [0, 50] | size in pixels of the empty band below the bottom text area
 `menu_translate` | keymap (e.g. `QWAZ AZQW`) | specifies key mappings (from `qwerty` to your layout) to use when displaying menu labels
 `image_margin` | float; [0, 0.99] | size of the margin when exporting image (proportion of total image size) 
+`exports_directory` | system path | directory where to put exported files (images, outlines) (this does not affect saves)
 
 # List of Commands
 [help](#help), [ls-cmd](#ls-cmd), [usage](#usage), [save](#save), [remove-save](#remove-save), [ls-saves](#ls-saves), [load](#load), [exit](#exit), [new](#new), [import](#import), [recover](#recover), [outline](#outline), [image-height](#image-height), [image-format](#image-format), [export-image](#export-image), [set-color](#set-color), [menu](#menu), [palette](#palette), [div](#div), [default-divs](#default-divs), [weavity](#weavity), [weaveback](#weaveback), [set-rotation](#set-rotation), [fullscreen](#fullscreen), [resize](#resize), [grid](#grid), [grid-rsubdiv](#grid-rsubdiv), [grid-asubdiv](#grid-asubdiv), [set-phase](#set-phase), [antialias](#antialias), [draw-width](#draw-width), [show-hide](#show-hide), [stash-capacity](#stash-capacity), [session](#session), [clear](#clear), [select-all](#select-all), [translate-colors](#translate-colors), [unweave-color](#unweave-color), [raise](#raise), [symmetrize](#symmetrize), [highlight](#highlight), [source](#source), [oneshot-commands](#oneshot-commands), [_debug](#_debug)  
