@@ -200,7 +200,7 @@ For example, if the "angular subdivisions" is `5 2 : 3 2` this means:
 Similarly the "radial subdivisions" controls how the main concentric circles are divided into rings.  
 Use the `grid-rsubdiv/grsub SUB1 ...` command.  
 
-When the grid is activated, [`sym`](#symetrize) is a powerful command to create symetrical drawings.
+Note: see the [`sym`](#symmetrize) command for a powerful way to symmetrically extend a motif using the current grid configuration.  
 
 # Saving
 ### Saving and Loading
