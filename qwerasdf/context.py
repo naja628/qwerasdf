@@ -134,10 +134,12 @@ def unweave_into_selection(context):
     cx.weaves = keep_weaves
     redraw_weaves(cx)
 
-def delete_selection(context):
+def delete_selection(context, hints = True):
     unweave_into_selection(context)
     context.shapes = [ sh for sh in context.shapes if not sh in context.selected ]
     context.selected = []
+    if hints:
+        reset_hints(context)
 
 def reload_session(context, session_name):
     cx = context

@@ -1,4 +1,12 @@
-In manual
+In manual:
+* add stash section
+* quick transforms F
+* select rectangles
+* export images
+	* talk about export_directory (out.ps, image)
+* !! menu keys still right?
+* talk about `sym` (grid section?)
+
 
 ## Old bugs
 * (can't reproduce) saw interactive_transform/merge/weave bug
@@ -8,7 +16,6 @@ In manual
 
 ## Bugs
 (3) arcs div too far (slightly)? ("solved" by restricting max zoom)
-arc not copied if sometimes
 
 #DONE
 * modify quick transforms 
@@ -20,7 +27,6 @@ arc not copied if sometimes
 (details)
 * rename menu buttons (more consistent / make more sense)
 * add related commands hints (n, dfdivs for shapes; imh, ext for exporting images)
-
 * scroll through stash?
 * export image of rectangle
 * not-in-use command
