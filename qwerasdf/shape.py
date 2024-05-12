@@ -227,6 +227,8 @@ class Arc(Shape):
     def merger(self, to):
         if ( type(to) != Arc ) or ( len(self.divs) != len(to.divs) ):
             return None
+        if ( self.clockwise != to.clockwise ):
+            return None
         if all([ almost_equal(p, q) for p, q in zip(self.keypoints, to.keypoints) ]):
             return lambda i : i # same dir always (determined by order)
         ##
@@ -295,15 +297,13 @@ class PolyLine(Shape):
         ts = np.linspace(0, D, ndivs, endpoint = not self.loopy)
         divs = []
         for t in ts:
-            while t > kp_dists[k + 1]: 
+            while k + 1 < len(keypoints) and t > kp_dists[k + 1]: 
                 k += 1
-            if k == len(keypoints):
-                k -= 1
             segment_len = (kp_dists[k+1] - kp_dists[k])
             if near_zero(segment_len):
-                k += 1
-            t = (t - kp_dists[k]) / (kp_dists[k+1] - kp_dists[k])
-            t = max(t, 0.)
+                t = kp_dists[k]
+            else:
+                t = (t - kp_dists[k]) / segment_len
             divs.append( (1. - t) * keypoints[k] + t * keypoints[k+1] )
         self.divs = np.array(divs)
     #

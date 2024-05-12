@@ -799,7 +799,7 @@ def interactive_transform_hook(hook, context):
         else: set_hints(cx, Point(pos))
     ###
 
-@iter_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION, pg.MOUSEWHEEL}, 
+@iter_hook( {pg.MOUSEBUTTONDOWN, pg.MOUSEMOTION}, 
             cleanup = lambda context: reset_hints(context))
 def unstash_hook(hook, context):
     cx = context

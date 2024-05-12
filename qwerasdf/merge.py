@@ -35,11 +35,13 @@ def merge_weaves(weaves):
         [(i1, s1), (i2, s2)] = [ (hg.i, hg.s) for hg in we.hangpoints]
         return incrs, nwires, i1, s1, i2, s2
     #
-    uniques = []
-    for i, we in enumerate(weaves):
-        def same(we2):
-            return decomp(we) == decomp(we2)
-        first_eq = next(filter(same, weaves[i+1:]), None)
-        if not first_eq: uniques.append(we)
+    uniques, seen = [], set()
+    for we in reversed(weaves):
+        tup = decomp(we)
+        if tup in seen: continue
+        else: 
+            seen.add(tup)
+            uniques.append(we)
+    uniques.reverse()
     return uniques
 

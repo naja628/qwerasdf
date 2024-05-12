@@ -174,6 +174,15 @@ def save_cmd(*a, _env):
     except FileExistsError:
         raise CmdExn(f"'{file}' exists. to allow overwrites, use: {_env.cmd} {file} !")
 
+@miniter_command(('remove-save', 'rm'), "$CMD SAVE1 ...")
+def remove_save(*names, _env):
+    '''$CMD SAVE1 ...: delete saves'''
+    for name in names:
+        try: 
+            os.remove(save_path(name))
+            post_info(f"removed '{name}'", _env.context)
+        except: pass
+
 @miniter_command(('ls-saves', 'lsav'), "$CMD || $CMD SEARCH_TERM")
 def ls_saves_cmd(search = None, *, _env):
     '''$CMD            : list all existing save names
@@ -550,7 +559,6 @@ def translate_colors_cmd(src, dest, *, _env):
     '''$CMD FROM TO: change the colors of the weaves inside the selection according to conversion rule
        ex: if FROM = Q and TO = A, weaves with color Q will turn to color A'''
     cx = _env.context
-    print(f'trans {src, dest=}')
     _translate_colors(src, dest, cx.weaves, cx.selected, cx)
     redraw_weaves(_env.context)
 
@@ -561,6 +569,29 @@ def unweave_colors_cmd(*colorkeys, _env):
     for k in ''.join(colorkeys).upper():
         if k in cx.palette:
             unweave_inside_selection(cx, lambda we: cx.weave_colors[we] == ltop(k))
+
+@miniter_command(('raise'), "$CMD COLORKEYS")
+def raise_colors_cmd(*colorkeys, _env):
+    '''$CMD COLORS: raise weaves inside the selection of certain colors on top
+       (last on top)'''
+    cx = _env.context
+    weaves = all_weaves(cx)
+    ks = ''.join(colorkeys).upper()
+    ks = ''.join([ltop(k) for k in ks])
+    weaves_by_color = {**{k: [] for k in ks}, '_':[]}
+    for we in weaves:
+        s1, s2 = (hg.s for hg in we.hangpoints)
+        if (
+            s1 in cx.selected and s2 in cx.selected 
+            and (k := cx.weave_colors[we]) in weaves_by_color
+        ):
+            weaves_by_color[k].append(we)
+        else:
+            weaves_by_color['_'].append(we)
+    cx.weaves = []
+    for k in '_' + ks:
+        cx.weaves.extend(weaves_by_color[k])
+    redraw_weaves(cx)
 
 @miniter_command(('symmetrize', 'sym'), "$CMD PATTERN? COLORSFROM? COLORSTO?")
 def symmetrize_cmd(*a, _env):

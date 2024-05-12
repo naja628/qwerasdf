@@ -1,12 +1,5 @@
-* cmds:
-	image_extension
-	image_height
-	export_image win|drawing height format
+In manual
 
-* box image hook
-
-## 
-Poly overlapping points + in Area select
 ## Old bugs
 * (can't reproduce) saw interactive_transform/merge/weave bug
 * weird event bugs in miniter (rctl or ctl-bksp) (MATE specific?)
@@ -15,6 +8,7 @@ Poly overlapping points + in Area select
 
 ## Bugs
 (3) arcs div too far (slightly)? ("solved" by restricting max zoom)
+arc not copied if sometimes
 
 #DONE
 * modify quick transforms 
@@ -25,12 +19,13 @@ Poly overlapping points + in Area select
 
 (details)
 * rename menu buttons (more consistent / make more sense)
+* add related commands hints (n, dfdivs for shapes; imh, ext for exporting images)
 
-(z ordering)
-* ensure weave ordering (new on top even when copying, merging etc)
-* raise colors
-
+* scroll through stash?
+* export image of rectangle
 * not-in-use command
+* raise-group command?
+* rmsav command
 
 ----- counts as "finished" (v0.2)
 
