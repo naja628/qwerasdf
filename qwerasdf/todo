@@ -25,18 +25,21 @@ In manual:
 # Current batch
 
 (details)
-* rename menu buttons (more consistent / make more sense)
+* not-in-use command
+
+* save/load palette
 * add related commands hints (n, dfdivs for shapes; imh, ext for exporting images)
+* auto ps2pdf?
+
+* rename menu buttons (more consistent / make more sense)
+
+* raise-group command?
 * scroll through stash?
 * export image of rectangle
-* not-in-use command
-* raise-group command?
-* rmsav command
 
 ----- counts as "finished" (v0.2)
 
 * set params from the terminal, all params are dynamic
-* auto ps2pdf?
 * erase hint messages when hooks close
 * export image: rectangle
 * in stash, option to use wheel for <=>
