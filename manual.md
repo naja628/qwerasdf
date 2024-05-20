@@ -118,7 +118,7 @@ Selected shapes will be highlighted in blue.
 To select shapes within a rectangle, go to `W: Rectangle`  
 * left-click twice to select the shapes inside the rectangle
 * right-click to **toggle** the shapes inside the rectangle
-* you can if a shapes needs to be fully included within the rectangle or having at least a nail within is enough to be considered inside with `Q: Partly/Fully Within`
+* you can choose if to be considered inside, a shapes needs to be fully included within or if having at least a nail within is enough with `Q: Partly/Fully Within`
 * use `W: Normal` to go back to single shape select
 
 Notes: 
@@ -142,8 +142,8 @@ There are two main ways to move or transform (e.g. rotate or mirror) the current
 * You can put transformed copies of the current selection (instead of transforming it), by clicking `F: put copy` from either. You can click F several times in a row to repeat this effect.
 
 ### Using the intractive transformation submenu
-Under `S: Interact`, you can sequentially apply several transformations to the shape.  
-Transformations are applied relative to a center (except move). Initially it is set to the center of the grid (if activated), or to the point under your cursor when you entered `W: visual`.  
+Under `S: Interact`, you can sequentially apply several transformations to the current selection.  
+Transformations are applied relative to a center (except move). Initially it is set to the center of the grid (if activated), or to the point under your cursor when you entered `S: Interact`.  
 To change the center, use `A: recenter`. After left-clicking, the center is set to the point under your cursor.  
 
 To apply transformations:
@@ -173,7 +173,8 @@ To change session use the `session SESSIONNAME` command.
 If the session does not already exist it will be created.  
 The special session name `OFF` is used to indicate you want to disable undoing/autosaving.  
 
-A session may only be used by one single running instance of the program at the any time. If you try to connect to a session that is currently being used, you will see an error message.
+A session may only be used by one single running instance of the program at the any time. If you try to connect to a session that is currently being used, you will see an error message.  
+Sometimes if the program is closed improperly (e.g. OS crash, etc) the program will think a session is in use when it's not. You can use the [not-in-use](#not-in-use) command to resolve such situations. Note that calling not in use when the session is used will badly mangle the undo history.  
 
 # The Grid
 You can activate/deactivate the grid either via `A: Grid`/`A: Grid on/off` or with the `grid` command.  
@@ -228,10 +229,24 @@ Note:
 * The menu, current selection highlights, and other UI elements do not appear on exported images. (only shapes, nails and weaves are considered)
 * Currently [hidden](#show-hide) elements, [antialasing](#antialias) settings, etc, **are** taken into account.
 * Since weave strings do not have a "real" width, when exporting images with a large image height (ie higher resolution than your screen), you might want to set the drawing width higher temporarily (with [`draw-width`](#draw-width)) to avoid colors looking dull when unzoomed.  
+* The `exports_directory` from the [conf](#configuration) applies to exported images.
+
+### Using the stash
+The stash is a copy paste-like mechanism that keeps track of an short history of things that were copied.  
+Use `Q: Stash` from the `S: Selection` submenu to stash the current selection, the weaves inside the selection will also be stash.  
+You can unstash (i.e. paste) previously stashed sets of shapes from the unstash submenu:
+* select what to paste with `W: <=`, `E: =>`, `R: =>>|`  
+* click once to grab a point on the shapes to be unstashed, 
+* click a second time to release the shapes where you want them. This will put a copy
+
+Notes:
+* Some command ([import](#import)) will put things on top of the stash.
+* The stash is especially convenient if you want to copy something that cannot be the current selection for some reason (Otherwise the transforms would work). For example what you want to grab comes from another file or the undo history. 
 
 # Configuration 
 ### rc file
-In `$YOUR_HOME/.qwerasdfrc` you can write (1 per line) commands to be run every time you start the program.
+In `$HOME/.qwerasdfrc` you can write (1 per line) commands to be run every time you start the program.  
+(Note: `./.qwerasfrc`, where `./` is the working directory is also read (after), but what "working directory" means will be OS dependent)  
 
 ### Setting parameters
 Some parameters can be tweaked by writing configuration files.  

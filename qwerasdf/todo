@@ -1,12 +1,6 @@
 In manual:
-* add stash section
-* quick transforms F
-* select rectangles
-* export images
-	* talk about export_directory (out.ps, image)
 * !! menu keys still right?
 * talk about `sym` (grid section?)
-
 
 ## Old bugs
 * (can't reproduce) saw interactive_transform/merge/weave bug

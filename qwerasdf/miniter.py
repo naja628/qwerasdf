@@ -680,6 +680,13 @@ def toggle_oneshot_cmd(*, _env):
        when enabled: the commandline closes after every command'''
     _env.context.oneshot_commands = not _env.context.oneshot_commands 
 
+@miniter_command(('not-in-use',), "$CMD SESSIONNAME")
+def not_in_use_command(session = 'default', *, _env):
+    '''$CMD SESSION: Allow later connection to SESSION in spite of the "not in use" error.
+       $CMD: same as: $CMD default
+       Note that if SESSION is actually in use, this will badly mangle your undo history'''
+    os.remove(os.path.join(params.autosave_dir, session, '.busy'))
+
 # Debug
 @miniter_command(('_debug', '_db'))
 def debug(*, _env):
@@ -704,4 +711,3 @@ def _generate_markdown_doc():
         print('')
     print(', '.join(links))
 
-_generate_markdown_doc()
