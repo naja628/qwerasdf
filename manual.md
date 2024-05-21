@@ -93,7 +93,7 @@ Right-clicking will cycle through all 4 possibilities.
 ### "Advanced" options
 Some commands affect the behavior when drawing weaves:
 * `weaveback/wb`: toggles `weaveback` (on by default). If `weaveback` is enabled, a second set of colorful strings will appear to connect the previous set, as if all the lines came from a single string that wraps around the nails.
-* `weavity/wy INC1 INC2`: set the "weavity" (`1 -1` by default). This allows skipping some nails. (e.g. if the weavity is `2 1`, a nail will be skipped every time when finding the "next nail" on the first shape).
+* `weavity/wy INC1 INC2`: set the "weavity" (`-1 1` by default). This allows skipping some nails. (e.g. if the weavity is `2 1`, a nail will be skipped every time when finding the "next nail" on the first shape).
 
 ## Using Colors
 You can draw weaves in any of 8 different colors associated with one of the `QWERASDF` keyboard keys.  
@@ -162,7 +162,7 @@ You can undo/redo either with `Z: Undo`/`X: Redo`.
 Or from `R: Rewind`: scroll through the history with the mouse-wheel and click when you're done.  
 The first time you make a change after an undo, it is added **at the end** of the history; so the history is not erased. Undoing right after would take you through all the savepoints you went through to get to the previous state you made the change from.  
 You can still access the undo history after closing and restarting the program.  
-Autosaves are not kept indefinitely, they will be progressively deleted in such a way that the history becomes sparser (more time between to savepoints) the further back in time you go.  
+Autosaves are not kept indefinitely, they will be progressively deleted in such a way that the history becomes sparser (more time between two savepoints) the further back in time you go.  
 
 ### Sessions
 Sessions are used to bundle the history of one or several drawings together and are identified by a name. When you launch the program it will try to connect to the session `default`.  
@@ -174,7 +174,7 @@ If the session does not already exist it will be created.
 The special session name `OFF` is used to indicate you want to disable undoing/autosaving.  
 
 A session may only be used by one single running instance of the program at the any time. If you try to connect to a session that is currently being used, you will see an error message.  
-Sometimes if the program is closed improperly (e.g. OS crash, etc) the program will think a session is in use when it's not. You can use the [not-in-use](#not-in-use) command to resolve such situations. Note that calling not in use when the session is used will badly mangle the undo history.  
+Sometimes if the program is closed improperly (e.g. OS crash, etc) the program will think a session is in use when it's not. You can use the [not-in-use](#not-in-use) command to resolve such situations. Note that calling `not-in-use` when the session **is**, in fact, in use will badly mangle the undo history.  
 
 # The Grid
 You can activate/deactivate the grid either via `A: Grid`/`A: Grid on/off` or with the `grid` command.  
@@ -206,11 +206,11 @@ Note: see the [`sym`](#symmetrize) command for a powerful way to symmetrically e
 # Saving
 ### Saving and Loading
 Use the [`s/save`](#save), [`ls-saves/lsav`](#ls-saves), [`load/lo`](#load), and [`quit/q`](#quit) to save your work and quit.  
-The actual save files are located at `$YOUR_HOME/.qwerasdf/save`
+The actual save files are located at `$HOME/.qwerasdf/save`
 
 ### Exporting Outlines
 You can export printable multi-page documents with marking for nails by the using `outline/out SIZE MARGIN [FORMAT]` command.
-The idea is that you would stick the cut-outs over your canvas, plant your nails and then tear it off.
+The idea is that you would stick the cut-outs over your canvas to see where the nails need to go, and tear them off later.
 * `SIZE`: desired size of the drawing in cm. 
 * `MARGIN`: size of the margin in cm. (i.e. the canvas is a `SIZE + MARGIN` sized square)
 * `FORMAT`: paper format. (A4 if left blank; supported: `a4`, `us-letter`)
@@ -232,8 +232,8 @@ Note:
 * The `exports_directory` from the [conf](#configuration) applies to exported images.
 
 ### Using the stash
-The stash is a copy paste-like mechanism that keeps track of an short history of things that were copied.  
-Use `Q: Stash` from the `S: Selection` submenu to stash the current selection, the weaves inside the selection will also be stash.  
+The stash is a copy-paste-like mechanism that keeps track of a short history of things that were copied.  
+Use `Q: Stash` from the `S: Selection` submenu to stash the current selection, the weaves inside the selection will also be stashed.  
 You can unstash (i.e. paste) previously stashed sets of shapes from the unstash submenu:
 * select what to paste with `W: <=`, `E: =>`, `R: =>>|`  
 * click once to grab a point on the shapes to be unstashed, 
@@ -242,6 +242,7 @@ You can unstash (i.e. paste) previously stashed sets of shapes from the unstash 
 Notes:
 * Some command ([import](#import)) will put things on top of the stash.
 * The stash is especially convenient if you want to copy something that cannot be the current selection for some reason (Otherwise the transforms would work). For example what you want to grab comes from another file or the undo history. 
+* The weaves' color depend on the **current** palette and not the one in use at copy time.
 
 # Configuration 
 ### rc file
@@ -250,10 +251,10 @@ In `$HOME/.qwerasdfrc` you can write (1 per line) commands to be run every time 
 
 ### Setting parameters
 Some parameters can be tweaked by writing configuration files.  
-Conf files must be located in `$YOUR_HOME/.qwerasdf` and have the `.conf` extension.  
+Conf files must be located in `$HOME/.qwerasdf` and have the `.conf` extension.  
 The content has the `PARAM = VALUE` format, (1 param per line).  
 Colors can be written as `r, g, b` or `hhhhhh` (where h is an hex digit).  
-Some useful examples can be found in the `example.conf` file.  
+Some useful examples can be found in the [`example.conf`](example.conf) file.  
 
 Parameter | Value (; allowed range) | Description
 ---|---|---
@@ -278,7 +279,7 @@ Parameter | Value (; allowed range) | Description
 `bottom_margin` | int; [0, 50] | size in pixels of the empty band below the bottom text area
 `menu_translate` | keymap (e.g. `QWAZ AZQW`) | specifies key mappings (from `qwerty` to your layout) to use when displaying menu labels
 `image_margin` | float; [0, 0.99] | size of the margin when exporting image (proportion of total image size) 
-`exports_directory` | system path | directory where to put exported files (images, outlines) (this does not affect saves)
+`exports_directory` | OS path | directory where to put exported files (images, outlines) (this does not affect saves)
 
 # List of Commands
 [help](#help), [ls-cmd](#ls-cmd), [usage](#usage), [save](#save), [remove-save](#remove-save), [ls-saves](#ls-saves), [load](#load), [exit](#exit), [new](#new), [import](#import), [recover](#recover), [outline](#outline), [image-height](#image-height), [image-format](#image-format), [export-image](#export-image), [set-color](#set-color), [menu](#menu), [palette](#palette), [div](#div), [default-divs](#default-divs), [weavity](#weavity), [weaveback](#weaveback), [set-rotation](#set-rotation), [fullscreen](#fullscreen), [resize](#resize), [grid](#grid), [grid-rsubdiv](#grid-rsubdiv), [grid-asubdiv](#grid-asubdiv), [set-phase](#set-phase), [antialias](#antialias), [draw-width](#draw-width), [show-hide](#show-hide), [stash-capacity](#stash-capacity), [session](#session), [clear](#clear), [select-all](#select-all), [translate-colors](#translate-colors), [unweave-color](#unweave-color), [raise](#raise), [symmetrize](#symmetrize), [highlight](#highlight), [source](#source), [oneshot-commands](#oneshot-commands), [not-in-use](#not-in-use), [_debug](#_debug)
