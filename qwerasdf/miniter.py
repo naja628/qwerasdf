@@ -394,8 +394,8 @@ def set_default_divs_cmd(*args, _env):
 def set_weavity_cmd(inc0 = 1, inc1 = 1, *, _env):
     "$CMD BOUND_INCREMENT LOOSE_INCREMENT: set the weavity pair. (cf Weaves section of manual)"
     #
-    if inc1 == 0:
-        raise CmdExn("2nd argument cannot be 0")
+    if inc1 <= 0:
+        raise CmdExn("2nd weavity number must be positive (non-zero)")
     _env.context.weavity = (inc0, inc1)
 
 @miniter_command( ('weaveback', 'wb') )
@@ -526,7 +526,10 @@ def connect_session_cmd(session_name = None, *,  _env):
     #
     try:
         reload_session(cx, session_name)
-        post_info(f"'{session_name}' successfully connected", cx)
+        if session_name == 'OFF':
+            post_info("successfully disconnected", cx)
+        else:
+            post_info(f"'{session_name}' successfully connected", cx)
     except Autosaver.DirectoryBusyError:
         post_error("already in use.", cx)
 
@@ -685,7 +688,10 @@ def not_in_use_command(session = 'default', *, _env):
     '''$CMD SESSION: Allow later connection to SESSION in spite of the "not in use" error.
        $CMD: same as: $CMD default
        Note that if SESSION is actually in use, this will badly mangle your undo history'''
-    os.remove(os.path.join(params.autosave_dir, session, '.busy'))
+    try:
+        os.remove(os.path.join(params.autosave_dir, session, '.busy'))
+        _env.context.text.write_section('error', []) # clear last error message
+    except FileNotFoundError: pass
 
 # Debug
 @miniter_command(('_debug', '_db'))

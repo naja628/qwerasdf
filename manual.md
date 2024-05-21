@@ -281,7 +281,7 @@ Parameter | Value (; allowed range) | Description
 `exports_directory` | system path | directory where to put exported files (images, outlines) (this does not affect saves)
 
 # List of Commands
-[help](#help), [ls-cmd](#ls-cmd), [usage](#usage), [save](#save), [remove-save](#remove-save), [ls-saves](#ls-saves), [load](#load), [exit](#exit), [new](#new), [import](#import), [recover](#recover), [outline](#outline), [image-height](#image-height), [image-format](#image-format), [export-image](#export-image), [set-color](#set-color), [menu](#menu), [palette](#palette), [div](#div), [default-divs](#default-divs), [weavity](#weavity), [weaveback](#weaveback), [set-rotation](#set-rotation), [fullscreen](#fullscreen), [resize](#resize), [grid](#grid), [grid-rsubdiv](#grid-rsubdiv), [grid-asubdiv](#grid-asubdiv), [set-phase](#set-phase), [antialias](#antialias), [draw-width](#draw-width), [show-hide](#show-hide), [stash-capacity](#stash-capacity), [session](#session), [clear](#clear), [select-all](#select-all), [translate-colors](#translate-colors), [unweave-color](#unweave-color), [raise](#raise), [symmetrize](#symmetrize), [highlight](#highlight), [source](#source), [oneshot-commands](#oneshot-commands), [_debug](#_debug)  
+[help](#help), [ls-cmd](#ls-cmd), [usage](#usage), [save](#save), [remove-save](#remove-save), [ls-saves](#ls-saves), [load](#load), [exit](#exit), [new](#new), [import](#import), [recover](#recover), [outline](#outline), [image-height](#image-height), [image-format](#image-format), [export-image](#export-image), [set-color](#set-color), [menu](#menu), [palette](#palette), [div](#div), [default-divs](#default-divs), [weavity](#weavity), [weaveback](#weaveback), [set-rotation](#set-rotation), [fullscreen](#fullscreen), [resize](#resize), [grid](#grid), [grid-rsubdiv](#grid-rsubdiv), [grid-asubdiv](#grid-asubdiv), [set-phase](#set-phase), [antialias](#antialias), [draw-width](#draw-width), [show-hide](#show-hide), [stash-capacity](#stash-capacity), [session](#session), [clear](#clear), [select-all](#select-all), [translate-colors](#translate-colors), [unweave-color](#unweave-color), [raise](#raise), [symmetrize](#symmetrize), [highlight](#highlight), [source](#source), [oneshot-commands](#oneshot-commands), [not-in-use](#not-in-use), [_debug](#_debug)
 
 ### help
 aliases: `help`/`h`
@@ -328,8 +328,7 @@ If the search term is a complete name, list only it (and not other matches)
 ### load
 aliases: `load`/`lo`
 ```
-load SEARCHSAVE ! : find matches for SEARCHSAVE according to 'ls-saves' rules, and load the save
- if a single match is found.
+load SEARCHSAVE ! : find matches for SEARCHSAVE according to 'ls-saves' rules, and load the save if a single match is found.
 load SEARCHTERM   : same as above but forbids discarding unsaved changes
 ```
 
@@ -418,8 +417,7 @@ div N: set the number of nails on all selected shapes to N. (evenly spaced)
 ### default-divs
 aliases: `default-divs`/`dfdiv`/`dfnails`
 ```
-default-divs SHAPE_TYPE1 DEFAULT_NAILS1 ...: all shapes of type SHAPE_TYPE1 will be initially dr
-awn with DEFAULT_NAILS1 nails.
+default-divs SHAPE_TYPE1 DEFAULT_NAILS1 ...: all shapes of type SHAPE_TYPE1 will be initially drawn with DEFAULT_NAILS1 nails.
 Shape types: 'circle', 'line', 'arc', 'poly'
 Can specify several (type, dfnails) pairs at once (after each other).
 ```
@@ -441,8 +439,7 @@ aliases: `set-rotation`/`rot`
 ```
 set-rotation DEG   : set the default rotation angle to DEG degrees
 set-rotation RAD pi: set the default rotation angle to RAD * pi radians. (literally type 'pi')
-set-rotation P / Q : set the default rotation to P Qth of a turn. (spaces around the slash manda
-tory)
+set-rotation P / Q : set the default rotation to P Qth of a turn. (spaces around the slash mandatory)
 ```
 
 ### fullscreen
@@ -536,8 +533,7 @@ select-all: select all shapes
 ### translate-colors
 aliases: `translate-colors`/`trans`
 ```
-translate-colors FROM TO: change the colors of the weaves inside the selection according to conv
-ersion rule
+translate-colors FROM TO: change the colors of the weaves inside the selection according to conversion rule
 ex: if FROM = Q and TO = A, weaves with color Q will turn to color A
 ```
 
@@ -557,13 +553,11 @@ raise COLORS: raise weaves inside the selection of certain colors on top
 ### symmetrize
 aliases: `symmetrize`/`sym`
 ```
-symmetrize PATTERN COLORSFROM COLORSTO: complete a circle around the grid, making rotated copies
- of the selection
+symmetrize PATTERN COLORSFROM COLORSTO: complete a circle around the grid, making rotated copies of the selection
 example of patterns: r, r1 (same as r), r2, s, s3, 2 (same as r2), (nothing) (same as r1)...
 rn: create copies by rotating by n * the grid sector angle
 sn: same as rn, but make an horizontally mirrored copy before rotating
-if COLORSFROM and COLORSTO are specified, change colors as if by translate-colors after every tr
-ansform
+if COLORSFROM and COLORSTO are specified, change colors as if by translate-colors after every transform
 ```
 
 ### highlight
@@ -585,7 +579,15 @@ oneshot-commands: toggle oneshot commands.
 when enabled: the commandline closes after every command
 ```
 
-### _debug
+### not-in-use
+aliases: `not-in-use`
+```
+not-in-use SESSION: Allow later connection to SESSION in spite of the "not in use" error.
+not-in-use: same as: not-in-use default
+Note that if SESSION is actually in use, this will badly mangle your undo history
+```
+
+### \_debug
 aliases: `_debug`/`_db`
 ```
 _debug: go into python debugger
