@@ -27,7 +27,7 @@ For example after `D: Draw Shape`/`S: New Segment`, left-clicking on 2 points wi
 ## The Commandline
 Some things are achieved through the command-line (i.e. by literally typing commands).  
 Use `C: Command`, to enter the command-line and start typing commands. A green command prompt will appear.  
-To quit the command-line use `Ctrl-C` or use `Enter` when the prompt is empty (i.e. no text was typed since the last command).  
+Use `Ctrl-C` to close the commandline without running the current command.
 
 See list of available commands [here](#list-of-commands) (look first at [`help`](#help) and [`ls-cmd`](#ls-cmd)). 
 
@@ -576,7 +576,7 @@ source CMDSFILE: read CMDSFILE, and execute its lines as commands
 ### oneshot-commands
 aliases: `oneshot-commands`/`one`
 ```
-oneshot-commands: toggle oneshot commands.
+oneshot-commands: toggle oneshot commands. (default: enabled)
 when enabled: the commandline closes after every command
 ```
 

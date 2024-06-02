@@ -678,7 +678,7 @@ def source_cmd(file, *, _env):
 
 @miniter_command(('oneshot-commands', 'one'))
 def toggle_oneshot_cmd(*, _env):
-    '''$CMD: toggle oneshot commands.
+    '''$CMD: toggle oneshot commands. (default: enabled)
        when enabled: the commandline closes after every command'''
     _env.context.oneshot_commands = not _env.context.oneshot_commands 
 

@@ -200,7 +200,7 @@ def init_context(dimensions):
     cx.grid = Grid()
     cx.grid_on = False
     #
-    cx.oneshot_commands = False
+    cx.oneshot_commands = True
     #
     cx.stash = Stash()
     #
