@@ -62,10 +62,6 @@ _preface = '''
 } def
 '''
 
-# if no points don't print anything (no box etc)
-# support us-letter
-# center the thing or make it not square?
-# show (eg) 1x1/7x7
 
 def generate(points, width, margin, us_letter = False):
     pagewidth, pageheight = 596, 842 # A4

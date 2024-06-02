@@ -37,7 +37,7 @@ class Stash:
         if not shapes: return
         #
         vmin, vmax = bounding_rect(*shapes)
-        center = (vmin + vmax) / 2 # 
+        center = (vmin + vmax) / 2
         stash_frame = Rec()
         stash_frame.shapes = [sh.moved(-center) for sh in shapes]
         stash_frame.weaves, stash_frame.weave_colors = copy_weaves_inside(

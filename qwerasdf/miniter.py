@@ -521,7 +521,7 @@ def connect_session_cmd(session_name = None, *,  _env):
         if not cx.autosaver:
             post_info("no current session", cx)
         else:
-            post_info(f"session: {os.path.basename(cx.autosaver.root)}", cx) # TODO eh 
+            post_info(f"session: {os.path.basename(cx.autosaver.root)}", cx)
         return
     #
     try:
@@ -555,7 +555,6 @@ def _translate_colors(src, dest, weaves, selected, cx):
             key_index = src.index(cx.weave_colors[we])
             cx.weave_colors[we] = dest[key_index]
         except: pass
-#         except BaseException as e: raise e # DEBUG
 
 @miniter_command(('translate-colors', 'trans'), "$CMD FROM TO  (example: $CMD qw az)")
 def translate_colors_cmd(src, dest, *, _env):

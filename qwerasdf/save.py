@@ -152,7 +152,7 @@ class Autosaver: # autosaves system
     def __init__(self, root, pulse = 10):
         try: 
             os.makedirs(root, exist_ok = True)
-            with open(os.path.join(root, '.busy'), 'x'): pass # touch '.busy'
+            with open(os.path.join(root, '.busy'), 'x'): pass # touch .busy
         except FileExistsError: 
             raise Autosaver.DirectoryBusyError()
         #
@@ -186,10 +186,10 @@ class Autosaver: # autosaves system
         except: pass
     #
     def savepoint(self, context):
-        def archive(k, destdir, src): # k start at 0
+        # k = directory nesting depth
+        def archive(k, destdir, src):
             if not (k < len(self.rotorctl)): return
             if not (k < len(self.rotor)):
-                # TODO actually find file with a + if exists
                 self.rotor.append(0)
             #
             isave = self.rotor[k]

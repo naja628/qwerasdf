@@ -809,7 +809,6 @@ def unstash_hook(hook, context):
         hook.finish()
         return
     submenu = { 'W': " <=", 'E': " =>", 'R': " =>>|" }
-    # bottom row (real hooks): Select (shortcut), vis, transfo, mv
     steal_menu_keys(hook, cx.menu, 'QWER', submenu)
     def mousetype_or_key(ev):
         ty = mouse_subtype(ev)

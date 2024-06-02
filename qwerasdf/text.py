@@ -68,11 +68,11 @@ class TextArea:
     def display_lines(self, section):
         lines = self.sections[section].lines
         #
-        cpl = self.width // self.ch_dim[0]
+        cpl = self.width // self.ch_dim[0] # chars per line
         if self.sections[section].wrap:
             def split_line(line):
                 return [line[i:i+cpl] for i in range(0, len(line), cpl)]
-            # lines = [ *split_line(line) for line in lines]
+            # lines = [ *split_line(line) for line in lines] # saddly python doesn't like this syntax
             lines = _flatten1([ split_line(line) for line in lines])
         else:
             lines = [line[0:cpl] for line in lines]
