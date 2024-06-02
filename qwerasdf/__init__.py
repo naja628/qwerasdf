@@ -15,7 +15,7 @@ try:
     _install_icon = path.expanduser('~/.qwerasdf/data/icon.png')
     if not path.isfile(_install_icon):
         makedirs( path.dirname(_install_icon), exist_ok=True )
-        icon = path.join(path.dirname(__file__), '../data/icon.png')
+        icon = path.join(path.dirname(__file__), 'data/icon.png')
         fcopy(icon, _install_icon)
 except: pass # don't die if we have icon problems
 
