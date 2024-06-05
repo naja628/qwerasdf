@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='qwerasdf',
-      version='1.99',
+      version='0.2.0',
       description='GUI Drawing Program for creating string mandala designs',
       author='nat',
       license='MIT',

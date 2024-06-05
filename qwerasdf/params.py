@@ -58,7 +58,6 @@ params.grid_fade_factor = 1 / 2
 params.grid_sparseness_scroll_speed = 3
 
 params.menu_translate = ('', '')
-# params.menu_translate = ('QWAZ', 'AZQW')
 def _assoc(src, dest, k):
     i = src.find(k)
     if i < 0 or i >= len(dest): return k

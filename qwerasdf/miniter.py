@@ -553,7 +553,8 @@ def _translate_colors(src, dest, weaves, selected, cx):
         #
         try:
             key_index = src.index(cx.weave_colors[we])
-            cx.weave_colors[we] = dest[key_index]
+            if (color := dest[key_index]) in cx.weave_colors:
+                cx.weave_colors[we] = dest[key_index]
         except: pass
 
 @miniter_command(('translate-colors', 'trans'), "$CMD FROM TO  (example: $CMD qw az)")
