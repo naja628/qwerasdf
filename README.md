@@ -1,13 +1,13 @@
 ## About
 `qwerasfd` is a GUI tool to make string mandala art designs. (pretty geometric art).  
 It is implemented in python and depends on `numpy` and `pygame`.  
-I put an MIT license in there in case you want to do something cool with the code.  
+I put an MIT license in there just in case.  
 
 ## Install & Run
 
 ### Short Version (for people used to python)
 Install with `pip install .`  
-Run as `qwerasdf` or run the `run_qwerasdf.py` script which can be safely moved.  
+Run as `qwerasdf` or run the `qwerasdf-run.py` script (requires prior installation; can be safely moved).  
 
 ### 1. Make sure `Python3` and `pip` are installed on your system
 On windows just downloaded [the official latest release of python](https://www.python.org/downloads/windows/)
@@ -23,8 +23,9 @@ Note: you can then uninstall with `pip uninstall qwerasdf`.
 
 ### 3. Run
 After installation, you can run the progarm either from the commandline as `qwerasdf`,
-or launching the `run_qwerasdf.py` script with python. (You can move it wherever you like)  
-Note: Windows should let you double-click `.py` files to run them with python.
+or launching the `qwerasdf-run.pyw` script with python. (You can move it wherever you like)  
+Note: Windows should also have a generated `qwerasdf.exe` executable **somewhere** which should be pretty much equivalent
+
 
 ## How to Use
 For instructions on how to use the program, read the [manual](manual.md)
