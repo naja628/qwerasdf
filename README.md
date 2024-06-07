@@ -31,13 +31,13 @@ Note: Windows should also have a generated `qwerasdf.exe` executable **somewhere
 For instructions on how to use the program, read the [manual](manual.md)
 
 ## Gallery
-![arabesque](gallery/arabesque.png)
-![autumn](gallery/autumn.png)
 ![containment](gallery/containment.png)
-![crystal-flower](gallery/crystal-flower.png)
+![sunset](gallery/sunset.png)
+![shards](gallery/shards.png)
 ![heart-web](gallery/heart-web.png)
+![autumn](gallery/autumn.png)
+![crystal-flower](gallery/crystal-flower.png)
 ![hex](gallery/hex.png)
+![arabesque](gallery/arabesque.png)
 ![medusa](gallery/medusa.png)
 ![peacock-moth](gallery/peacock-moth.png)
-![shards](gallery/shards.png)
-![sunset](gallery/sunset.png)
