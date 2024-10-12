@@ -553,7 +553,7 @@ def _translate_colors(src, dest, weaves, selected, cx):
         #
         try:
             key_index = src.index(cx.weave_colors[we])
-            if (color := dest[key_index]) in cx.weave_colors:
+            if (color := dest[key_index]) in cx.palette:
                 cx.weave_colors[we] = dest[key_index]
         except: pass
 
